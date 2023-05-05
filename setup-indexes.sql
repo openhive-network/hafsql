@@ -201,6 +201,131 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_txrecurrenttransfer_to ON hive.op
 CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_txrecurrenttransfer_memo ON hive.operations ((body::jsonb->'value'->>'memo')) WHERE op_type_id = 49;
 
 
+-- Virtual Operations
+-- op_type_id = op_type_id of last non-virtual operation + i (i = 1; i++ for the next VOps)
+-- MUST be adjusted after addition of new operations likely after a HF
+
+-- VOFillConvertRequest 49 + 1
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofillconvertrequest_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 49 + 1;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofillconvertrequest_requestid ON hive.operations ((body::jsonb->'value'->>'requestid')) WHERE op_type_id = 49 + 1;
+
+-- VOAuthorReward 49 + 2
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_voauthorreward_author ON hive.operations ((body::jsonb->'value'->>'author')) WHERE op_type_id = 49 + 2;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_voauthorreward_permlink ON hive.operations ((body::jsonb->'value'->>'permlink')) WHERE op_type_id = 49 + 2;
+
+-- VOCurationReward 49 + 3
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vocurationreward_curator ON hive.operations ((body::jsonb->'value'->>'curator')) WHERE op_type_id = 49 + 3;
+
+-- VOCommentReward 49 + 4
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vocommentreward_author ON hive.operations ((body::jsonb->'value'->>'author')) WHERE op_type_id = 49 + 4;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vocommentreward_permlink ON hive.operations ((body::jsonb->'value'->>'permlink')) WHERE op_type_id = 49 + 4;
+
+-- VOLiquidityReward 49 + 5
+
+-- VOInterestOperation 49 + 6
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vointerestoperation_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 49 + 6;
+
+-- VOFillVestingWithdraw 49 + 7
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofillvestingwithdraw_from_account ON hive.operations ((body::jsonb->'value'->>'from_account')) WHERE op_type_id = 49 + 7;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofillvestingwithdraw_to_account ON hive.operations ((body::jsonb->'value'->>'to_account')) WHERE op_type_id = 49 + 7;
+
+-- VOFillOrder 49 + 8
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofillorder_current_owner ON hive.operations ((body::jsonb->'value'->>'current_owner')) WHERE op_type_id = 49 + 8;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofillorder_current_orderid ON hive.operations ((body::jsonb->'value'->>'current_orderid')) WHERE op_type_id = 49 + 8;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofillorder_open_owner ON hive.operations ((body::jsonb->'value'->>'open_owner')) WHERE op_type_id = 49 + 8;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofillorder_open_orderid ON hive.operations ((body::jsonb->'value'->>'open_orderid')) WHERE op_type_id = 49 + 8;
+
+-- VOShutdownWitness 49 + 9
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_voshutdownwitness_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 49 + 9;
+
+-- VOFillTransferFromSavings 49 + 10
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofilltransferfromsavings_from ON hive.operations ((body::jsonb->'value'->>'from')) WHERE op_type_id = 49 + 10;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofilltransferfromsavings_to ON hive.operations ((body::jsonb->'value'->>'to')) WHERE op_type_id = 49 + 10;
+
+-- VOHardfork 49 + 11
+
+-- VOCommentPayoutUpdate 49 + 12
+
+-- VOReturnVestingDelegation 49 + 13
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_voreturnvestingdelegation_account ON hive.operations ((body::jsonb->'value'->>'account')) WHERE op_type_id = 49 + 13;
+
+-- VOCommentBenefactorReward 49 + 14
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vocommentbenefactorreward_benefactor ON hive.operations ((body::jsonb->'value'->>'benefactor')) WHERE op_type_id = 49 + 14;
+-- CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vocommentbenefactorreward_author ON hive.operations ((body::jsonb->'value'->>'author')) WHERE op_type_id = 49 + 14;
+-- CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vocommentbenefactorreward_permlink ON hive.operations ((body::jsonb->'value'->>'permlink')) WHERE op_type_id = 49 + 14;
+
+-- VOProducerReward 49 + 15
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_voproducerreward_producer ON hive.operations ((body::jsonb->'value'->>'producer')) WHERE op_type_id = 49 + 15;
+
+-- VOClearNullAccountBalance 49 + 16
+
+-- VOProposalPay 49 + 17
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_voproposalpay_proposal_id ON hive.operations ((body::jsonb->'value'->>'proposal_id')) WHERE op_type_id = 49 + 17;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_voproposalpay_receiver ON hive.operations ((body::jsonb->'value'->>'receiver')) WHERE op_type_id = 49 + 17;
+
+-- VODHFFunding 49 + 18
+
+-- VOHardforkHive 49 + 19
+
+-- VOHardforkHiveRestore 49 + 20
+
+-- VODelayedVoting 49 + 21
+
+-- VOConsolidateTreasuryBalance 49 + 22
+
+-- VOEffectiveCommentVote 49 + 23
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_voeffectivecommentvote_author ON hive.operations ((body::jsonb->'value'->>'author')) WHERE op_type_id = 49 + 23;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_voeffectivecommentvote_permlink ON hive.operations ((body::jsonb->'value'->>'permlink')) WHERE op_type_id = 49 + 23;
+
+-- VOIneffectiveDeleteComment 49 + 24
+
+-- VODHFConversion 49 + 25
+
+-- VOExpiredAccountNotification 49 + 26
+
+-- VOChangedRecoveryAccount 49 + 27
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vochangedrecoveryaccount_account ON hive.operations ((body::jsonb->'value'->>'account')) WHERE op_type_id = 49 + 27;
+
+-- VOTransferToVestingCompleted 49 + 28
+
+-- VOPowReward 49 + 29
+
+-- VOVestingSharesSplit 49 + 30
+
+-- VOAccountCreated 49 + 31
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_voaccountcreated_new_account_name ON hive.operations ((body::jsonb->'value'->>'new_account_name')) WHERE op_type_id = 49 + 31;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_voaccountcreated_creator ON hive.operations ((body::jsonb->'value'->>'creator')) WHERE op_type_id = 49 + 31;
+
+-- VOFillCollateralizedConvertRequest 49 + 32
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofillcollateralizedconvertrequest_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 49 + 32;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofillcollateralizedconvertrequest_requestid ON hive.operations ((body::jsonb->'value'->>'requestid')) WHERE op_type_id = 49 + 32;
+
+-- VOSystemWarningOperation 49 + 33
+
+-- VOFillRecurrentTransfer 49 + 34
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofillrecurrenttransfer_from ON hive.operations ((body::jsonb->'value'->>'from')) WHERE op_type_id = 49 + 34;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofillrecurrenttransfer_to ON hive.operations ((body::jsonb->'value'->>'to')) WHERE op_type_id = 49 + 34;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vofillrecurrenttransfer_memo ON hive.operations ((body::jsonb->'value'->>'memo')) WHERE op_type_id = 49 + 34;
+
+-- VOFailedRecurrentTransfer 49 + 35
+
+-- VOLimitOrderCancelled 49 + 36
+
+-- VOProducerMissed 49 + 37
+
+-- VOProposalFee 49 + 38
+
+-- VOCollateralizedConvertImmediateConversion 49 + 39
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vocollateralizedconvertimmediateconversion_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 49 + 39;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_vocollateralizedconvertimmediateconversion_requestid ON hive.operations ((body::jsonb->'value'->>'requestid')) WHERE op_type_id = 49 + 39;
+
+-- VOEscrowApproved 49 + 40
+
+-- VOEscrowRejected 49 + 41
+
+-- VOProxyCleared 49 + 42
+
+
 
 DO $$
 BEGIN
