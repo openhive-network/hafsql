@@ -15,7 +15,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 0;`
   await pool.query(TxVote)
 
-  const TxComment = `CREATE OR REPLACE VIEW hafsql."TxComment"
+  const TxComment = `CREATE OR REPLACE VIEW hafsql.TxComment
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'author'::text AS author,
@@ -677,4 +677,55 @@ export const setupOperationViews = async () => {
     FROM hive.operations o
     WHERE o.op_type_id = 49;`
   await pool.query(TxRecurrentTransfer)
+}
+
+export const removeOperationViews = async () => {
+  const dropViews = `DROP VIEW IF EXISTS
+    hafsql.TxVote,
+    hafsql.TxComment,
+    hafsql.TxTransfer,
+    hafsql.TxTransferToVesting,
+    hafsql.TxWithdrawVesting,
+    hafsql.TxLimitOrderCreate,
+    hafsql.TxLimitOrderCancel,
+    hafsql.TxFeedPublish,
+    hafsql.TxConvert,
+    hafsql.TxAccountCreate,
+    hafsql.TxAccountUpdate,
+    hafsql.TxWitnessUpdate,
+    hafsql.TxAccountWitnessVote,
+    hafsql.TxAccountWitnessProxy,
+    hafsql.TxPow,
+    hafsql.TxCustom,
+    hafsql.TxDeleteComment,
+    hafsql.TxCustomJson,
+    hafsql.TxCommentOptions,
+    hafsql.TxSetWithdrawVestingRoute,
+    hafsql.TxLimitOrderCreate2,
+    hafsql.TxClaimAccount,
+    hafsql.TxCreateClaimedAccount,
+    hafsql.TxRequestAccountRecovery,
+    hafsql.TxRecoverAccount,
+    hafsql.TxChangeRecoveryAccount,
+    hafsql.TxEscrowTransfer,
+    hafsql.TxEscrowDispute,
+    hafsql.TxEscrowRelease,
+    hafsql.TxPow2,
+    hafsql.TxEscrowApprove,
+    hafsql.TxTransferToSavings,
+    hafsql.TxTransferFromSavings,
+    hafsql.TxCancelTransferFromSavings,
+    hafsql.TxDeclineVotingRights,
+    hafsql.TxClaimRewardBalance,
+    hafsql.TxDelegateVestingShares,
+    hafsql.TxAccountCreateWithDelegation,
+    hafsql.TxWitnessSetProperties,
+    hafsql.TxAccountUpdate2,
+    hafsql.TxCreateProposal,
+    hafsql.TxUpdateProposalVotes,
+    hafsql.TxRemoveProposal,
+    hafsql.TxUpdateProposal,
+    hafsql.TxCollateralizedConvert,
+    hafsql.TxRecurrentTransfer;`
+  await pool.query(dropViews)
 }
