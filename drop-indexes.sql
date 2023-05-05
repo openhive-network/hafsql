@@ -1,9 +1,9 @@
 DO $$
 BEGIN
-  RAISE NOTICE 'Dropping indexes CONCURRENTLY. This will take a long time. Starting at %', NOW();
+  RAISE NOTICE 'Dropping indexes. This might take a long time. Starting at %', NOW();
 END; $$;
 
-DROP INDEX CONCURRENTLY IF EXISTS
+DROP INDEX IF EXISTS
 hive.hafsql_txvote_voter,
 hive.hafsql_txvote_author,
 hive.hafsql_txvote_permlink,
@@ -100,6 +100,43 @@ hive.hafsql_txcollateralizedconvert_requestid,
 hive.hafsql_txrecurrenttransfer_from,
 hive.hafsql_txrecurrenttransfer_to,
 hive.hafsql_txrecurrenttransfer_memo;
+
+-- Virtual operation indexes
+DROP INDEX IF EXISTS
+hive.hafsql_vofillconvertrequest_owner,
+hive.hafsql_vofillconvertrequest_requestid,
+hive.hafsql_voauthorreward_author,
+hive.hafsql_voauthorreward_permlink,
+hive.hafsql_vocurationreward_curator,
+hive.hafsql_vocommentreward_author,
+hive.hafsql_vocommentreward_permlink,
+hive.hafsql_vointerestoperation_owner,
+hive.hafsql_vofillvestingwithdraw_from_account,
+hive.hafsql_vofillvestingwithdraw_to_account,
+hive.hafsql_vofillorder_current_owner,
+hive.hafsql_vofillorder_current_orderid,
+hive.hafsql_vofillorder_open_owner,
+hive.hafsql_vofillorder_open_orderid,
+hive.hafsql_voshutdownwitness_owner,
+hive.hafsql_vofilltransferfromsavings_from,
+hive.hafsql_vofilltransferfromsavings_to,
+hive.hafsql_voreturnvestingdelegation_account,
+hive.hafsql_vocommentbenefactorreward_benefactor,
+hive.hafsql_voproducerreward_producer,
+hive.hafsql_voproposalpay_proposal_id,
+hive.hafsql_voproposalpay_receiver,
+hive.hafsql_voeffectivecommentvote_author,
+hive.hafsql_voeffectivecommentvote_permlink,
+hive.hafsql_vochangedrecoveryaccount_account,
+hive.hafsql_voaccountcreated_new_account_name,
+hive.hafsql_voaccountcreated_creator,
+hive.hafsql_vofillcollateralizedconvertrequest_owner,
+hive.hafsql_vofillcollateralizedconvertrequest_requestid,
+hive.hafsql_vofillrecurrenttransfer_from,
+hive.hafsql_vofillrecurrenttransfer_to,
+hive.hafsql_vofillrecurrenttransfer_memo,
+hive.hafsql_vocollateralizedconvertimmediateconversion_owner,
+hive.hafsql_vocollateralizedconvertimmediateconversion_requestid;
 
 DO $$
 BEGIN
