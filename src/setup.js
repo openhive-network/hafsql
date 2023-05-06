@@ -1,5 +1,4 @@
 import { pool } from '../helpers/database.js'
-import { setupOperationIndexes, setupVirtualOperationIndexes } from './indexes.js'
 import { removeOperationViews, setupOperationViews } from './operations.js'
 import { removeVirtualOperationViews, setupVirtualOperationViews } from './virtualOperations.js'
 
