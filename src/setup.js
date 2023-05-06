@@ -19,9 +19,9 @@ export const setup = async () => {
   await setupOperationViews()
   await setupVirtualOperationViews()
 
-  console.log('Creating indexes...')
-  await setupOperationIndexes()
-  await setupVirtualOperationIndexes()
+  // console.log('Creating indexes...')
+  // await setupOperationIndexes()
+  // await setupVirtualOperationIndexes()
 
   console.log('Everything ready.')
 }
