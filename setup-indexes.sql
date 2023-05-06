@@ -147,7 +147,7 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_txtransferfromsavings_from ON hiv
 CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_txtransferfromsavings_to ON hive.operations ((body::jsonb->'value'->>'to')) WHERE op_type_id = 33;
 -- CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_txtransferfromsavings_memo ON hive.operations ((body::jsonb->'value'->>'memo')) WHERE op_type_id = 33;
 
--- TxCancelTransferFromSavings
+-- TxCancelTransferFromSavings 34
 CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_txcanceltransferfromsavings_from ON hive.operations ((body::jsonb->'value'->>'from')) WHERE op_type_id = 34;
 
 -- TxCustomBinary 35
