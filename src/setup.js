@@ -1,4 +1,5 @@
 import { pool } from '../helpers/database.js'
+import { setupOperationIndexes, setupVirtualOperationIndexes } from './indexes.js'
 import { removeOperationViews, setupOperationViews } from './operations.js'
 import { removeVirtualOperationViews, setupVirtualOperationViews } from './virtualOperations.js'
 
@@ -17,6 +18,12 @@ export const setup = async () => {
   console.log('Recreating the views...')
   await setupOperationViews()
   await setupVirtualOperationViews()
+
+  console.log('Creating indexes...')
+  await setupOperationIndexes()
+  await setupVirtualOperationIndexes()
+
+  console.log('Everything ready.')
 }
 
 export const createIndexes = async () => {
