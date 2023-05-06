@@ -45,5 +45,7 @@ const setupFunctions = async () => {
   await pool.query(AssetSymbol)
 }
 
+setup()
+
 // index operations id, op_type_id
 
