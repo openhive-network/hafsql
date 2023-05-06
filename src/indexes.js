@@ -308,3 +308,10 @@ export const setupVirtualOperationIndexes = async () => {
   // VOProxyCleared 49 + 42
   console.log('Finished creating VOps indexes. Now = ' + new Date(Date.now()).toISOString())
 }
+
+const main = async () => {
+  await setupOperationIndexes()
+  await setupVirtualOperationIndexes()
+}
+
+main()
