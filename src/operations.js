@@ -134,7 +134,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
     (o.body::jsonb -> 'value'::text) ->> 'active'::text AS "active",
     (o.body::jsonb -> 'value'::text) ->> 'posting'::text AS "posting",
-    (o.body::jsonb -> 'value'::text) ->> 'memo_key'::text AS "active",
+    (o.body::jsonb -> 'value'::text) ->> 'memo_key'::text AS "memo_key",
     (o.body::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
@@ -150,7 +150,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
     (o.body::jsonb -> 'value'::text) ->> 'active'::text AS "active",
     (o.body::jsonb -> 'value'::text) ->> 'posting'::text AS "posting",
-    (o.body::jsonb -> 'value'::text) ->> 'memo_key'::text AS "active",
+    (o.body::jsonb -> 'value'::text) ->> 'memo_key'::text AS "memo_key",
     (o.body::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
