@@ -9,9 +9,6 @@ export const pool = new pg.Pool({
   host: process.env.PGHOST || '172.17.0.2',
   port: process.env.PGPORT || 5432,
   max: process.env.PGPOOLSIZE || 10,
-  min: 1,
-  ssl: {
-    rejectUnauthorized: true
-  }
+  min: 1
 })
 
