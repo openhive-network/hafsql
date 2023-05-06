@@ -53,7 +53,7 @@ export const setupVirtualOperationViews = async () => {
       (o.body::jsonb -> 'value'::text) ->> 'payout'::text AS payout,
       (o.body::jsonb -> 'value'::text) ->> 'author_rewards'::text AS author_rewards,
       (o.body::jsonb -> 'value'::text) ->> 'total_payout_value'::text AS total_payout_value,
-      (o.body::jsonb -> 'value'::text) ->> 'curator_payout_value'::text AS total_payout_value,
+      (o.body::jsonb -> 'value'::text) ->> 'curator_payout_value'::text AS curator_payout_value,
       (o.body::jsonb -> 'value'::text) ->> 'beneficiary_payout_value'::text AS beneficiary_payout_value
     FROM hive.operations o
     WHERE o.op_type_id = (SELECT ot.id FROM hive.operation_types ot WHERE ot.name = 'hive::protocol::comment_reward_operation');`
