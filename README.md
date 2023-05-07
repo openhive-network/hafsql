@@ -69,7 +69,9 @@ node src/mergedIndexes.js
 
 Copy `example.env` to `.env` and edit if necessary. Default values should work out of the box.  
 
-Advanced:  
+It takes around 3.5 hours on i9-13900 with 12 parallel workers in Postgresql.  
+
+#### Advanced:  
 
 You can set `CONCURRENTLY` to false in `.env` for slightly faster index creation but you have to make sure hived is not syncing and your database is not busy. Syncing can be paused by addition of the following arguments:  
 ```
