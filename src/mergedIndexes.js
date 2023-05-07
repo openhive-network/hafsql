@@ -138,7 +138,7 @@ const setupOperationIndexes = async () => {
 
   // TxCustom 15 - TxCustomJson 18
   // required_auths
-  await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_operations_auths ON hive.operations ((body::jsonb->'value'->'required_auths'))
+  await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_operations_required_auths ON hive.operations ((body::jsonb->'value'->'required_auths'))
     WHERE op_type_id = 15 OR op_type_id = 18;`)
   console.log('Created 19 out of ' + total + ' indexes...')
 
