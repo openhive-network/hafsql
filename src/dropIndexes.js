@@ -33,7 +33,7 @@ const dropIndexes = async () => {
     hive.hafsql_operations_witness,
     hive.hafsql_operations_proxy,
     hive.hafsql_operations_id,
-    hive.hafsql_operations_auths,
+    hive.hafsql_operations_required_auths,
     hive.hafsql_operations_required_posting_auths,
     hive.hafsql_operations_from_account,
     hive.hafsql_operations_to_account,
