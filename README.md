@@ -69,7 +69,7 @@ node src/mergedIndexes.js
 
 Copy `example.env` to `.env` and edit if necessary. Default values should work out of the box.  
 
-It takes around 3.5 hours on i9-13900 with 12 parallel workers in Postgresql.  
+It takes around 3.5 hours on i9-13900, ZFS+LZ4 NVME(gen4) with 12 parallel workers in Postgresql.  
 
 #### Advanced:  
 
