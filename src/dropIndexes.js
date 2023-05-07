@@ -152,8 +152,11 @@ export const dropVirtualOperationIndexes = async () => {
 }
 
 const main = async () => {
+  console.log('Dropping indexes...')
   await dropOperationIndexes()
   await dropVirtualOperationIndexes()
+  console.log('Done.')
+  pool.end()
 }
 
 main()
