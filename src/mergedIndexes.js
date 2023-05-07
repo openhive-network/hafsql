@@ -84,7 +84,7 @@ const setupOperationIndexes = async () => {
   // owner
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_operations_owner ON hive.operations ((body::jsonb->'value'->>'owner'))
     WHERE op_type_id = 5 OR op_type_id = 6 OR op_type_id = 8 OR op_type_id = 11 OR op_type_id = 21 OR op_type_id = 42 OR op_type_id = 48
-    OR op_type_id = 49 + 1 OR op_type_id = 49 + 6 OR WHERE op_type_id = 49 + 9 OR op_type_id = 49 + 32 OR op_type_id = 49 + 39;`)
+    OR op_type_id = 49 + 1 OR op_type_id = 49 + 6 OR op_type_id = 49 + 9 OR op_type_id = 49 + 32 OR op_type_id = 49 + 39;`)
   console.log('Created 10 ot of ' + total + ' indexes...')
 
   // TxLimitOrderCreate 5 - TxLimitOrderCancel 6 - TxLimitOrderCreate2 21
