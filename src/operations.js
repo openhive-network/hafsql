@@ -1,7 +1,7 @@
 import { pool } from '../helpers/database.js'
 
 export const setupOperationViews = async () => {
-  const TxVote = `CREATE OR REPLACE VIEW hafsql.TxVote
+  const TxVote = `CREATE OR REPLACE VIEW hafsql."TxVote"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'voter'::text AS voter,
@@ -15,7 +15,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 0;`
   await pool.query(TxVote)
 
-  const TxComment = `CREATE OR REPLACE VIEW hafsql.TxComment
+  const TxComment = `CREATE OR REPLACE VIEW hafsql."TxComment"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'author'::text AS author,
@@ -32,7 +32,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 1;`
   await pool.query(TxComment)
 
-  const TxTransfer = `CREATE OR REPLACE VIEW hafsql.TxTransfer
+  const TxTransfer = `CREATE OR REPLACE VIEW hafsql."TxTransfer"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
@@ -46,7 +46,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 2;`
   await pool.query(TxTransfer)
   
-  const TxTransferToVesting = `CREATE OR REPLACE VIEW hafsql.TxTransferToVesting
+  const TxTransferToVesting = `CREATE OR REPLACE VIEW hafsql."TxTransferToVesting"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
@@ -59,7 +59,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 3;`
   await pool.query(TxTransferToVesting)
 
-  const TxWithdrawVesting = `CREATE OR REPLACE VIEW hafsql.TxWithdrawVesting
+  const TxWithdrawVesting = `CREATE OR REPLACE VIEW hafsql."TxWithdrawVesting"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
@@ -71,7 +71,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 4;`
   await pool.query(TxWithdrawVesting)
 
-  const TxLimitOrderCreate = `CREATE OR REPLACE VIEW hafsql.TxLimitOrderCreate
+  const TxLimitOrderCreate = `CREATE OR REPLACE VIEW hafsql."TxLimitOrderCreate"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
@@ -87,7 +87,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 5;`
   await pool.query(TxLimitOrderCreate)
 
-  const TxLimitOrderCancel = `CREATE OR REPLACE VIEW hafsql.TxLimitOrderCancel
+  const TxLimitOrderCancel = `CREATE OR REPLACE VIEW hafsql."TxLimitOrderCancel"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
@@ -99,7 +99,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 6;`
   await pool.query(TxLimitOrderCancel)
 
-  const TxFeedPublish = `CREATE OR REPLACE VIEW hafsql.TxFeedPublish
+  const TxFeedPublish = `CREATE OR REPLACE VIEW hafsql."TxFeedPublish"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'publisher'::text AS "publisher",
@@ -112,7 +112,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 7;`
   await pool.query(TxFeedPublish)
 
-  const TxConvert = `CREATE OR REPLACE VIEW hafsql.TxConvert
+  const TxConvert = `CREATE OR REPLACE VIEW hafsql."TxConvert"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
@@ -125,7 +125,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 8;`
   await pool.query(TxConvert)
 
-  const TxAccountCreate = `CREATE OR REPLACE VIEW hafsql.TxAccountCreate
+  const TxAccountCreate = `CREATE OR REPLACE VIEW hafsql."TxAccountCreate"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'fee'::text AS "fee",
@@ -143,7 +143,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 9;`
   await pool.query(TxAccountCreate)
 
-  const TxAccountUpdate = `CREATE OR REPLACE VIEW hafsql.TxAccountUpdate
+  const TxAccountUpdate = `CREATE OR REPLACE VIEW hafsql."TxAccountUpdate"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
@@ -159,7 +159,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 10;`
   await pool.query(TxAccountUpdate)
 
-  const TxWitnessUpdate = `CREATE OR REPLACE VIEW hafsql.TxWitnessUpdate
+  const TxWitnessUpdate = `CREATE OR REPLACE VIEW hafsql."TxWitnessUpdate"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
@@ -174,7 +174,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 11;`
   await pool.query(TxWitnessUpdate)
 
-  const TxAccountWitnessVote = `CREATE OR REPLACE VIEW hafsql.TxAccountWitnessVote
+  const TxAccountWitnessVote = `CREATE OR REPLACE VIEW hafsql."TxAccountWitnessVote"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
@@ -187,7 +187,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 12;`
   await pool.query(TxAccountWitnessVote)
 
-  const TxAccountWitnessProxy = `CREATE OR REPLACE VIEW hafsql.TxAccountWitnessProxy
+  const TxAccountWitnessProxy = `CREATE OR REPLACE VIEW hafsql."TxAccountWitnessProxy"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
@@ -199,7 +199,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 13;`
   await pool.query(TxAccountWitnessProxy)
 
-  const TxPow = `CREATE OR REPLACE VIEW hafsql.TxPow
+  const TxPow = `CREATE OR REPLACE VIEW hafsql."TxPow"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'worker_account'::text AS "worker_account",
@@ -214,7 +214,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 14;`
   await pool.query(TxPow)
 
-  const TxCustom = `CREATE OR REPLACE VIEW hafsql.TxCustom
+  const TxCustom = `CREATE OR REPLACE VIEW hafsql."TxCustom"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) -> 'required_auths' AS "required_auths",
@@ -229,7 +229,7 @@ export const setupOperationViews = async () => {
 
   // skipping op_type_id: 16 - witness_block_approve has never been broadcasted apprantly
 
-  const TxDeleteComment = `CREATE OR REPLACE VIEW hafsql.TxDeleteComment
+  const TxDeleteComment = `CREATE OR REPLACE VIEW hafsql."TxDeleteComment"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'author'::text AS "author",
@@ -241,7 +241,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 17;`
   await pool.query(TxDeleteComment)
 
-  const TxCustomJson = `CREATE OR REPLACE VIEW hafsql.TxCustomJson
+  const TxCustomJson = `CREATE OR REPLACE VIEW hafsql."TxCustomJson"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) -> 'required_auths' AS "required_auths",
@@ -255,7 +255,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 18;`
   await pool.query(TxCustomJson)
 
-  const TxCommentOptions = `CREATE OR REPLACE VIEW hafsql.TxCommentOptions
+  const TxCommentOptions = `CREATE OR REPLACE VIEW hafsql."TxCommentOptions"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'author'::text AS "author",
@@ -272,7 +272,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 19;`
   await pool.query(TxCommentOptions)
 
-  const TxSetWithdrawVestingRoute = `CREATE OR REPLACE VIEW hafsql.TxSetWithdrawVestingRoute
+  const TxSetWithdrawVestingRoute = `CREATE OR REPLACE VIEW hafsql."TxSetWithdrawVestingRoute"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'from_account'::text AS "from_account",
@@ -286,7 +286,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 20;`
   await pool.query(TxSetWithdrawVestingRoute)
 
-  const TxLimitOrderCreate2 = `CREATE OR REPLACE VIEW hafsql.TxLimitOrderCreate2
+  const TxLimitOrderCreate2 = `CREATE OR REPLACE VIEW hafsql."TxLimitOrderCreate2"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
@@ -302,7 +302,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 21;`
   await pool.query(TxLimitOrderCreate2)
 
-  const TxClaimAccount = `CREATE OR REPLACE VIEW hafsql.TxClaimAccount
+  const TxClaimAccount = `CREATE OR REPLACE VIEW hafsql."TxClaimAccount"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
@@ -315,7 +315,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 22;`
   await pool.query(TxClaimAccount)
 
-  const TxCreateClaimedAccount = `CREATE OR REPLACE VIEW hafsql.TxCreateClaimedAccount
+  const TxCreateClaimedAccount = `CREATE OR REPLACE VIEW hafsql."TxCreateClaimedAccount"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
@@ -333,7 +333,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 23;`
   await pool.query(TxCreateClaimedAccount)
 
-  const TxRequestAccountRecovery = `CREATE OR REPLACE VIEW hafsql.TxRequestAccountRecovery
+  const TxRequestAccountRecovery = `CREATE OR REPLACE VIEW hafsql."TxRequestAccountRecovery"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'recovery_account'::text AS "recovery_account",
@@ -347,7 +347,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 24;`
   await pool.query(TxRequestAccountRecovery)
 
-  const TxRecoverAccount = `CREATE OR REPLACE VIEW hafsql.TxRecoverAccount
+  const TxRecoverAccount = `CREATE OR REPLACE VIEW hafsql."TxRecoverAccount"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'account_to_recover'::text AS "account_to_recover",
@@ -361,7 +361,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 25;`
   await pool.query(TxRecoverAccount)
 
-  const TxChangeRecoveryAccount = `CREATE OR REPLACE VIEW hafsql.TxChangeRecoveryAccount
+  const TxChangeRecoveryAccount = `CREATE OR REPLACE VIEW hafsql."TxChangeRecoveryAccount"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'account_to_recover'::text AS "account_to_recover",
@@ -374,7 +374,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 26;`
   await pool.query(TxChangeRecoveryAccount)
 
-  const TxEscrowTransfer = `CREATE OR REPLACE VIEW hafsql.TxEscrowTransfer
+  const TxEscrowTransfer = `CREATE OR REPLACE VIEW hafsql."TxEscrowTransfer"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
@@ -394,7 +394,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 27;`
   await pool.query(TxEscrowTransfer)
 
-  const TxEscrowDispute = `CREATE OR REPLACE VIEW hafsql.TxEscrowDispute
+  const TxEscrowDispute = `CREATE OR REPLACE VIEW hafsql."TxEscrowDispute"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
@@ -409,7 +409,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 28;`
   await pool.query(TxEscrowDispute)
 
-  const TxEscrowRelease = `CREATE OR REPLACE VIEW hafsql.TxEscrowRelease
+  const TxEscrowRelease = `CREATE OR REPLACE VIEW hafsql."TxEscrowRelease"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
@@ -427,7 +427,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 29;`
   await pool.query(TxEscrowRelease)
 
-  const TxPow2 = `CREATE OR REPLACE VIEW hafsql.TxPow2
+  const TxPow2 = `CREATE OR REPLACE VIEW hafsql."TxPow2"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'work'::text AS "work",
@@ -439,7 +439,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 30;`
   await pool.query(TxPow2)
 
-  const TxEscrowApprove = `CREATE OR REPLACE VIEW hafsql.TxEscrowApprove
+  const TxEscrowApprove = `CREATE OR REPLACE VIEW hafsql."TxEscrowApprove"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
@@ -455,7 +455,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 31;`
   await pool.query(TxEscrowApprove)
 
-  const TxTransferToSavings = `CREATE OR REPLACE VIEW hafsql.TxTransferToSavings
+  const TxTransferToSavings = `CREATE OR REPLACE VIEW hafsql."TxTransferToSavings"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
@@ -469,7 +469,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 32;`
   await pool.query(TxTransferToSavings)
 
-  const TxTransferFromSavings = `CREATE OR REPLACE VIEW hafsql.TxTransferFromSavings
+  const TxTransferFromSavings = `CREATE OR REPLACE VIEW hafsql."TxTransferFromSavings"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
@@ -484,7 +484,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 33;`
   await pool.query(TxTransferFromSavings)
 
-  const TxCancelTransferFromSavings = `CREATE OR REPLACE VIEW hafsql.TxCancelTransferFromSavings
+  const TxCancelTransferFromSavings = `CREATE OR REPLACE VIEW hafsql."TxCancelTransferFromSavings"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
@@ -498,7 +498,7 @@ export const setupOperationViews = async () => {
 
   // There is no custom_binary 35 broadcasted - skipping
 
-  const TxDeclineVotingRights = `CREATE OR REPLACE VIEW hafsql.TxDeclineVotingRights
+  const TxDeclineVotingRights = `CREATE OR REPLACE VIEW hafsql."TxDeclineVotingRights"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
@@ -513,7 +513,7 @@ export const setupOperationViews = async () => {
   // There is no reset_account 37 broadcasted - skipping
   // There is no set_reset_account 38 broadcasted - skipping
 
-  const TxClaimRewardBalance = `CREATE OR REPLACE VIEW hafsql.TxClaimRewardBalance
+  const TxClaimRewardBalance = `CREATE OR REPLACE VIEW hafsql."TxClaimRewardBalance"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
@@ -527,7 +527,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 39;`
   await pool.query(TxClaimRewardBalance)
 
-  const TxDelegateVestingShares = `CREATE OR REPLACE VIEW hafsql.TxDelegateVestingShares
+  const TxDelegateVestingShares = `CREATE OR REPLACE VIEW hafsql."TxDelegateVestingShares"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'delegator'::text AS "delegator",
@@ -540,7 +540,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 40;`
   await pool.query(TxDelegateVestingShares)
 
-  const TxAccountCreateWithDelegation = `CREATE OR REPLACE VIEW hafsql.TxAccountCreateWithDelegation
+  const TxAccountCreateWithDelegation = `CREATE OR REPLACE VIEW hafsql."TxAccountCreateWithDelegation"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
@@ -560,7 +560,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 41;`
   await pool.query(TxAccountCreateWithDelegation)
 
-  const TxWitnessSetProperties = `CREATE OR REPLACE VIEW hafsql.TxWitnessSetProperties
+  const TxWitnessSetProperties = `CREATE OR REPLACE VIEW hafsql."TxWitnessSetProperties"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
@@ -573,7 +573,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 42;`
   await pool.query(TxWitnessSetProperties)
 
-  const TxAccountUpdate2 = `CREATE OR REPLACE VIEW hafsql.TxAccountUpdate2
+  const TxAccountUpdate2 = `CREATE OR REPLACE VIEW hafsql."TxAccountUpdate2"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
@@ -587,7 +587,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 43;`
   await pool.query(TxAccountUpdate2)
 
-  const TxCreateProposal = `CREATE OR REPLACE VIEW hafsql.TxCreateProposal
+  const TxCreateProposal = `CREATE OR REPLACE VIEW hafsql."TxCreateProposal"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
@@ -605,7 +605,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 44;`
   await pool.query(TxCreateProposal)
 
-  const TxUpdateProposalVotes = `CREATE OR REPLACE VIEW hafsql.TxUpdateProposalVotes
+  const TxUpdateProposalVotes = `CREATE OR REPLACE VIEW hafsql."TxUpdateProposalVotes"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'voter'::text AS "voter",
@@ -619,7 +619,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 45;`
   await pool.query(TxUpdateProposalVotes)
 
-  const TxRemoveProposal = `CREATE OR REPLACE VIEW hafsql.TxRemoveProposal
+  const TxRemoveProposal = `CREATE OR REPLACE VIEW hafsql."TxRemoveProposal"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'proposal_owner'::text AS "proposal_owner",
@@ -632,7 +632,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 46;`
   await pool.query(TxRemoveProposal)
 
-  const TxUpdateProposal = `CREATE OR REPLACE VIEW hafsql.TxUpdateProposal
+  const TxUpdateProposal = `CREATE OR REPLACE VIEW hafsql."TxUpdateProposal"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'proposal_id'::text AS "proposal_id",
@@ -648,7 +648,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 47;`
   await pool.query(TxUpdateProposal)
 
-  const TxCollateralizedConvert = `CREATE OR REPLACE VIEW hafsql.TxCollateralizedConvert
+  const TxCollateralizedConvert = `CREATE OR REPLACE VIEW hafsql."TxCollateralizedConvert"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
@@ -661,7 +661,7 @@ export const setupOperationViews = async () => {
     WHERE o.op_type_id = 48;`
   await pool.query(TxCollateralizedConvert)
 
-  const TxRecurrentTransfer = `CREATE OR REPLACE VIEW hafsql.TxRecurrentTransfer
+  const TxRecurrentTransfer = `CREATE OR REPLACE VIEW hafsql."TxRecurrentTransfer"
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
