@@ -314,6 +314,8 @@ export const setupVirtualOperationIndexes = async () => {
 const main = async () => {
   await setupOperationIndexes()
   await setupVirtualOperationIndexes()
+  console.log('Draining the pool...')
+  pool.end()
 }
 
 const gracefulShutdown = async () => {
