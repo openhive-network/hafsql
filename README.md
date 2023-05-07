@@ -1,19 +1,19 @@
 # HafSQL
 
-indexes info
-185G total
-60g + 55g + 13g => custom + custom_json
-~3.5hrs
+indexes info  
+185G total  
+60g + 55g + 13g => custom + custom_json  
+~3.5hrs  
 
-Ubuntu 22
-Nodejs v18
+Ubuntu 22  
+Nodejs v18  
 
 To install node.js v18 on Ubuntu 22:
 ```
 ./run.sh install_node
 ```
 
-Step 1:
+Step 1:  
 You need to have a line for `haf_admin` in you pg_hba.conf to create the indexes. Assuming you are using dockerized haf, the following is the easiest way of doing so.
 
 ```bash
@@ -29,7 +29,7 @@ touch custom_pg_hba.conf
 hba_file = '/home/hived/datadir/haf_postgresql_conf.d/custom_pg_hba.conf' # Don't change
 ```
 
-`custom_pg_hba.conf`: (You have )
+`custom_pg_hba.conf`:
 ```conf
 # Necessary for HafSQL index creation - can be removed afterwards
 host    haf_block_log     haf_admin    172.0.0.0/8    trust
@@ -60,29 +60,29 @@ host    replication     all             127.0.0.1/32            md5
 host    replication     all             ::1/128                 md5
 ```
 
-With `haf_admin` access, you can run the following command:
-(Run inside tmux or screen session - will take a long time)
+With `haf_admin` access, you can run the following command:  
+(Run inside tmux or screen session - will take a long time)  
 
 ```
 node src/mergedIndexes.js
 ```
 
-Copy `example.env` to `.env` and edit if necessary. Default values should work out of the box.
+Copy `example.env` to `.env` and edit if necessary. Default values should work out of the box.  
 
-Advanced:
+Advanced:  
 
-You can set `CONCURRENTLY` to false in `.env` for slightly faster index creation but you have to make sure hived is not syncing and your database is not busy. Syncing can be paused by addition of the following arguments:
+You can set `CONCURRENTLY` to false in `.env` for slightly faster index creation but you have to make sure hived is not syncing and your database is not busy. Syncing can be paused by addition of the following arguments:  
 ```
 --stop-replay-at-block=74000000 --replay
 ```
-(It will just pause the sync while postgresql will be running inside the docker. Note: Assuming you are using the dockerized setup.)
+(It will just pause the sync while postgresql will be running inside the docker. Note: Assuming you are using the dockerized setup.)  
 
-Step 2:
+Step 2:  
 
-To create the views and `hafsql` schema:
+To create the views and `hafsql` schema:  
 ```
 node src/setup.js
 ```
 
-Note:
+Note:  
 On addition of new non-virtual operations during a Hard fork, because the ID of Virtual operations change, the indexes should be recreated with the new operation ids added.
