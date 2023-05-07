@@ -3,7 +3,7 @@ import { pool } from '../helpers/database.js'
 export const setupVirtualOperationViews = async () => {
   // The order of VOps can change on HF so we use their names instead of id
   // +1
-  const VOFillConvertRequest = `CREATE OR REPLACE VIEW hafsql.VOFillConvertRequest
+  const VOFillConvertRequest = `CREATE OR REPLACE VIEW hafsql."VOFillConvertRequest"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS owner,
@@ -17,7 +17,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOFillConvertRequest)
 
   // +2
-  const VOAuthorReward = `CREATE OR REPLACE VIEW hafsql.VOAuthorReward
+  const VOAuthorReward = `CREATE OR REPLACE VIEW hafsql."VOAuthorReward"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'author'::text AS author,
@@ -32,7 +32,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOAuthorReward)
 
   // +3
-  const VOCurationReward = `CREATE OR REPLACE VIEW hafsql.VOCurationReward
+  const VOCurationReward = `CREATE OR REPLACE VIEW hafsql."VOCurationReward"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'curator'::text AS curator,
@@ -45,7 +45,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOCurationReward)
 
   // +4
-  const VOCommentReward = `CREATE OR REPLACE VIEW hafsql.VOCommentReward
+  const VOCommentReward = `CREATE OR REPLACE VIEW hafsql."VOCommentReward"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'author'::text AS author,
@@ -60,7 +60,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOCommentReward)
   
   // +5
-  const VOLiquidityReward = `CREATE OR REPLACE VIEW hafsql.VOLiquidityReward
+  const VOLiquidityReward = `CREATE OR REPLACE VIEW hafsql."VOLiquidityReward"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS owner,
@@ -70,7 +70,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOLiquidityReward)
 
   // +6
-  const VOInterestOperation = `CREATE OR REPLACE VIEW hafsql.VOInterestOperation
+  const VOInterestOperation = `CREATE OR REPLACE VIEW hafsql."VOInterestOperation"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS owner,
@@ -82,7 +82,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOInterestOperation)
 
   // +7
-  const VOFillVestingWithdraw = `CREATE OR REPLACE VIEW hafsql.VOFillVestingWithdraw
+  const VOFillVestingWithdraw = `CREATE OR REPLACE VIEW hafsql."VOFillVestingWithdraw"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'from_account'::text AS from_account,
@@ -95,7 +95,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOFillVestingWithdraw)
 
   // +8
-  const VOFillOrder = `CREATE OR REPLACE VIEW hafsql.VOFillOrder
+  const VOFillOrder = `CREATE OR REPLACE VIEW hafsql."VOFillOrder"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'current_owner'::text AS current_owner,
@@ -111,7 +111,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOFillOrder)
 
   // +9
-  const VOShutdownWitness = `CREATE OR REPLACE VIEW hafsql.VOShutdownWitness
+  const VOShutdownWitness = `CREATE OR REPLACE VIEW hafsql."VOShutdownWitness"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS owner
@@ -120,7 +120,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOShutdownWitness)
 
   // +10
-  const VOFillTransferFromSavings = `CREATE OR REPLACE VIEW hafsql.VOFillTransferFromSavings
+  const VOFillTransferFromSavings = `CREATE OR REPLACE VIEW hafsql."VOFillTransferFromSavings"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'from'::text AS from,
@@ -134,7 +134,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOFillTransferFromSavings)
 
   // +11
-  const VOHardfork = `CREATE OR REPLACE VIEW hafsql.VOHardfork
+  const VOHardfork = `CREATE OR REPLACE VIEW hafsql."VOHardfork"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'hardfork_id'::text AS hardfork_id
@@ -143,7 +143,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOHardfork)
 
   // +12
-  const VOCommentPayoutUpdate = `CREATE OR REPLACE VIEW hafsql.VOCommentPayoutUpdate
+  const VOCommentPayoutUpdate = `CREATE OR REPLACE VIEW hafsql."VOCommentPayoutUpdate"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'author'::text AS author,
@@ -153,7 +153,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOCommentPayoutUpdate)
 
   // +13
-  const VOReturnVestingDelegation = `CREATE OR REPLACE VIEW hafsql.VOReturnVestingDelegation
+  const VOReturnVestingDelegation = `CREATE OR REPLACE VIEW hafsql."VOReturnVestingDelegation"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'account'::text AS account,
@@ -163,7 +163,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOReturnVestingDelegation)
 
   // +14
-  const VOCommentBenefactorReward = `CREATE OR REPLACE VIEW hafsql.VOCommentBenefactorReward
+  const VOCommentBenefactorReward = `CREATE OR REPLACE VIEW hafsql."VOCommentBenefactorReward"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'benefactor'::text AS benefactor,
@@ -180,7 +180,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOCommentBenefactorReward)
 
   // +15
-  const VOProducerReward = `CREATE OR REPLACE VIEW hafsql.VOProducerReward
+  const VOProducerReward = `CREATE OR REPLACE VIEW hafsql."VOProducerReward"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'producer'::text AS producer,
@@ -190,7 +190,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOProducerReward)
 
   // +16
-  const VOClearNullAccountBalance = `CREATE OR REPLACE VIEW hafsql.VOClearNullAccountBalance
+  const VOClearNullAccountBalance = `CREATE OR REPLACE VIEW hafsql."VOClearNullAccountBalance"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'total_cleared'::text AS total_cleared
@@ -199,7 +199,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOClearNullAccountBalance)
 
   // +17 - skipped trx_id & op_in_trx - redundant
-  const VOProposalPay = `CREATE OR REPLACE VIEW hafsql.VOProposalPay
+  const VOProposalPay = `CREATE OR REPLACE VIEW hafsql."VOProposalPay"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'proposal_id'::text AS proposal_id,
@@ -212,7 +212,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOProposalPay)
 
   // +18
-  const VODHFFunding = `CREATE OR REPLACE VIEW hafsql.VODHFFunding
+  const VODHFFunding = `CREATE OR REPLACE VIEW hafsql."VODHFFunding"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'treasury'::text AS treasury,
@@ -223,7 +223,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VODHFFunding)
 
   // +19
-  const VOHardforkHive = `CREATE OR REPLACE VIEW hafsql.VOHardforkHive
+  const VOHardforkHive = `CREATE OR REPLACE VIEW hafsql."VOHardforkHive"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'account'::text AS account,
@@ -238,7 +238,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOHardforkHive)
 
   // +20
-  const VOHardforkHiveRestore = `CREATE OR REPLACE VIEW hafsql.VOHardforkHiveRestore
+  const VOHardforkHiveRestore = `CREATE OR REPLACE VIEW hafsql."VOHardforkHiveRestore"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'account'::text AS account,
@@ -250,7 +250,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOHardforkHiveRestore)
 
   // +21
-  const VODelayedVoting = `CREATE OR REPLACE VIEW hafsql.VODelayedVoting
+  const VODelayedVoting = `CREATE OR REPLACE VIEW hafsql."VODelayedVoting"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'voter'::text AS voter,
@@ -260,7 +260,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VODelayedVoting)
 
   // +22
-  const VOConsolidateTreasuryBalance = `CREATE OR REPLACE VIEW hafsql.VOConsolidateTreasuryBalance
+  const VOConsolidateTreasuryBalance = `CREATE OR REPLACE VIEW hafsql."VOConsolidateTreasuryBalance"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'total_moved'::text AS total_moved
@@ -269,7 +269,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOConsolidateTreasuryBalance)
 
   // +23
-  const VOEffectiveCommentVote = `CREATE OR REPLACE VIEW hafsql.VOEffectiveCommentVote
+  const VOEffectiveCommentVote = `CREATE OR REPLACE VIEW hafsql."VOEffectiveCommentVote"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'voter'::text AS voter,
@@ -285,7 +285,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOEffectiveCommentVote)
 
   // +24
-  const VOIneffectiveDeleteComment = `CREATE OR REPLACE VIEW hafsql.VOIneffectiveDeleteComment
+  const VOIneffectiveDeleteComment = `CREATE OR REPLACE VIEW hafsql."VOIneffectiveDeleteComment"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'author'::text AS author,
@@ -295,7 +295,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOIneffectiveDeleteComment)
 
   // +25
-  const VODHFConversion = `CREATE OR REPLACE VIEW hafsql.VODHFConversion
+  const VODHFConversion = `CREATE OR REPLACE VIEW hafsql."VODHFConversion"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'treasury'::text AS treasury,
@@ -306,7 +306,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VODHFConversion)
 
   // +26
-  const VOExpiredAccountNotification = `CREATE OR REPLACE VIEW hafsql.VOExpiredAccountNotification
+  const VOExpiredAccountNotification = `CREATE OR REPLACE VIEW hafsql."VOExpiredAccountNotification"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'account'::text AS account
@@ -315,7 +315,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOExpiredAccountNotification)
 
   // +27
-  const VOChangedRecoveryAccount = `CREATE OR REPLACE VIEW hafsql.VOChangedRecoveryAccount
+  const VOChangedRecoveryAccount = `CREATE OR REPLACE VIEW hafsql."VOChangedRecoveryAccount"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'account'::text AS account,
@@ -326,7 +326,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOChangedRecoveryAccount)
 
   // +28
-  const VOTransferToVestingCompleted = `CREATE OR REPLACE VIEW hafsql.VOTransferToVestingCompleted
+  const VOTransferToVestingCompleted = `CREATE OR REPLACE VIEW hafsql."VOTransferToVestingCompleted"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'from_account'::text AS from_account,
@@ -338,7 +338,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOTransferToVestingCompleted)
 
   // +29
-  const VOPowReward = `CREATE OR REPLACE VIEW hafsql.VOPowReward
+  const VOPowReward = `CREATE OR REPLACE VIEW hafsql."VOPowReward"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'worker'::text AS worker,
@@ -348,7 +348,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOPowReward)
 
   // +30
-  const VOVestingSharesSplit = `CREATE OR REPLACE VIEW hafsql.VOVestingSharesSplit
+  const VOVestingSharesSplit = `CREATE OR REPLACE VIEW hafsql."VOVestingSharesSplit"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS owner,
@@ -359,7 +359,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOVestingSharesSplit)
 
   // +31
-  const VOAccountCreated = `CREATE OR REPLACE VIEW hafsql.VOAccountCreated
+  const VOAccountCreated = `CREATE OR REPLACE VIEW hafsql."VOAccountCreated"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'new_account_name'::text AS new_account_name,
@@ -371,7 +371,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOAccountCreated)
 
   // +32
-  const VOFillCollateralizedConvertRequest = `CREATE OR REPLACE VIEW hafsql.VOFillCollateralizedConvertRequest
+  const VOFillCollateralizedConvertRequest = `CREATE OR REPLACE VIEW hafsql."VOFillCollateralizedConvertRequest"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS owner,
@@ -387,7 +387,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOFillCollateralizedConvertRequest)
 
   // +33
-  const VOSystemWarningOperation = `CREATE OR REPLACE VIEW hafsql.VOSystemWarningOperation
+  const VOSystemWarningOperation = `CREATE OR REPLACE VIEW hafsql."VOSystemWarningOperation"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'message'::text AS message
@@ -396,7 +396,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOSystemWarningOperation)
 
   // +34
-  const VOFillRecurrentTransfer = `CREATE OR REPLACE VIEW hafsql.VOFillRecurrentTransfer
+  const VOFillRecurrentTransfer = `CREATE OR REPLACE VIEW hafsql."VOFillRecurrentTransfer"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'from'::text AS from,
@@ -410,7 +410,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOFillRecurrentTransfer)
 
   // +35
-  const VOFailedRecurrentTransfer = `CREATE OR REPLACE VIEW hafsql.VOFailedRecurrentTransfer
+  const VOFailedRecurrentTransfer = `CREATE OR REPLACE VIEW hafsql."VOFailedRecurrentTransfer"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'from'::text AS from,
@@ -426,7 +426,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOFailedRecurrentTransfer)
 
   // +36
-  const VOLimitOrderCancelled = `CREATE OR REPLACE VIEW hafsql.VOLimitOrderCancelled
+  const VOLimitOrderCancelled = `CREATE OR REPLACE VIEW hafsql."VOLimitOrderCancelled"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'seller'::text AS seller,
@@ -438,7 +438,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOLimitOrderCancelled)
 
   // +37
-  const VOProducerMissed = `CREATE OR REPLACE VIEW hafsql.VOProducerMissed
+  const VOProducerMissed = `CREATE OR REPLACE VIEW hafsql."VOProducerMissed"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'producer'::text AS producer
@@ -447,7 +447,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOProducerMissed)
 
   // +38
-  const VOProposalFee = `CREATE OR REPLACE VIEW hafsql.VOProposalFee
+  const VOProposalFee = `CREATE OR REPLACE VIEW hafsql."VOProposalFee"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'creator'::text AS creator,
@@ -460,7 +460,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOProposalFee)
 
   // +39
-  const VOCollateralizedConvertImmediateConversion = `CREATE OR REPLACE VIEW hafsql.VOCollateralizedConvertImmediateConversion
+  const VOCollateralizedConvertImmediateConversion = `CREATE OR REPLACE VIEW hafsql."VOCollateralizedConvertImmediateConversion"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS owner,
@@ -472,7 +472,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOCollateralizedConvertImmediateConversion)
 
   // +40
-  const VOEscrowApproved = `CREATE OR REPLACE VIEW hafsql.VOEscrowApproved
+  const VOEscrowApproved = `CREATE OR REPLACE VIEW hafsql."VOEscrowApproved"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'from'::text AS from,
@@ -485,7 +485,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOEscrowApproved)
 
   // +41
-  const VOEscrowRejected = `CREATE OR REPLACE VIEW hafsql.VOEscrowRejected
+  const VOEscrowRejected = `CREATE OR REPLACE VIEW hafsql."VOEscrowRejected"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'from'::text AS from,
@@ -500,7 +500,7 @@ export const setupVirtualOperationViews = async () => {
   await pool.query(VOEscrowRejected)
 
   // +42
-  const VOProxyCleared = `CREATE OR REPLACE VIEW hafsql.VOProxyCleared
+  const VOProxyCleared = `CREATE OR REPLACE VIEW hafsql."VOProxyCleared"
     AS SELECT o.id as op_id,
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'account'::text AS account,
