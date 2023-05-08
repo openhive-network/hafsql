@@ -15,15 +15,15 @@ const pool = new pg.Pool({
 
 const CONCURRENTLY = process.env.CONCURRENTLY === 'false' ? '' : 'CONCURRENTLY'
 
-// IF NEEDED - Probably will need
-// const setupHafIndexes = async () => {
-//   await pool.query('CREATE INDEX IF NOT EXISTS hive_operations_op_type_id_id_idx ON hive.operations (op_type_id, id)')
-// }
+const total = 37;
 
-const total = 36;
+// Needed for sorting by ID asc or desc
+const setupHafIndexes = async () => {
+  await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hive_operations_op_type_id_id_idx ON hive.operations (op_type_id, id)`)
+  console.log('Created ' + total + ' out of ' + total + ' indexes...')
+}
 
 const setupOperationIndexes = async () => {
-  console.log(`Creating operation indexes ${CONCURRENTLY}. This will take a few hours. Now = ` + new Date(Date.now()).toISOString())
   // TxVote 0 - TxUpdateProposalVotes 45
   // voter
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_operations_voter ON hive.operations ((body::jsonb->'value'->>'voter'))
@@ -226,13 +226,17 @@ const setupOperationIndexes = async () => {
     WHERE op_type_id = 49 + 17;`)
   console.log('Created 36 out of ' + total + ' indexes...')
 
-  console.log('Finished creating operation indexes. Now = ' + new Date(Date.now()).toISOString())
+  
 }
 
 const main = async () => {
+  console.log(`Creating indexes ${CONCURRENTLY}. This will take a few hours. Now = ` + new Date(Date.now()).toISOString())
   await setupOperationIndexes()
+  await setupHafIndexes()
+  console.log('Finished creating indexes. Now = ' + new Date(Date.now()).toISOString())
   console.log('Draining the pool...')
   pool.end()
+  console.log('Everything ready.')
 }
 
 const gracefulShutdown = async () => {
