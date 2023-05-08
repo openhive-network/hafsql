@@ -10,7 +10,7 @@ export const setupOperationViews = async () => {
       (o.body::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink",
       ( SELECT encode(t.trx_hash, 'hex'::text) AS "trx_hash"
           FROM hive.transactions t
-        WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+        WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 0;`
   await pool.query(TxVote)
@@ -27,7 +27,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS "trx_hash"
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 1;`
   await pool.query(TxComment)
@@ -41,7 +41,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'memo'::text AS "memo",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS "trx_hash"
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 2;`
   await pool.query(TxTransfer)
@@ -54,7 +54,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'amount'::text AS "amount",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS "trx_hash"
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 3;`
   await pool.query(TxTransferToVesting)
@@ -66,7 +66,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'vesting_shares'::text AS "vesting_shares",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS "trx_hash"
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 4;`
   await pool.query(TxWithdrawVesting)
@@ -82,7 +82,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'expiration'::text AS "expiration",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS "trx_hash"
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 5;`
   await pool.query(TxLimitOrderCreate)
@@ -94,7 +94,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'orderid'::text AS "orderid",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS "trx_hash"
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 6;`
   await pool.query(TxLimitOrderCancel)
@@ -107,7 +107,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'quote'::text AS "quote",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 7;`
   await pool.query(TxFeedPublish)
@@ -120,7 +120,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'amount'::text AS "amount",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 8;`
   await pool.query(TxConvert)
@@ -138,7 +138,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 9;`
   await pool.query(TxAccountCreate)
@@ -154,7 +154,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 10;`
   await pool.query(TxAccountUpdate)
@@ -169,7 +169,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'fee'::text AS "fee",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 11;`
   await pool.query(TxWitnessUpdate)
@@ -182,7 +182,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'approve'::text AS "approve",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 12;`
   await pool.query(TxAccountWitnessVote)
@@ -194,7 +194,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'proxy'::text AS "proxy",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 13;`
   await pool.query(TxAccountWitnessProxy)
@@ -209,7 +209,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'props'::text AS "props",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 14;`
   await pool.query(TxPow)
@@ -222,7 +222,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'data'::text AS "data",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 15;`
   await pool.query(TxCustom)
@@ -236,7 +236,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 17;`
   await pool.query(TxDeleteComment)
@@ -250,7 +250,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'json'::text AS "json",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 18;`
   await pool.query(TxCustomJson)
@@ -267,7 +267,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 19;`
   await pool.query(TxCommentOptions)
@@ -281,7 +281,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'auto_vest'::text AS "auto_vest",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 20;`
   await pool.query(TxSetWithdrawVestingRoute)
@@ -297,7 +297,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'expiration'::text AS "expiration",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 21;`
   await pool.query(TxLimitOrderCreate2)
@@ -310,7 +310,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 22;`
   await pool.query(TxClaimAccount)
@@ -328,7 +328,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 23;`
   await pool.query(TxCreateClaimedAccount)
@@ -342,7 +342,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 24;`
   await pool.query(TxRequestAccountRecovery)
@@ -356,7 +356,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 25;`
   await pool.query(TxRecoverAccount)
@@ -369,7 +369,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 26;`
   await pool.query(TxChangeRecoveryAccount)
@@ -389,7 +389,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'escrow_expiration'::text AS "escrow_expiration",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 27;`
   await pool.query(TxEscrowTransfer)
@@ -404,7 +404,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'escrow_id'::text AS "escrow_id",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 28;`
   await pool.query(TxEscrowDispute)
@@ -422,7 +422,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'hive_amount'::text AS "hive_amount",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 29;`
   await pool.query(TxEscrowRelease)
@@ -434,7 +434,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'props'::text AS "props",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 30;`
   await pool.query(TxPow2)
@@ -450,7 +450,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'approve'::text AS "approve",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 31;`
   await pool.query(TxEscrowApprove)
@@ -464,7 +464,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'memo'::text AS "memo",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 32;`
   await pool.query(TxTransferToSavings)
@@ -479,7 +479,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'memo'::text AS "memo",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 33;`
   await pool.query(TxTransferFromSavings)
@@ -491,7 +491,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'request_id'::text AS "request_id",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 34;`
   await pool.query(TxCancelTransferFromSavings)
@@ -505,7 +505,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'decline'::text AS "decline",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 36;`
   await pool.query(TxDeclineVotingRights)
@@ -522,7 +522,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'reward_vests'::text AS "reward_vests",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 39;`
   await pool.query(TxClaimRewardBalance)
@@ -535,7 +535,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'vesting_shares'::text AS "vesting_shares",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 40;`
   await pool.query(TxDelegateVestingShares)
@@ -555,7 +555,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 41;`
   await pool.query(TxAccountCreateWithDelegation)
@@ -568,7 +568,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 42;`
   await pool.query(TxWitnessSetProperties)
@@ -582,7 +582,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 43;`
   await pool.query(TxAccountUpdate2)
@@ -600,7 +600,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 44;`
   await pool.query(TxCreateProposal)
@@ -614,7 +614,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 45;`
   await pool.query(TxUpdateProposalVotes)
@@ -627,7 +627,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 46;`
   await pool.query(TxRemoveProposal)
@@ -643,7 +643,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 47;`
   await pool.query(TxUpdateProposal)
@@ -656,7 +656,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'amount'::text AS "amount",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 48;`
   await pool.query(TxCollateralizedConvert)
@@ -673,7 +673,7 @@ export const setupOperationViews = async () => {
     (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS trx_hash
         FROM hive.transactions t
-      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block) AS trx_id
+      WHERE t.block_num = o.block_num AND t.trx_in_block = o.trx_in_block LIMIT 1) AS trx_id
     FROM hive.operations o
     WHERE o.op_type_id = 49;`
   await pool.query(TxRecurrentTransfer)
