@@ -1,17 +1,39 @@
 # HafSQL
 
-indexes info  
-185G total  
-60g + 55g + 13g => custom + custom_json  
-~3.5hrs  
+Space used by indexes: 185GB (non-compressed)
 
+
+#### Requirements
 Ubuntu 22  
 Nodejs v18  
 
 To install node.js v18 on Ubuntu 22:
-```
+```bash
 ./run.sh install_node
 ```
+
+Install dependencies:
+```bash
+npm install
+```
+
+Depending on your situation, you can create indexes in two ways.
+
+1. On a live haf node (hived syncing)  
+This is the default behaviour of the code responsible for index creation. 
+You can safely do this on a live node but it will take longer time to finish.  
+Note: This "might" still slightly affect the performance of the running applications.  
+Around 10 hours.  
+
+
+2. On a offline haf node (hived paused)  
+Make sure hived is not running. See the advanced section bellow.  
+You have to set `CONCURRENTLY` to `false` in `.env` file.  
+This will lock the `hive.operations` table and will be a lot faster in expense of pausing the hived.  
+Around 3.5 hours.  
+
+The above numbers are from i9-13900, ZFS+LZ4 on raid0 NVMe, 12 parallel workers
+
 
 Step 1:  
 You need to have a line for `haf_admin` in you pg_hba.conf to create the indexes. Assuming you are using dockerized haf, the following is the easiest way of doing so.
@@ -59,32 +81,34 @@ local   replication     all                                     peer
 host    replication     all             127.0.0.1/32            md5
 host    replication     all             ::1/128                 md5
 ```
+Have to restart the container.  
 
 With `haf_admin` access, you can run the following command:  
 (Run inside tmux or screen session - will take a long time)  
 
-```
+```bash
 node src/mergedIndexes.js
 ```
 
 Copy `example.env` to `.env` and edit if necessary. Default values should work out of the box.  
 
-It takes around 3.5 hours on i9-13900, ZFS+LZ4 NVME(gen4) with 12 parallel workers in Postgresql.  
+
+Step 2:  
+
+To create the views and `hafsql` schema:  
+```bash
+node src/setup.js
+```
 
 #### Advanced:  
 
-You can set `CONCURRENTLY` to false in `.env` for slightly faster index creation but you have to make sure hived is not syncing and your database is not busy. Syncing can be paused by addition of the following arguments:  
+You can set `CONCURRENTLY` to false in `.env` for a faster index creation but you have to make sure hived is not syncing and your database is not busy. Syncing can be paused by addition of the following arguments:  
 ```
 --stop-replay-at-block=74000000 --replay
 ```
 (It will just pause the sync while postgresql will be running inside the docker. Note: Assuming you are using the dockerized setup.)  
 
-Step 2:  
 
-To create the views and `hafsql` schema:  
-```
-node src/setup.js
-```
 
 Note:  
 On addition of new non-virtual operations during a Hard fork, because the ID of Virtual operations change, the indexes should be recreated with the new operation ids added.
