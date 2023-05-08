@@ -36,7 +36,7 @@ export const setupOperationViews = async () => {
   AS SELECT o.id AS op_id,
     o."timestamp",
     (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
-    (o.body::jsonb -> 'value'::text) ->> 'to'::text AS "to_account",
+    (o.body::jsonb -> 'value'::text) ->> 'to'::text AS "to",
     (o.body::jsonb -> 'value'::text) ->> 'amount'::text AS "amount",
     (o.body::jsonb -> 'value'::text) ->> 'memo'::text AS "memo",
     ( SELECT encode(t.trx_hash, 'hex'::text) AS "trx_hash"
