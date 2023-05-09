@@ -282,13 +282,9 @@ export const setupOperationIndexes = async () => {
   // await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txrecurrenttransfer_from ON hive.operations ((body::jsonb->'value'->>'from')) WHERE op_type_id = 49;`)
   // await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txrecurrenttransfer_to ON hive.operations ((body::jsonb->'value'->>'to')) WHERE op_type_id = 49;`)
   // await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txrecurrenttransfer_memo ON hive.operations ((body::jsonb->'value'->>'memo')) WHERE op_type_id = 49;`)
-
-  console.log('Finished creating operation indexes. Now = ' + new Date(Date.now()).toISOString())
 }
 
 export const setupVirtualOperationIndexes = async () => {
-  console.log(`Creating VOps indexes ${CONCURRENTLY}. Will take a long time. Now = ` + new Date(Date.now()).toISOString())
-  
   // VOFillConvertRequest 49 + 1
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillconvertrequest_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 49 + 1;`)
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillconvertrequest_requestid ON hive.operations ((body::jsonb->'value'->>'requestid')) WHERE op_type_id = 49 + 1;`)
