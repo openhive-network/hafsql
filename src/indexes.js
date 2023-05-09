@@ -19,12 +19,11 @@ const total = 94
 
 // Needed for sorting by ID asc or desc
 const setupHafIndexes = async () => {
-  await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hive_operations_op_type_id_id_hafsql ON hive.operations (op_type_id, id)`)
+  await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hive_operations_id_op_type_id_hafsql ON hive.operations (id, op_type_id)`)
   console.log('Created ' + total + ' out of ' + total + ' indexes...')
 }
 
 export const setupOperationIndexes = async () => {
-  console.log(`Creating operation indexes ${CONCURRENTLY}. Will take a long time. Now = ` + new Date(Date.now()).toISOString())
   // TxVote 0
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txvote_voter ON hive.operations ((body::jsonb->'value'->>'voter')) WHERE op_type_id = 0;`)
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txvote_author ON hive.operations ((body::jsonb->'value'->>'author')) WHERE op_type_id = 0;`)
@@ -288,7 +287,7 @@ export const setupOperationIndexes = async () => {
 }
 
 export const setupVirtualOperationIndexes = async () => {
-  console.log('Creating VOps indexes ${CONCURRENTLY}. Will take a long time. Now = ' + new Date(Date.now()).toISOString())
+  console.log(`Creating VOps indexes ${CONCURRENTLY}. Will take a long time. Now = ` + new Date(Date.now()).toISOString())
   
   // VOFillConvertRequest 49 + 1
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillconvertrequest_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 49 + 1;`)
@@ -419,13 +418,16 @@ export const setupVirtualOperationIndexes = async () => {
   // VOEscrowApproved 49 + 40
   // VOEscrowRejected 49 + 41
   // VOProxyCleared 49 + 42
-  console.log('Finished creating VOps indexes. Now = ' + new Date(Date.now()).toISOString())
 }
 
 const main = async () => {
+  const startTime = Date.now() / 1000
+  console.log(`Creating indexes ${CONCURRENTLY}. It will take a long time...`)
   await setupOperationIndexes()
   await setupVirtualOperationIndexes()
   await setupHafIndexes()
+  const timeSpent = (Date.now() / 1000 - startTime) / 60
+  console.log(`Indexes done. Total time spent = ${timeSpent} minutes`)
   console.log('Draining the pool...')
   pool.end()
 }
