@@ -19,7 +19,7 @@ const total = 94
 
 // Needed for sorting by ID asc or desc
 const setupHafIndexes = async () => {
-  await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hive_operations_id_op_type_id_hafsql ON hive.operations (id, op_type_id)`)
+  await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hive_operations_op_type_id_id_hafsql ON hive.operations (op_type_id, id DESC)`)
   console.log('Created ' + total + ' out of ' + total + ' indexes...')
 }
 
