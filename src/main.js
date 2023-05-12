@@ -32,9 +32,9 @@ const fillDelegations = async () => {
     i++
     if (i >= delegations.rowCount) {
       i = 0
-      k += 10000
+      k += 20000
       const start = delegations.rows[delegations.rowCount - 1].op_id
-      delegations = await getDelegations(start, 10000)
+      delegations = await getDelegations(start, 20000)
       console.log('Processing the next set... ' + k)
     }
   }
