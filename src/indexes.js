@@ -416,6 +416,10 @@ export const setupVirtualOperationIndexes = async () => {
   // VOProxyCleared 49 + 42
 }
 
+const extraIndexes = async () => {
+  await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_delegations_delegator_op_id ON hive.operations ((body::jsonb->'value'->>'delegator'), id) WHERE op_type_id = 40;`)
+}
+
 const main = async () => {
   const startTime = Date.now() / 1000
   console.log(`Creating indexes ${CONCURRENTLY}. It will take a long time...`)
