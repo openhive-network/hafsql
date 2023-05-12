@@ -14,9 +14,9 @@ config()
 // console.log(CONCURRENTLY)
 
 const fillDelegations = async () => {
-  let delegations = await getDelegations(0, 10)
+  let delegations = await getDelegations(0, 10000)
   console.log(delegations.rowCount)
-  console.log(delegations.rows)
+  // console.log(delegations.rows)
   // while (delegations.rowCount) {
     
   // }
