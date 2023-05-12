@@ -24,7 +24,7 @@ const fillDelegations = async () => {
 }
 
 const getDelegations = async (start, limit = 10000) => {
-  return pool.query('SELECT * FROM hafsql."TxDelegateVestingShares" WHERE op_id > $1 LIMIT $2', [start, limit])
+  return pool.query('SELECT * FROM hafsql."TxDelegateVestingShares" WHERE op_id > $1 ORDER BY op_id ASC LIMIT $2', [start, limit])
 }
 
 const insertDelegations = async () => {
