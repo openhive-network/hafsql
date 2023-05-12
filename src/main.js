@@ -46,10 +46,11 @@ const getDelegations = async (start, limit = 10000) => {
 }
 
 const insertDelegations = async ( delegation ) => {
-  const {delegator, delegatee, vests} = delegation
+  const {delegator, delegatee, vesting_shares} = delegation
+  // const vests = BigInt(JSON.parse(vesting_shares).amount)
   return pool.query(`INSERT INTO hafsql.delegations_table (delegator, delegatee, vests)
     VALUES ($1, $2, $3) ON CONFLICT ON CONSTRAINT hafsql_delegations_table_un
-    DO UPDATE SET vests=$3;`, [delegator, delegatee, vests])
+    DO UPDATE SET vests=$3;`, [delegator, delegatee, vesting_shares])
 }
 
 fillDelegations()
