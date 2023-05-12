@@ -30,12 +30,12 @@ const fillDelegations = async () => {
   while (delegations.rowCount > 0) {
     await insertDelegations(delegations.rows[i])
     i++
-    if (i => delegations.rowCount) {
+    if (i >= delegations.rowCount) {
       i = 0
       k += 10000
       const start = delegations.rows[delegations.rowCount - 1].op_id
       delegations = await getDelegations(start, 10000)
-      console.log('Processing the next set... ' + start)
+      console.log('Processing the next set... ' + k)
     }
   }
   pool.end()
