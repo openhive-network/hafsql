@@ -47,14 +47,15 @@ const getDelegations = async (start, limit = 10000) => {
 
 const insertDelegations = async ( delegation ) => {
   const {delegator, delegatee, vesting_shares} = delegation
-  const vests = JSON.parse(vesting_shares).amount
+  let vests = JSON.parse(vesting_shares).amount
   if (vests === '0') {
     return pool.query(`DELETE FROM hafsql.delegations_table
       WHERE delegator=$1 AND delegatee=$2;`, [delegator, delegatee])
   }
+  vests = vests.slice(0, -6) + '.' + vests.slice(-6)
   return pool.query(`INSERT INTO hafsql.delegations_table (delegator, delegatee, vests)
     VALUES ($1, $2, $3) ON CONFLICT ON CONSTRAINT hafsql_delegations_table_un
-    DO UPDATE SET vests=$3;`, [delegator, delegatee, vesting_shares])
+    DO UPDATE SET vests=$3;`, [delegator, delegatee, vests])
 }
 
 fillDelegations()
