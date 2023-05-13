@@ -15,9 +15,11 @@ config()
 // console.log(CONCURRENTLY)
 
 const main = async () => {
+  const now = Date.now()
   console.log('Syncing old data...')
   await fillDelegations()
-  console.log('Synced the old data. Starting live sync...')
+  const timeSpent = (Date.now() - now) / 1000
+  console.log('Sync done in ' + timeSpent / 60 + ' minutes. Live sync started...')
   syncDelegations()
 }
 
