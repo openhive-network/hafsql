@@ -1,4 +1,4 @@
-import { pool } from './database.js'
+import { pool } from '../database.js'
 
 export const setupOperationViews = async () => {
   const TxVote = `CREATE OR REPLACE VIEW hafsql."TxVote"

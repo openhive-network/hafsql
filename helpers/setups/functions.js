@@ -1,4 +1,4 @@
-import { pool } from './database.js'
+import { pool } from '../database.js'
 
 export const setupFunctions = async () => {
   const AssetAmount = `CREATE OR REPLACE FUNCTION hafsql_assetamount(text) RETURNS float

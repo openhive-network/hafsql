@@ -1,4 +1,4 @@
-import { pool } from './database.js'
+import { pool } from '../database.js'
 
 export const setupVirtualOperationViews = async () => {
   // The order of VOps can change on HF so we use their names instead of id
