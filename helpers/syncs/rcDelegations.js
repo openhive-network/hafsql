@@ -15,7 +15,6 @@ export const fillRCDelegations = async (limit = 20000) => {
   start = start.rows[0].last_op_id
   let delegations = await getRCDelegations(start, limit)
   let i = 0
-  console.log(delegations.length, delegations[0])
   while (delegations.length > 0) {
     await insertRCDelegations(delegations[i])
     i++
@@ -68,14 +67,18 @@ const insertRCDelegations = async ( delegation ) => {
   const {from, maxRC} = delegation
   const delegatees = [...new Set(delegation.delegatees)]
   for (let i = 0; i < delegatees.length; i++) {
-    const delegatee = delegatees[i]
-    if (maxRC === '0') {
-      await pool.query(`DELETE FROM hafsql.rc_delegations_table
-        WHERE delegator=$1 AND delegatee=$2;`, [from, delegatee])
+    try {
+      const delegatee = delegatees[i]
+      if (maxRC === '0') {
+        await pool.query(`DELETE FROM hafsql.rc_delegations_table
+          WHERE delegator=$1 AND delegatee=$2;`, [from, delegatee])
+      }
+      await pool.query(`INSERT INTO hafsql.rc_delegations_table (delegator, delegatee, rc)
+        VALUES ($1, $2, $3) ON CONFLICT ON CONSTRAINT hafsql_rc_delegations_table_un
+        DO UPDATE SET rc=$3;`, [from, delegatee, maxRC])
+    } catch (e) {
+      console.log(delegation)
     }
-    await pool.query(`INSERT INTO hafsql.rc_delegations_table (delegator, delegatee, rc)
-      VALUES ($1, $2, $3) ON CONFLICT ON CONSTRAINT hafsql_rc_delegations_table_un
-      DO UPDATE SET rc=$3;`, [from, delegatee, maxRC])
   }
   return true
 }
