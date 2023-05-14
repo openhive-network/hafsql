@@ -2,6 +2,7 @@ import { pool } from "../helpers/database.js"
 
 import { config } from "dotenv"
 import { fillDelegations, syncDelegations } from "../helpers/syncs/delegations.js"
+import { fillRCDelegations, syncRCDelegations } from "../helpers/syncs/rcDelegations.js"
 config()
 
 // pool.query('SELECT id, name FROM hive.operation_types WHERE is_virtual = true').then(res => {
@@ -18,9 +19,13 @@ const main = async () => {
   const now = Date.now()
   console.log('Syncing old data...')
   await fillDelegations()
+  console.log('Syncing old RC data...')
+  await fillRCDelegations()
+
   const timeSpent = (Date.now() - now) / 1000
   console.log('Sync done in ' + timeSpent / 60 + ' minutes. Live sync started...')
   syncDelegations()
+  syncRCDelegations()
 }
 
 main()
