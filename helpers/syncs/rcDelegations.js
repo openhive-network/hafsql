@@ -1,0 +1,81 @@
+import { pool } from "../database.js"
+
+export const syncRCDelegations = async () => {
+  const intervalTime = 3000
+  setInterval(() => {
+    fillRCDelegations(1000)
+  }, intervalTime)
+}
+
+export const fillRCDelegations = async (limit = 20000) => {
+  let start = await pool.query('SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;', ['rc_delegations'])
+  start = start.rows[0].last_op_id
+  let delegations = await getRCDelegations(start, limit)
+  let i = 0
+  while (delegations.length > 0) {
+    await insertRCDelegations(delegations[i])
+    i++
+    if (i >= delegations.length) {
+      i = 0
+      const start = delegations[delegations.length - 1].op_id
+      await updateLastOpId(start)
+      delegations = await getRCDelegations(start, limit)
+    }
+  }
+}
+// 	"[0,{"from":"mahdiyari","delegatees":["gtg"],"max_rc":1889000000, "test": 11}]"
+const getRCDelegations = async (start, limit = 10000) => {
+  const result = await pool.query(`SELECT op_id, json, required_posting_auths FROM hafsql."TxCustomJson"
+    WHERE id=$1 AND op_id > $2 ORDER BY op_id ASC LIMIT $3`, ['rc', start, limit])
+  if (result.rowCount <= 0) {
+    return []
+  }
+  // Validating RC delegtaion
+  const delegationsArray = []
+  for (let i = 0; i < result.rowCount; i++) {
+    const rcDelegation = result.rows[i]
+    try {
+      const parsedJson = JSON.parse(rcDelegation.json)
+      if (!Array.isArray(parsedJson)) {
+        continue
+      }
+      if (parsedJson.length !== 2) {
+        continue
+      }
+      if (parsedJson[0] !== 'delegate_rc' || parsedJson[0] !== 0) {
+        continue
+      }
+      // If the transaction is included in the block, at this point we can assume it is valid
+      const from = parsedJson[1].from
+      const delegatees = parsedJson[1].delegatees
+      let maxRC = parsedJson[1].max_rc
+      if (typeof maxRC === 'undefined') {
+        maxRC = '0'
+      }
+      delegationsArray.push({from, delegatees, maxRC, op_id: rcDelegation.op_id})
+    } catch (e) {
+      continue
+    }
+  }
+  return delegationsArray
+}
+
+const insertRCDelegations = async ( delegation ) => {
+  const {from, maxRC} = delegation
+  const delegatees = [...new Set(delegation.delegatees)]
+  for (let i = 0; i < delegatees.length; i++) {
+    const delegatee = delegatees[i]
+    if (maxRC === '0') {
+      await pool.query(`DELETE FROM hafsql.rc_delegations_table
+        WHERE delegator=$1 AND delegatee=$2;`, [from, delegatee])
+    }
+    await pool.query(`INSERT INTO hafsql.rc_delegations_table (delegator, delegatee, rc)
+      VALUES ($1, $2, $3) ON CONFLICT ON CONSTRAINT hafsql_rc_delegations_table_un
+      DO UPDATE SET rc=$3;`, [from, delegatee, rc])
+  }
+  return true
+}
+
+const updateLastOpId = async (opId) => {
+  return pool.query(`UPDATE hafsql.sync_data SET last_op_id=$1 WHERE table_name=$2;`, [opId, 'rc_delegations'])
+}
