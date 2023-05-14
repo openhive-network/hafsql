@@ -38,7 +38,7 @@ const getRCDelegations = async (start, limit = 10000) => {
     const rcDelegation = result.rows[i]
     try {
       const parsedJson = JSON.parse(rcDelegation.json)
-      console.log(parsedJson)
+      console.log(parsedJson.length)
       if (!Array.isArray(parsedJson)) {
         continue
       }
