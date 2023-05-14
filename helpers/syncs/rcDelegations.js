@@ -1,5 +1,6 @@
 import { pool } from "../database.js"
 import JSONbig from 'json-bigint'
+import { validateAccountName } from "../validateUsername.js"
 // Need this to handle large RC numbers
 const JSONparser = JSONbig({ storeAsString: true }).parse
 
@@ -69,6 +70,10 @@ const insertRCDelegations = async ( delegation ) => {
   for (let i = 0; i < delegatees.length; i++) {
     try {
       const delegatee = delegatees[i]
+      if (validateAccountName(from) || validateAccountName(delegatee)) {
+        console.error(from, delegatee)
+        throw new Error('Bad username')
+      }
       if (maxRC === '0') {
         await pool.query(`DELETE FROM hafsql.rc_delegations_table
           WHERE delegator=$1 AND delegatee=$2;`, [from, delegatee])
