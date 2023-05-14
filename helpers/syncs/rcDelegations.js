@@ -52,7 +52,7 @@ const getRCDelegations = async (start, limit = 10000) => {
       const from = parsedJson[1].from
       const delegatees = parsedJson[1].delegatees
       let maxRC = parsedJson[1].max_rc
-      if (typeof maxRC === 'undefined') {
+      if (typeof maxRC === 'undefined' || maxRC === null) {
         maxRC = '0'
       }
       delegationsArray.push({from, delegatees, maxRC, op_id: rcDelegation.op_id})
@@ -78,6 +78,7 @@ const insertRCDelegations = async ( delegation ) => {
         DO UPDATE SET rc=$3;`, [from, delegatee, maxRC])
     } catch (e) {
       console.log(delegation)
+      throw new Error(e)
     }
   }
   return true
