@@ -12,6 +12,7 @@ export const fillRCDelegations = async (limit = 20000) => {
   start = start.rows[0].last_op_id
   let delegations = await getRCDelegations(start, limit)
   let i = 0
+  console.log(delegations.length, delegations[0])
   while (delegations.length > 0) {
     await insertRCDelegations(delegations[i])
     i++
