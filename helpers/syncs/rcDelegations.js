@@ -80,7 +80,7 @@ const insertRCDelegations = async ( delegation ) => {
     } else {
       await pool.query(`INSERT INTO hafsql.rc_delegations_table (delegator, delegatee, rc)
         VALUES ($1, $2, $3) ON CONFLICT ON CONSTRAINT hafsql_rc_delegations_table_un
-        DO UPDATE SET rc=$3;`, [from, delegatee, maxRC])\
+        DO UPDATE SET rc=$3;`, [from, delegatee, maxRC])
     }
   }
   return true
