@@ -123,7 +123,7 @@ export const setupOperationIndexes = async () => {
   console.log('Created 32 out of ' + total + ' indexes...')
 
   // TxCustomJson 18
-  await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustomjson_id ON hive.operations ((body::jsonb->'value'->>'id')) WHERE op_type_id = 18;`)
+  await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustomjson_id_id ON hive.operations ((body::jsonb->'value'->>'id'), id ASC) WHERE op_type_id = 18;`)
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustomjson_required_auths ON hive.operations ((body::jsonb->'value'->'required_auths')) WHERE op_type_id = 18;`)
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustomjson_required_posting_auths ON hive.operations ((body::jsonb->'value'->'required_posting_auths')) WHERE op_type_id = 18;`)
 
