@@ -7,7 +7,7 @@ export const syncRCDelegations = async () => {
   }, intervalTime)
 }
 
-export const fillRCDelegations = async (limit = 20000) => {
+export const fillRCDelegations = async (limit = 100) => {
   let start = await pool.query('SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;', ['rc_delegations'])
   start = start.rows[0].last_op_id
   let delegations = await getRCDelegations(start, limit)
