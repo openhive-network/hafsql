@@ -11,7 +11,7 @@ export const syncRCDelegations = async () => {
   }, intervalTime)
 }
 
-export const fillRCDelegations = async (limit = 20000) => {
+export const fillRCDelegations = async (limit = 10000) => {
   let start = await pool.query('SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;', ['rc_delegations'])
   start = start.rows[0].last_op_id
   let delegations = await getRCDelegations(start, limit)
@@ -67,12 +67,12 @@ const getRCDelegations = async (start, limit = 10000) => {
 const insertRCDelegations = async ( delegation ) => {
   const {maxRC} = delegation
   let from = delegation.from.replaceAll('\t', '')
-  from = delegation.from.replaceAll('\r', '')
+  from = from.replaceAll('\r', '')
   const delegatees = [...new Set(delegation.delegatees)]
   for (let i = 0; i < delegatees.length; i++) {
     try {
       let delegatee = delegatees[i].replaceAll('\t', '')
-      delegatee = delegatees[i].replaceAll('\r', '')
+      delegatee = delegatee.replaceAll('\r', '')
       if (validateAccountName(from) || validateAccountName(delegatee)) {
         console.error(from, delegatee)
         throw new Error('Bad username')
