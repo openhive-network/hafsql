@@ -65,11 +65,12 @@ const getRCDelegations = async (start, limit = 10000) => {
 }
 
 const insertRCDelegations = async ( delegation ) => {
-  const {from, maxRC} = delegation
+  const {maxRC} = delegation
+  const from = delegation.from.replaceAll('\t', '')
   const delegatees = [...new Set(delegation.delegatees)]
   for (let i = 0; i < delegatees.length; i++) {
     try {
-      const delegatee = delegatees[i]
+      const delegatee = delegatees[i].replaceAll('\t', '')
       if (validateAccountName(from) || validateAccountName(delegatee)) {
         console.error(from, delegatee)
         throw new Error('Bad username')
