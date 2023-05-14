@@ -69,22 +69,18 @@ const insertRCDelegations = async ( delegation ) => {
   const from = clearUsername(delegation.from)
   const delegatees = [...new Set(delegation.delegatees)]
   for (let i = 0; i < delegatees.length; i++) {
-    try {
-      const delegatee = clearUsername(delegatees[i])
-      if (validateAccountName(from) || validateAccountName(delegatee)) {
-        console.error(from, delegatee)
-        throw new Error('Bad username')
-      }
-      if (maxRC === '0' || maxRC === 0) {
-        await pool.query(`DELETE FROM hafsql.rc_delegations_table
-          WHERE delegator=$1 AND delegatee=$2;`, [from, delegatee])
-      }
+    const delegatee = clearUsername(delegatees[i])
+    // if (validateAccountName(from) || validateAccountName(delegatee)) {
+    //   console.error(from, delegatee)
+    //   throw new Error('Bad username')
+    // }
+    if (maxRC === '0' || maxRC === 0) {
+      await pool.query(`DELETE FROM hafsql.rc_delegations_table
+        WHERE delegator=$1 AND delegatee=$2;`, [from, delegatee])
+    } else {
       await pool.query(`INSERT INTO hafsql.rc_delegations_table (delegator, delegatee, rc)
         VALUES ($1, $2, $3) ON CONFLICT ON CONSTRAINT hafsql_rc_delegations_table_un
-        DO UPDATE SET rc=$3;`, [from, delegatee, maxRC])
-    } catch (e) {
-      console.log(delegation)
-      throw new Error(e)
+        DO UPDATE SET rc=$3;`, [from, delegatee, maxRC])\
     }
   }
   return true
