@@ -18,7 +18,7 @@ export const setupTables = async () => {
   );`)
   await pool.query(`CREATE INDEX IF NOT EXISTS hafsql_delegations_table_delegatee_idx ON hafsql.delegations_table USING btree (delegatee);`)
 
-  // Delegations
+  // RC Delegations
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.rc_delegations_table (
     delegator varchar(16) NOT NULL,
     delegatee varchar(16) NOT NULL,
