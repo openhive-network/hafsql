@@ -77,6 +77,7 @@ const insertRCDelegations = async ( delegation ) => {
         console.error(from, delegatee)
         throw new Error('Bad username')
       }
+      console.log(maxRC, typeof maxRC)
       if (maxRC === '0') {
         await pool.query(`DELETE FROM hafsql.rc_delegations_table
           WHERE delegator=$1 AND delegatee=$2;`, [from, delegatee])
