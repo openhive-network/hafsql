@@ -28,6 +28,7 @@ export const fillRCDelegations = async (limit = 20000) => {
 const getRCDelegations = async (start, limit = 10000) => {
   const result = await pool.query(`SELECT op_id, json, required_posting_auths FROM hafsql."TxCustomJson"
     WHERE id=$1 AND op_id > $2 ORDER BY op_id ASC LIMIT $3`, ['rc', start, limit])
+  console.log(result.rowCount, result.rows[0])
   if (result.rowCount <= 0) {
     return []
   }
