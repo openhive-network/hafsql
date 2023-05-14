@@ -1,4 +1,7 @@
 import { pool } from "../database.js"
+import JSONbig from 'json-bigint'
+// Need this to handle large RC numbers
+const JSONparser = JSONbig({ storeAsString: true }).parse
 
 export const syncRCDelegations = async () => {
   const intervalTime = 3000
@@ -28,7 +31,6 @@ export const fillRCDelegations = async (limit = 100) => {
 const getRCDelegations = async (start, limit = 10000) => {
   const result = await pool.query(`SELECT op_id, json FROM hafsql."TxCustomJson"
     WHERE id=$1 AND op_id > $2 ORDER BY op_id ASC LIMIT $3`, ['rc', start, limit])
-  console.log(result.rowCount, result.rows[0])
   if (result.rowCount <= 0) {
     return []
   }
@@ -37,15 +39,14 @@ const getRCDelegations = async (start, limit = 10000) => {
   for (let i = 0; i < result.rowCount; i++) {
     const rcDelegation = result.rows[i]
     try {
-      const parsedJson = JSON.parse(rcDelegation.json)
-      console.log(parsedJson)
+      const parsedJson = JSONparser(rcDelegation.json)
       if (!Array.isArray(parsedJson)) {
         continue
       }
       if (parsedJson.length !== 2) {
         continue
       }
-      if (parsedJson[0] !== 'delegate_rc' || parsedJson[0] !== 0) {
+      if (parsedJson[0] !== 'delegate_rc' && parsedJson[0] !== 0) {
         continue
       }
       // If the transaction is included in the block, at this point we can assume it is valid
