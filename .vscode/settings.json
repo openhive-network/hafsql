@@ -9,5 +9,6 @@
   "javascript.format.insertSpaceAfterSemicolonInForStatements": true,
   "javascript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
   "javascript.format.insertSpaceBeforeFunctionParenthesis": true,
-  "editor.useTabStops": true
+  "editor.useTabStops": true,
+  "standard.autoFixOnSave": true
 }
