@@ -4,5 +4,8 @@
     "dotenv": "^16.0.3",
     "json-bigint": "^1.0.0",
     "pg": "^8.10.0"
+  },
+  "devDependencies": {
+    "standard": "^17.0.0"
   }
 }
