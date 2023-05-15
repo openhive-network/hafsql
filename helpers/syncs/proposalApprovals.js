@@ -38,12 +38,11 @@ const getProposalApprovals = async (start, limit = 10000) => {
 const insertProposalApprovals = async (approval) => {
   const { voter, approve } = approval
   const proposalIds = approval.proposal_ids
-  console.log(approval)
   for (let i = 0; i < proposalIds.length; i++) {
     if (approve === 'false') {
       await pool.query(
         'DELETE FROM hafsql.proposal_approvals_table WHERE id=$1 AND voter=$2;',
-        [voter, proposalIds[i]]
+        [proposalIds[i], voter]
       )
     } else {
       await pool.query(
