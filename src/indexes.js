@@ -1,5 +1,5 @@
-import pg from "pg"
-import { config } from "dotenv"
+import pg from 'pg'
+import { config } from 'dotenv'
 config()
 
 // Indexes need haf_admin access
@@ -43,7 +43,7 @@ export const setupOperationIndexes = async () => {
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfer_from ON hive.operations ((body::jsonb->'value'->>'from')) WHERE op_type_id = 2;`)
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfer_to ON hive.operations ((body::jsonb->'value'->>'to')) WHERE op_type_id = 2;`)
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfer_memo ON hive.operations ((body::jsonb->'value'->>'memo')) WHERE op_type_id = 2;`)
-  
+
   console.log('Created 10 out of ' + total + ' indexes...')
 
   // TxTransferToVesting 3
@@ -171,7 +171,6 @@ export const setupOperationIndexes = async () => {
 
   console.log('Created 46 out of ' + total + ' indexes...')
 
-
   // TxEscrowTransfer 27
   // await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txescrowtransfer_from ON hive.operations ((body::jsonb->'value'->>'from')) WHERE op_type_id = 27;`)
   // await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txescrowtransfer_to ON hive.operations ((body::jsonb->'value'->>'to')) WHERE op_type_id = 27;`)
@@ -207,7 +206,6 @@ export const setupOperationIndexes = async () => {
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfertosavings_memo ON hive.operations ((body::jsonb->'value'->>'memo')) WHERE op_type_id = 32;`)
 
   console.log('Created 49 out of ' + total + ' indexes...')
-
 
   // TxTransferFromSavings 33
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransferfromsavings_from ON hive.operations ((body::jsonb->'value'->>'from')) WHERE op_type_id = 33;`)
