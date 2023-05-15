@@ -36,7 +36,7 @@ export const setupOperationViews = async () => {
     FROM hive.operations o
     WHERE o.op_type_id = 2;`
   await pool.query(TxTransfer)
-  
+
   const TxTransferToVesting = `CREATE OR REPLACE VIEW hafsql."TxTransferToVesting"
   AS SELECT o.id AS op_id,
     o."timestamp",
