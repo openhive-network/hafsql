@@ -1,5 +1,5 @@
-import pg from "pg"
-import { config } from "dotenv"
+import pg from 'pg'
+import { config } from 'dotenv'
 config()
 
 // Indexes need haf_admin access
@@ -48,7 +48,7 @@ const dropOperationIndexes = async () => {
   hive.hafsql_txcustom_required_auths,
   hive.hafsql_txdeletecomment_author,
   hive.hafsql_txdeletecomment_permlink,
-  hive.hafsql_txcustomjson_id,
+  hive.hafsql_txcustomjson_id_id,
   hive.hafsql_txcustomjson_required_auths,
   hive.hafsql_txcustomjson_required_posting_auths,
   hive.hafsql_txcommentoptions_author,
@@ -69,7 +69,7 @@ const dropOperationIndexes = async () => {
   hive.hafsql_txtransferfromsavings_to,
   hive.hafsql_txcanceltransferfromsavings_from,
   hive.hafsql_txclaimrewardbalance_account,
-  hive.hafsql_txdelegatevestingshares_delegator,
+  hive.hafsql_txdelegatevestingshares_delegator_id,
   hive.hafsql_txdelegatevestingshares_delegatee,
   hive.hafsql_txaccountcreatewithdelegation_creator,
   hive.hafsql_txaccountcreatewithdelegation_new_account_name,
