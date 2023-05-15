@@ -38,6 +38,7 @@ const getProposalApprovals = async (start, limit = 10000) => {
 const insertProposalApprovals = async (approval) => {
   const { voter, approve } = approval
   const proposalIds = approval.proposal_ids
+  console.log(approval)
   for (let i = 0; i < proposalIds.length; i++) {
     if (approve === 'false') {
       await pool.query(
