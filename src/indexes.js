@@ -230,7 +230,7 @@ export const setupOperationIndexes = async () => {
   console.log('Created 53 out of ' + total + ' indexes...')
 
   // TxDelegateVestingShares 40
-  await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txdelegatevestingshares_delegator ON hive.operations ((body::jsonb->'value'->>'delegator')) WHERE op_type_id = 40;`)
+  await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txdelegatevestingshares_delegator_id ON hive.operations ((body::jsonb->'value'->>'delegator'), id) WHERE op_type_id = 40;`)
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txdelegatevestingshares_delegatee ON hive.operations ((body::jsonb->'value'->>'delegatee')) WHERE op_type_id = 40;`)
 
   console.log('Created 55 out of ' + total + ' indexes...')
@@ -414,9 +414,9 @@ export const setupVirtualOperationIndexes = async () => {
   // VOProxyCleared 49 + 42
 }
 
-const extraIndexes = async () => {
-  await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_delegations_delegator_op_id ON hive.operations ((body::jsonb->'value'->>'delegator'), id) WHERE op_type_id = 40;`)
-}
+// const extraIndexes = async () => {
+//   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_delegations_delegator_op_id ON hive.operations ((body::jsonb->'value'->>'delegator'), id) WHERE op_type_id = 40;`)
+// }
 
 const main = async () => {
   const startTime = Date.now() / 1000
