@@ -1,8 +1,9 @@
-import { pool } from "../helpers/database.js"
+import { pool } from '../helpers/database.js'
 
-import { config } from "dotenv"
-import { fillDelegations, syncDelegations } from "../helpers/syncs/delegations.js"
-import { fillRCDelegations, syncRCDelegations } from "../helpers/syncs/rcDelegations.js"
+import { config } from 'dotenv'
+import { fillDelegations, syncDelegations } from '../helpers/syncs/delegations.js'
+import { fillRCDelegations, syncRCDelegations } from '../helpers/syncs/rcDelegations.js'
+import { fillProposalApprovals, syncProposalApprovals } from '../helpers/syncs/proposalApprovals.js'
 config()
 
 // pool.query('SELECT id, name FROM hive.operation_types WHERE is_virtual = true').then(res => {
@@ -19,18 +20,21 @@ const main = async () => {
   const now = Date.now()
   console.log('Syncing old data...')
   await fillDelegations()
+
   console.log('Syncing old RC data...')
   await fillRCDelegations()
+
+  console.log('Syncing old ProposalApprovals data...')
+  await fillProposalApprovals()
 
   const timeSpent = (Date.now() - now) / 1000
   console.log('Sync done in ' + timeSpent / 60 + ' minutes. Live sync started...')
   syncDelegations()
   syncRCDelegations()
+  syncProposalApprovals()
 }
 
 main()
 // ["delegate_rc",{"from":"mahdiyari","delegatees":["gtg"],"max_rc":1800000000}]
 
-
 // fillDelegations()
-
