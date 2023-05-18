@@ -44,40 +44,27 @@ const getFollows = async (start, limit = 10000) => {
     try {
       let parsedJson = JSON.parse(customJson.json)
       const postingAuths = customJson.required_posting_auths
-      console.log('first')
-      // console.log(parsedJson)
       if (!Array.isArray(parsedJson)) {
         if (typeof parsedJson !== 'object' || customJson.op_id > 27630458) {
           continue
         }
         parsedJson = ['follow', parsedJson]
       }
-      console.log('second')
-
       if (parsedJson.length !== 2) {
         continue
       }
-      console.log('third')
-
       if (parsedJson[0] !== 'follow' && parsedJson[0] !== 'reblog') {
         continue
       }
-      console.log('4')
-
       if (typeof parsedJson[1] !== 'object') {
         continue
       }
-      console.log('5')
-
       const keys = Object.keys(parsedJson[1])
       if (keys.length !== 3) {
         continue
       }
-      console.log('6')
-
       const type = parsedJson[0]
       if (type === 'follow') {
-        // {"follower":"red","following":"piedpiper","what":["posts"]}
         if (
           !Object.hasOwn(parsedJson[1], 'follower') ||
           !Object.hasOwn(parsedJson[1], 'following') ||
@@ -85,24 +72,16 @@ const getFollows = async (start, limit = 10000) => {
         ) {
           continue
         }
-        console.log('7')
-
         const { follower, following, what } = parsedJson[1]
         if (validateAccountName(follower) || validateAccountName(following)) {
           continue
         }
-        console.log('8')
-
         if (postingAuths[0] !== follower) {
           continue
         }
-        console.log('9')
-
         if (!Array.isArray(what) || what.length > 1) {
           continue
         }
-        console.log('10')
-
         followsArray.push({
           type,
           follower,
@@ -139,6 +118,25 @@ const getFollows = async (start, limit = 10000) => {
   }
   return followsArray
 }
+
+// defs = {
+//   '': Action.Nothing,
+//   'blog': Action.Blog,
+//   'follow': Action.Blog,
+//   'ignore': Action.Ignore,
+//   'blacklist': Action.Blacklist,
+//   'follow_blacklist': Action.Follow_blacklist,
+//   'unblacklist': Action.Unblacklist,
+//   'unfollow_blacklist': Action.Unfollow_blacklist,
+//   'follow_muted': Action.Follow_muted,
+//   'unfollow_muted': Action.Unfollow_muted,
+//   'reset_blacklist': Action.Reset_blacklist,
+//   'reset_following_list': Action.Reset_following_list,
+//   'reset_muted_list': Action.Reset_muted_list,
+//   'reset_follow_blacklist': Action.Reset_follow_blacklist,
+//   'reset_follow_muted_list': Action.Reset_follow_muted_list,
+//   'reset_all_lists': Action.Reset_all_lists,
+// }
 
 const insertFollows = async (follow) => {
   if (follow.type === 'reblog') {
