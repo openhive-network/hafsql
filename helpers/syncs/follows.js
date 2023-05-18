@@ -8,7 +8,7 @@ export const syncFollows = async () => {
   }, intervalTime)
 }
 
-export const fillFollows = async (limit = 10000) => {
+export const fillFollows = async (limit = 10) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['follows']
@@ -44,37 +44,56 @@ const getFollows = async (start, limit = 10000) => {
     try {
       const parsedJson = JSON.parse(customJson.json)
       const postingAuths = customJson.required_posting_auths
+      console.log('first')
       if (!Array.isArray(parsedJson)) {
         continue
       }
+      console.log('second')
+
       if (parsedJson.length !== 2) {
         continue
       }
+      console.log('third')
+
       if (parsedJson[0] !== 'follow' && parsedJson[0] !== 'reblog') {
         continue
       }
+      console.log('4')
+
       if (typeof parsedJson[1] !== 'object') {
         continue
       }
+      console.log('5')
+
       const keys = Object.keys(parsedJson[1])
       if (keys.length !== 3) {
         continue
       }
+      console.log('6')
+
       const type = parsedJson[0]
       if (type === 'follow') {
         if (!parsedJson[1].hasOwn('follower') || !parsedJson[1].hasOwn('following') || !parsedJson[1].hasOwn('what')) {
           continue
         }
+        console.log('7')
+
         const { follower, following, what } = parsedJson[1]
         if (validateAccountName(follower) || validateAccountName(following)) {
           continue
         }
+        console.log('8')
+
         if (postingAuths[0] !== follower) {
           continue
         }
+        console.log('9')
+
         if (!Array.isArray(what) || what.length > 1) {
           continue
         }
+        console.log('10')
+
         followsArray.push({
           type,
           follower,
