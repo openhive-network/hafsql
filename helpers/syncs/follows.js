@@ -45,6 +45,7 @@ const getFollows = async (start, limit = 10000) => {
       const parsedJson = JSON.parse(customJson.json)
       const postingAuths = customJson.required_posting_auths
       console.log('first')
+      console.log(parsedJson)
       if (!Array.isArray(parsedJson)) {
         continue
       }
