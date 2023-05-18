@@ -32,15 +32,62 @@ export const setupTables = async () => {
   )
 
   // Proposal Approvals
-  await pool.query(`CREATE TABLE hafsql.proposal_approvals_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.proposal_approvals_table (
     id int4 NOT NULL,
     voter varchar(16) NOT NULL,
     CONSTRAINT hafsql_proposal_approvals_table_un UNIQUE (id, voter)
   );`)
+
+  // Blacklists
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.blacklists_table (
+    blacklister varchar(16) NOT NULL,
+    blacklisted varchar(16) NOT NULL,
+    CONSTRAINT hafsql_blacklists_table_un UNIQUE (blacklister, blacklisted)
+  );`)
+
+  // Blacklist Follows
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.blacklist_follows_table (
+    account varchar(16) NOT NULL,
+    blacklist varchar(16) NOT NULL,
+    CONSTRAINT hafsql_blacklist_follows_table_un UNIQUE (account, blacklist)
+  );`)
+
+  // Mute
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.mutes_table (
+    muter varchar(16) NOT NULL,
+    muted varchar(16) NOT NULL,
+    CONSTRAINT hafsql_mutes_table_un UNIQUE (muter, muted)
+  );`)
+
+  // Mute Follows
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.mute_follows_table (
+    account varchar(16) NOT NULL,
+    mute_list varchar(16) NOT NULL,
+    CONSTRAINT hafsql_mute_follows_table_un UNIQUE (account, mute_list)
+  );`)
+
+  // Reblogs
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.reblogs_table (
+    account varchar(16) NOT NULL,
+    post int8 NOT NULL,
+    CONSTRAINT hafsql_reblogs_table_un UNIQUE (account, post)
+  );`)
+
+  // Follows
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.follows_table (
+    follower varchar(16) NOT NULL,
+    following varchar(16) NOT NULL,
+    CONSTRAINT hafsql_follows_table_un UNIQUE (follower, following)
+  );`)
 }
 
 const setupSyncDataTable = async () => {
-  const tableNames = ['delegations', 'rc_delegations', 'proposal_approvals']
+  const tableNames = [
+    'delegations',
+    'rc_delegations',
+    'proposal_approvals',
+    'follows'
+  ]
   for (let i = 0; i < tableNames.length; i++) {
     const name = tableNames[i]
     const data = await pool.query(
