@@ -77,7 +77,12 @@ const getFollows = async (start, limit = 10000) => {
 
       const type = parsedJson[0]
       if (type === 'follow') {
-        if (!parsedJson[1].hasOwn('follower') || !parsedJson[1].hasOwn('following') || !parsedJson[1].hasOwn('what')) {
+        // {"follower":"red","following":"piedpiper","what":["posts"]}
+        if (
+          !Object.hasOwn(parsedJson[1], 'follower') ||
+          !Object.hasOwn(parsedJson[1], 'following') ||
+          !Object.hasOwn(parsedJson[1], 'what')
+        ) {
           continue
         }
         console.log('7')
@@ -106,7 +111,11 @@ const getFollows = async (start, limit = 10000) => {
           op_id: customJson.op_id
         })
       } else {
-        if (!parsedJson[1].hasOwn('account') || !parsedJson[1].hasOwn('author') || !parsedJson[1].hasOwn('permlink')) {
+        if (
+          !Object.hasOwn(parsedJson[1], 'account') ||
+          !Object.hasOwn(parsedJson[1], 'author') ||
+          !Object.hasOwn(parsedJson[1], 'permlink')
+        ) {
           continue
         }
         const { account, author, permlink } = parsedJson[1]
