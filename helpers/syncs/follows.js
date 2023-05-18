@@ -152,6 +152,7 @@ const insertFollows = async (follow) => {
       return followMuted(follow)
     case 'unfollow_muted':
       return unfollowMuted(follow)
+    case 'follow':
     case 'blog':
       return actualFollow(follow)
     case 'ignore':
