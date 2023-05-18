@@ -42,12 +42,15 @@ const getFollows = async (start, limit = 10000) => {
   for (let i = 0; i < result.rowCount; i++) {
     const customJson = result.rows[i]
     try {
-      const parsedJson = JSON.parse(customJson.json)
+      let parsedJson = JSON.parse(customJson.json)
       const postingAuths = customJson.required_posting_auths
       console.log('first')
-      console.log(parsedJson)
+      // console.log(parsedJson)
       if (!Array.isArray(parsedJson)) {
-        continue
+        if (typeof parsedJson !== 'object' || customJson.op_id > 27630458) {
+          continue
+        }
+        parsedJson = ['follow', parsedJson]
       }
       console.log('second')
 
