@@ -315,7 +315,11 @@ const resetFollowMutedList = async (follow) => {
 }
 
 const resetAllLists = async (follow) => {
-  // remove all?
+  await resetBlacklist(follow)
+  await resetFollowingList(follow)
+  await resetMutedList(follow)
+  await resetFollowBlacklist(follow)
+  await resetFollowMutedList(follow)
 }
 
 // const clearUsername = (username) => {
