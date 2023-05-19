@@ -8,6 +8,8 @@ export const syncFollows = async () => {
   }, intervalTime)
 }
 
+// strings
+// Sync done in 3.66375 minutes. Live sync started...
 export const fillFollows = async (limit = 20000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
@@ -218,11 +220,16 @@ const unfollowMuted = async (follow) => {
   )
 }
 const actualFollow = async (follow) => {
+  const getIds = await pool.query('SELECT a.name, a.id FROM hive.accounts a WHERE a.name IN($1, $2)', [follow.follower, follow.following])
+  const ids = {}
+  for (let i = 0; i < 2; i++) {
+    ids[getIds.rows[i].name] = getIds.rows[i].id
+  }
   await pool.query(
     `INSERT INTO hafsql.follows_table (follower, following)
       VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_follows_table_un
       DO NOTHING;`,
-    [follow.follower, follow.following]
+    [ids[follow.follower], ids[follow.following]]
   )
 }
 const mute = async (follow) => {
