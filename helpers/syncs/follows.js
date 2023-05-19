@@ -244,10 +244,15 @@ const mute = async (follow) => {
 const insertReblog = async (follow) => {}
 
 const unfollowUnmute = async (follow) => {
+  const getIds = await pool.query('SELECT a.name, a.id FROM hive.accounts a WHERE a.name IN($1, $2)', [follow.follower, follow.following])
+  const ids = {}
+  for (let i = 0; i < 2; i++) {
+    ids[getIds.rows[i].name] = getIds.rows[i].id
+  }
   await pool.query(
     `DELETE FROM hafsql.follows_table
       WHERE follower=$1 AND following=$2;`,
-    [follow.follower, follow.following]
+    [ids[follow.follower], ids[follow.following]]
   )
   await pool.query(
     `DELETE FROM hafsql.mutes_table
