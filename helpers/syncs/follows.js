@@ -106,6 +106,7 @@ const getFollows = async (start, limit = 10000) => {
         if (!ids[following]) {
           continue
         }
+        console.log(ids)
         followsArray.push({
           type,
           follower: ids[follower],
