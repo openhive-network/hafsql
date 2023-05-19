@@ -10,6 +10,9 @@ export const syncFollows = async () => {
 
 // strings
 // Sync done in 3.66375 minutes. Live sync started...
+
+// num
+// Sync done in 4.599083333333334 minutes. Live sync started...
 export const fillFollows = async (limit = 20000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
@@ -241,7 +244,7 @@ const actualFollow = async (follow) => {
     `INSERT INTO hafsql.follows_table (follower, following)
       VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_follows_table_un
       DO NOTHING;`,
-    [follow.ids[follow.follower], follow.ids[follow.following]]
+    [follow.follower, follow.following]
   )
 }
 const mute = async (follow) => {
@@ -259,7 +262,7 @@ const unfollowUnmute = async (follow) => {
   await pool.query(
     `DELETE FROM hafsql.follows_table
       WHERE follower=$1 AND following=$2;`,
-    [follow.ids[follow.follower], follow.ids[follow.following]]
+    [follow.follower, follow.following]
   )
   await pool.query(
     `DELETE FROM hafsql.mutes_table
