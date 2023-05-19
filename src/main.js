@@ -35,7 +35,7 @@ const main = async () => {
   syncDelegations()
   syncRCDelegations()
   syncProposalApprovals()
-  syncFollows()
+  // syncFollows()
 }
 
 main()
