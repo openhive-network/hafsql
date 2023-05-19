@@ -110,3 +110,15 @@ main()
 // json ["follow",{"follower":"mahdiyari","following":"gtg","what":[]}]
 
 // ogechukwu-martha
+
+// id follow
+// json ["follow",{"follower":"labrat","following":"all","what":["reset_follow_muted_list"]}]
+
+// id	follow
+// json	["follow",{"follower":"labrat","following":"all","what":["reset_follow_blacklist"]}]
+
+// id	follow
+// json	["follow",{"follower":"labrat","following":"all","what":["reset_muted_list"]}]
+
+// id	follow
+// json	["follow",{"follower":"labrat","following":"all","what":["reset_blacklist"]}]
