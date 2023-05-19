@@ -50,7 +50,6 @@ const getFollows = async (start, limit = 10000) => {
         }
         parsedJson = ['follow', parsedJson]
       }
-      console.log('past the test')
       if (parsedJson.length !== 2) {
         continue
       }
