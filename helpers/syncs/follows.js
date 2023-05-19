@@ -98,15 +98,14 @@ const getFollows = async (start, limit = 10000) => {
           continue
         }
         const ids = {}
-        ids[follower] = getUserId(follower)
+        ids[follower] = await getUserId(follower)
         if (!ids[follower]) {
           continue
         }
-        ids[following] = getUserId(following)
+        ids[following] = await getUserId(following)
         if (!ids[following]) {
           continue
         }
-        console.log(ids)
         followsArray.push({
           type,
           follower: ids[follower],
