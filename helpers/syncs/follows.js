@@ -8,7 +8,7 @@ export const syncFollows = async () => {
   }, intervalTime)
 }
 
-export const fillFollows = async (limit = 10) => {
+export const fillFollows = async (limit = 20000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['follows']
@@ -50,6 +50,7 @@ const getFollows = async (start, limit = 10000) => {
         }
         parsedJson = ['follow', parsedJson]
       }
+      console.log('past the test')
       if (parsedJson.length !== 2) {
         continue
       }
