@@ -23,7 +23,7 @@ export const fillFollows = async (limit = 20000) => {
       i = 0
       const start = follows[follows.length - 1].op_id
       await updateLastOpId(start)
-      if (start >= 2000000) {
+      if (start >= 100000000) {
         break
       }
       follows = await getFollows(start, limit)
