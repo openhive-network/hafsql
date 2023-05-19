@@ -13,6 +13,8 @@ export const syncFollows = async () => {
 
 // num
 // Sync done in 4.599083333333334 minutes. Live sync started...
+// string
+// Sync done in 4.677783333333333 minutes. Live sync started...
 export const fillFollows = async (limit = 20000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
@@ -199,14 +201,14 @@ const blacklist = async (follow) => {
     `INSERT INTO hafsql.blacklists_table (blacklister, blacklisted)
       VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_blacklists_table_un
       DO NOTHING;`,
-    [follow.follower, follow.following]
+    [follow.ids[follow.follower], follow.ids[follow.following]]
   )
 }
 const unblacklist = async (follow) => {
   await pool.query(
     `DELETE FROM hafsql.blacklists_table
       WHERE blacklister=$1 AND blacklisted=$2;`,
-    [follow.follower, follow.following]
+    [follow.ids[follow.follower], follow.ids[follow.following]]
   )
 }
 const followBlacklist = async (follow) => {
@@ -214,14 +216,14 @@ const followBlacklist = async (follow) => {
     `INSERT INTO hafsql.blacklist_follows_table (account, blacklist)
       VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_blacklist_follows_table_un
       DO NOTHING;`,
-    [follow.follower, follow.following]
+    [follow.ids[follow.follower], follow.ids[follow.following]]
   )
 }
 const unfollowBlacklist = async (follow) => {
   await pool.query(
     `DELETE FROM hafsql.blacklist_follows_table
       WHERE account=$1 AND blacklist=$2;`,
-    [follow.follower, follow.following]
+    [follow.ids[follow.follower], follow.ids[follow.following]]
   )
 }
 const followMuted = async (follow) => {
@@ -229,14 +231,14 @@ const followMuted = async (follow) => {
     `INSERT INTO hafsql.mute_follows_table (account, mute_list)
       VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_mute_follows_table_un
       DO NOTHING;`,
-    [follow.follower, follow.following]
+    [follow.ids[follow.follower], follow.ids[follow.following]]
   )
 }
 const unfollowMuted = async (follow) => {
   await pool.query(
     `DELETE FROM hafsql.mute_follows_table
       WHERE account=$1 AND mute_list=$2;`,
-    [follow.follower, follow.following]
+    [follow.ids[follow.follower], follow.ids[follow.following]]
   )
 }
 const actualFollow = async (follow) => {
@@ -244,7 +246,7 @@ const actualFollow = async (follow) => {
     `INSERT INTO hafsql.follows_table (follower, following)
       VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_follows_table_un
       DO NOTHING;`,
-    [follow.follower, follow.following]
+    [follow.ids[follow.follower], follow.ids[follow.following]]
   )
 }
 const mute = async (follow) => {
@@ -252,7 +254,7 @@ const mute = async (follow) => {
     `INSERT INTO hafsql.mutes_table (muter, muted)
       VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_mutes_table_un
       DO NOTHING;`,
-    [follow.follower, follow.following]
+    [follow.ids[follow.follower], follow.ids[follow.following]]
   )
 }
 // TODO: After Posts/Comments table - need to verify posts
@@ -262,12 +264,12 @@ const unfollowUnmute = async (follow) => {
   await pool.query(
     `DELETE FROM hafsql.follows_table
       WHERE follower=$1 AND following=$2;`,
-    [follow.follower, follow.following]
+    [follow.ids[follow.follower], follow.ids[follow.following]]
   )
   await pool.query(
     `DELETE FROM hafsql.mutes_table
       WHERE muter=$1 AND muted=$2;`,
-    [follow.follower, follow.following]
+    [follow.ids[follow.follower], follow.ids[follow.following]]
   )
 }
 
