@@ -160,7 +160,7 @@ const getUserId = async (username) => {
     if (getId.rowCount < 1) {
       return null
     }
-    const id = getId[0].id
+    const id = getId.rows[0].id
     accountCache[username] = id
     return id
   }
