@@ -222,7 +222,7 @@ const unfollowMuted = async (follow) => {
 const actualFollow = async (follow) => {
   const getIds = await pool.query('SELECT a.name, a.id FROM hive.accounts a WHERE a.name IN($1, $2)', [follow.follower, follow.following])
   const ids = {}
-  console.log(getIds.rows)
+  console.log(follow.follower, follow.following)
   for (let i = 0; i < 2; i++) {
     ids[getIds.rows[i].name] = getIds.rows[i].id
   }
