@@ -1,7 +1,12 @@
 import { pool } from '../database.js'
 import { validateAccountName } from '../validateUsername.js'
 
+let accountCache = {}
+let useCache = true
+
 export const syncFollows = async () => {
+  useCache = false
+  accountCache = {}
   const intervalTime = 3000
   setInterval(() => {
     fillFollows(1000)
@@ -92,13 +97,14 @@ const getFollows = async (start, limit = 10000) => {
         if (!Array.isArray(what) || what.length > 1) {
           continue
         }
-        const getIds = await pool.query('SELECT a.name, a.id FROM hive.accounts a WHERE a.name IN($1, $2)', [follower, following])
-        if (getIds.rowCount !== 2) {
+        const ids = {}
+        ids[follower] = getUserId(follower)
+        if (!ids[follower]) {
           continue
         }
-        const ids = {}
-        for (let i = 0; i < 2; i++) {
-          ids[getIds.rows[i].name] = getIds.rows[i].id
+        ids[following] = getUserId(following)
+        if (!ids[following]) {
+          continue
         }
         followsArray.push({
           type,
@@ -143,6 +149,21 @@ const getFollows = async (start, limit = 10000) => {
     }
   }
   return followsArray
+}
+
+// Caching ids for duration of the sync
+const getUserId = async (username) => {
+  if (useCache && Object.hasOwn(accountCache, username)) {
+    return accountCache[username]
+  } else {
+    const getId = await pool.query('SELECT a.id FROM hive.accounts a WHERE a.name=$1', [username])
+    if (getId.rowCount < 1) {
+      return null
+    }
+    const id = getId[0].id
+    accountCache[username] = id
+    return id
+  }
 }
 
 // defs = {
