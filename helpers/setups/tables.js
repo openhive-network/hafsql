@@ -40,43 +40,43 @@ export const setupTables = async () => {
 
   // Blacklists
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.blacklists_table (
-    blacklister varchar(16) NOT NULL,
-    blacklisted varchar(16) NOT NULL,
+    blacklister int4 NOT NULL,
+    blacklisted int4 NOT NULL,
     CONSTRAINT hafsql_blacklists_table_un UNIQUE (blacklister, blacklisted)
   );`)
 
   // Blacklist Follows
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.blacklist_follows_table (
-    account varchar(16) NOT NULL,
-    blacklist varchar(16) NOT NULL,
+    account int4 NOT NULL,
+    blacklist int4 NOT NULL,
     CONSTRAINT hafsql_blacklist_follows_table_un UNIQUE (account, blacklist)
   );`)
 
   // Mute
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.mutes_table (
-    muter varchar(16) NOT NULL,
-    muted varchar(16) NOT NULL,
+    muter int4 NOT NULL,
+    muted int4 NOT NULL,
     CONSTRAINT hafsql_mutes_table_un UNIQUE (muter, muted)
   );`)
 
   // Mute Follows
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.mute_follows_table (
-    account varchar(16) NOT NULL,
-    mute_list varchar(16) NOT NULL,
+    account int4 NOT NULL,
+    mute_list int4 NOT NULL,
     CONSTRAINT hafsql_mute_follows_table_un UNIQUE (account, mute_list)
   );`)
 
   // Reblogs
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.reblogs_table (
-    account varchar(16) NOT NULL,
+    account int4 NOT NULL,
     post int8 NOT NULL,
     CONSTRAINT hafsql_reblogs_table_un UNIQUE (account, post)
   );`)
 
   // Follows
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.follows_table (
-    follower varchar(16) NOT NULL,
-    following varchar(16) NOT NULL,
+    follower int4 NOT NULL,
+    following int4 NOT NULL,
     CONSTRAINT hafsql_follows_table_un UNIQUE (follower, following)
   );`)
 }
