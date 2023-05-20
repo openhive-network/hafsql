@@ -6,6 +6,7 @@ let useCache = true
 
 let followersArray = []
 let mutesArray = []
+const unfollowsArray = []
 
 const counters = {
   follow: 0,
@@ -234,6 +235,12 @@ const mutesHelper = (item, action) => {
     }
   }
 }
+const unfollowsHelper = (item) => {
+  const { follower, following } = item
+  for (let i = 0; i < following.length; i++) {
+    unfollowsArray.push({ follower, following: following[i] })
+  }
+}
 
 const insertFollows = async (follow) => {
   followersArray = []
@@ -298,6 +305,9 @@ const insertFollows = async (follow) => {
       default:
         break
     }
+  }
+  if (unfollowsArray.length > 0) {
+    await unfollowUnmute()
   }
   if (followersArray.length > 0) {
     await actualFollow()
@@ -447,18 +457,37 @@ const insertReblog = async (follow) => {}
 
 const unfollowUnmute = async (item) => {
   counters.unfollow++
-  const { follower, following } = item
-  for (let i = 0; i < following.length; i++) {
+  let queryString = ''
+  let queryString2 = ''
+  let first = true
+  for (let i = 0; i < unfollowsArray.length; i++) {
+    const temp = unfollowsArray[i]
+    if (typeof temp === 'undefined') {
+      continue
+    }
+    if (!first) {
+      queryString += ' OR '
+    }
+    queryString += `(follower=${temp.follower} AND following=${temp.following})`
+    queryString2 += `(muter=${temp.follower} AND muted=${temp.following})`
+    if (first) {
+      first = false
+    }
+  }
+  if (queryString.length < 1) {
+    return
+  }
+  try {
     await pool.query(
       `DELETE FROM hafsql.follows_table
-        WHERE follower=$1 AND following=$2;`,
-      [follower, following[i]]
+        WHERE ${queryString};`
     )
     await pool.query(
       `DELETE FROM hafsql.mutes_table
-        WHERE muter=$1 AND muted=$2;`,
-      [follower, following[i]]
+        WHERE ${queryString2};`
     )
+  } catch (e) {
+    throw new Error(e)
   }
 }
 
