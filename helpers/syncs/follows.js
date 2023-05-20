@@ -468,6 +468,7 @@ const unfollowUnmute = async (item) => {
     }
     if (!first) {
       queryString += ' OR '
+      queryString2 += ' OR '
     }
     queryString += `(follower=${temp.follower} AND following=${temp.following})`
     queryString2 += `(muter=${temp.follower} AND muted=${temp.following})`
