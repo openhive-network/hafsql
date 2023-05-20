@@ -272,7 +272,7 @@ const insertFollows = async (follow) => {
 
 const blacklist = async (item) => {
   const { follower, following } = item
-  for (let i = 0; i < following; i++) {
+  for (let i = 0; i < following.length; i++) {
     await pool.query(
       `INSERT INTO hafsql.blacklists_table (blacklister, blacklisted)
         VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_blacklists_table_un
@@ -283,7 +283,7 @@ const blacklist = async (item) => {
 }
 const unblacklist = async (item) => {
   const { follower, following } = item
-  for (let i = 0; i < following; i++) {
+  for (let i = 0; i < following.length; i++) {
     await pool.query(
       `DELETE FROM hafsql.blacklists_table
         WHERE blacklister=$1 AND blacklisted=$2;`,
@@ -293,7 +293,7 @@ const unblacklist = async (item) => {
 }
 const followBlacklist = async (item) => {
   const { follower, following } = item
-  for (let i = 0; i < following; i++) {
+  for (let i = 0; i < following.length; i++) {
     await pool.query(
       `INSERT INTO hafsql.blacklist_follows_table (account, blacklist)
         VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_blacklist_follows_table_un
@@ -304,7 +304,7 @@ const followBlacklist = async (item) => {
 }
 const unfollowBlacklist = async (item) => {
   const { follower, following } = item
-  for (let i = 0; i < following; i++) {
+  for (let i = 0; i < following.length; i++) {
     await pool.query(
       `DELETE FROM hafsql.blacklist_follows_table
         WHERE account=$1 AND blacklist=$2;`,
@@ -314,7 +314,7 @@ const unfollowBlacklist = async (item) => {
 }
 const followMuted = async (item) => {
   const { follower, following } = item
-  for (let i = 0; i < following; i++) {
+  for (let i = 0; i < following.length; i++) {
     await pool.query(
       `INSERT INTO hafsql.mute_follows_table (account, mute_list)
         VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_mute_follows_table_un
@@ -325,7 +325,7 @@ const followMuted = async (item) => {
 }
 const unfollowMuted = async (item) => {
   const { follower, following } = item
-  for (let i = 0; i < following; i++) {
+  for (let i = 0; i < following.length; i++) {
     await pool.query(
       `DELETE FROM hafsql.mute_follows_table
         WHERE account=$1 AND mute_list=$2;`,
@@ -357,8 +357,7 @@ const actualFollow = async () => {
 }
 const mute = async (item) => {
   const { follower, following } = item
-  console.log(item)
-  for (let i = 0; i < following; i++) {
+  for (let i = 0; i < following.length; i++) {
     await pool.query(
       `INSERT INTO hafsql.mutes_table (muter, muted)
         VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_mutes_table_un
@@ -372,7 +371,7 @@ const insertReblog = async (follow) => {}
 
 const unfollowUnmute = async (item) => {
   const { follower, following } = item
-  for (let i = 0; i < following; i++) {
+  for (let i = 0; i < following.length; i++) {
     await pool.query(
       `DELETE FROM hafsql.follows_table
         WHERE follower=$1 AND following=$2;`,
