@@ -6,7 +6,7 @@ let useCache = true
 
 let followersArray = []
 let mutesArray = []
-const unfollowsArray = []
+let unfollowsArray = []
 
 const counters = {
   follow: 0,
@@ -245,6 +245,7 @@ const unfollowsHelper = (item) => {
 const insertFollows = async (follow) => {
   followersArray = []
   mutesArray = []
+  unfollowsArray = []
   for (let i = 0; i < follow.length; i++) {
     const item = follow[i]
     if (item.type === 'reblog') {
@@ -254,7 +255,7 @@ const insertFollows = async (follow) => {
     if (item.what.length === 0) {
       followersHelper(item, 'unfollow')
       mutesHelper(item, 'unmute')
-      await unfollowUnmute(item)
+      unfollowsHelper(item)
       continue
     }
     const what = item.what[0]
