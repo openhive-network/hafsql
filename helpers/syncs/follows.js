@@ -5,6 +5,7 @@ let accountCache = {}
 let useCache = true
 
 let followersArray = []
+let mutesArray = []
 
 export const syncFollows = async () => {
   useCache = false
@@ -204,9 +205,28 @@ const followersHelper = (item, action) => {
     }
   }
 }
+const mutesHelper = (item, action) => {
+  const { follower, following } = item
+  for (let i = 0; i < following.length; i++) {
+    if (action === 'mute') {
+      mutesArray.push({ follower, following: following[i] })
+    } else {
+      for (let k = 0; k < mutesArray.length; k++) {
+        const temp = mutesArray[k]
+        if (typeof temp === 'undefined') {
+          continue
+        }
+        if (temp.follower === follower && temp.following === following[i]) {
+          delete mutesArray[k]
+        }
+      }
+    }
+  }
+}
 
 const insertFollows = async (follow) => {
   followersArray = []
+  mutesArray = []
   for (let i = 0; i < follow.length; i++) {
     const item = follow[i]
     if (item.type === 'reblog') {
@@ -215,6 +235,7 @@ const insertFollows = async (follow) => {
     }
     if (item.what.length === 0) {
       followersHelper(item, 'unfollow')
+      mutesHelper(item, 'unmute')
       await unfollowUnmute(item)
       continue
     }
@@ -243,7 +264,7 @@ const insertFollows = async (follow) => {
         followersHelper(item, 'follow')
         break
       case 'ignore':
-        await mute(item)
+        mutesHelper(item, 'mute')
         break
       case 'reset_blacklist':
         await resetBlacklist(item)
@@ -268,6 +289,7 @@ const insertFollows = async (follow) => {
     }
   }
   await actualFollow()
+  await mute()
 }
 
 const blacklist = async (item) => {
@@ -356,15 +378,26 @@ const actualFollow = async () => {
   )
 }
 const mute = async (item) => {
-  const { follower, following } = item
-  for (let i = 0; i < following.length; i++) {
-    await pool.query(
-      `INSERT INTO hafsql.mutes_table (muter, muted)
-        VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_mutes_table_un
-        DO NOTHING;`,
-      [follower, following[i]]
-    )
+  let queryString = ''
+  let first = true
+  for (let i = 0; i < mutesArray.length; i++) {
+    const temp = mutesArray[i]
+    if (typeof temp === 'undefined') {
+      continue
+    }
+    if (!first) {
+      queryString += ','
+    }
+    queryString += `(${temp.follower}, ${temp.following})`
+    if (first) {
+      first = false
+    }
   }
+  await pool.query(
+    `INSERT INTO hafsql.mutes_table (muter, muted)
+      VALUES ${queryString} ON CONFLICT ON CONSTRAINT hafsql_mutes_table_un
+      DO NOTHING;`
+  )
 }
 // TODO: After Posts/Comments table - need to verify posts
 const insertReblog = async (follow) => {}
