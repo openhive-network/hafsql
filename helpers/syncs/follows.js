@@ -229,75 +229,71 @@ const mutesHelper = (item, action) => {
 }
 
 const insertFollows = async (follow) => {
-  try {
-    followersArray = []
-    mutesArray = []
-    for (let i = 0; i < follow.length; i++) {
-      const item = follow[i]
-      if (item.type === 'reblog') {
-        await insertReblog(item)
-        continue
-      }
-      if (item.what.length === 0) {
-        followersHelper(item, 'unfollow')
-        mutesHelper(item, 'unmute')
-        await unfollowUnmute(item)
-        continue
-      }
-      const what = item.what[0]
-      switch (what) {
-        case 'blacklist':
-          await blacklist(item)
-          break
-        case 'unblacklist':
-          await unblacklist(item)
-          break
-        case 'follow_blacklist':
-          await followBlacklist(item)
-          break
-        case 'unfollow_blacklist':
-          await unfollowBlacklist(item)
-          break
-        case 'follow_muted':
-          await followMuted(item)
-          break
-        case 'unfollow_muted':
-          await unfollowMuted(item)
-          break
-        case 'follow':
-        case 'blog':
-          followersHelper(item, 'follow')
-          break
-        case 'ignore':
-          mutesHelper(item, 'mute')
-          break
-        case 'reset_blacklist':
-          await resetBlacklist(item)
-          break
-        case 'reset_following_list':
-          await resetFollowingList(item)
-          break
-        case 'reset_muted_list':
-          await resetMutedList(item)
-          break
-        case 'reset_follow_blacklist':
-          await resetFollowBlacklist(item)
-          break
-        case 'reset_follow_muted_list':
-          await resetFollowMutedList(item)
-          break
-        case 'reset_all_lists':
-          await resetAllLists(item)
-          break
-        default:
-          break
-      }
+  followersArray = []
+  mutesArray = []
+  for (let i = 0; i < follow.length; i++) {
+    const item = follow[i]
+    if (item.type === 'reblog') {
+      await insertReblog(item)
+      continue
     }
-    await actualFollow()
-    await mute()
-  } catch (e) {
-    throw new Error(e)
+    if (item.what.length === 0) {
+      followersHelper(item, 'unfollow')
+      mutesHelper(item, 'unmute')
+      await unfollowUnmute(item)
+      continue
+    }
+    const what = item.what[0]
+    switch (what) {
+      case 'blacklist':
+        await blacklist(item)
+        break
+      case 'unblacklist':
+        await unblacklist(item)
+        break
+      case 'follow_blacklist':
+        await followBlacklist(item)
+        break
+      case 'unfollow_blacklist':
+        await unfollowBlacklist(item)
+        break
+      case 'follow_muted':
+        await followMuted(item)
+        break
+      case 'unfollow_muted':
+        await unfollowMuted(item)
+        break
+      case 'follow':
+      case 'blog':
+        followersHelper(item, 'follow')
+        break
+      case 'ignore':
+        mutesHelper(item, 'mute')
+        break
+      case 'reset_blacklist':
+        await resetBlacklist(item)
+        break
+      case 'reset_following_list':
+        await resetFollowingList(item)
+        break
+      case 'reset_muted_list':
+        await resetMutedList(item)
+        break
+      case 'reset_follow_blacklist':
+        await resetFollowBlacklist(item)
+        break
+      case 'reset_follow_muted_list':
+        await resetFollowMutedList(item)
+        break
+      case 'reset_all_lists':
+        await resetAllLists(item)
+        break
+      default:
+        break
+    }
   }
+  await actualFollow()
+  await mute()
 }
 
 const blacklist = async (item) => {
