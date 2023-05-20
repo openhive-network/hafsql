@@ -292,8 +292,12 @@ const insertFollows = async (follow) => {
         break
     }
   }
-  await actualFollow()
-  await mute()
+  if (followersArray.length > 0) {
+    await actualFollow()
+  }
+  if (mutesArray.length > 0) {
+    await mute()
+  }
 }
 
 const blacklist = async (item) => {
@@ -387,6 +391,9 @@ const actualFollow = async () => {
       first = false
     }
   }
+  if (queryString.length < 1) {
+    return
+  }
   try {
     await pool.query(
       `INSERT INTO hafsql.follows_table (follower, following)
@@ -413,6 +420,9 @@ const mute = async (item) => {
       first = false
     }
   }
+  if (queryString.length < 1) {
+    return
+  }
   try {
     await pool.query(
       `INSERT INTO hafsql.mutes_table (muter, muted)
@@ -420,7 +430,6 @@ const mute = async (item) => {
         DO NOTHING;`
     )
   } catch (e) {
-    console.log(queryString)
     throw new Error(e)
   }
 }
