@@ -16,9 +16,6 @@ export const syncFollows = async () => {
   }, intervalTime)
 }
 
-// strings
-// Sync done in 3.66375 minutes. Live sync started...
-
 // num
 // Sync done in 4.599083333333334 minutes. Live sync started...
 // string
@@ -26,7 +23,7 @@ export const syncFollows = async () => {
 // num - cached IDs 3 minutes
 
 // full - single row inserts 228.3 minutes ~3.8 hours
-// full - multi row inserts TBD
+// full - multi row inserts 87.7 minutes ~1.45 hours
 export const fillFollows = async (limit = 50000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
