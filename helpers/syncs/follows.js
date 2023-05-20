@@ -27,7 +27,7 @@ export const syncFollows = async () => {
 
 // full - single row inserts 228.3 minutes ~3.8 hours
 // full - multi row inserts TBD
-export const fillFollows = async (limit = 40000) => {
+export const fillFollows = async (limit = 50000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['follows']
