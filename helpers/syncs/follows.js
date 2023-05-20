@@ -215,7 +215,7 @@ const insertFollows = async (follow) => {
     }
     if (item.what.length === 0) {
       followersHelper(item, 'unfollow')
-      await unfollowUnmute(follow)
+      await unfollowUnmute(item)
       continue
     }
     const what = item.what[0]
@@ -371,7 +371,6 @@ const insertReblog = async (follow) => {}
 
 const unfollowUnmute = async (item) => {
   const { follower, following } = item
-  console.log(item)
   for (let i = 0; i < following.length; i++) {
     await pool.query(
       `DELETE FROM hafsql.follows_table
