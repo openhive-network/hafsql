@@ -7,12 +7,6 @@ let useCache = true
 let followersArray = []
 let mutesArray = []
 
-const counters = {
-  follow: 0,
-  unfollow: 0,
-  mute: 0
-}
-
 export const syncFollows = async () => {
   useCache = false
   accountCache = {}
@@ -383,7 +377,6 @@ const unfollowMuted = async (item) => {
   }
 }
 const actualFollow = async () => {
-  counters.follow++
   let queryString = ''
   let first = true
   for (let i = 0; i < followersArray.length; i++) {
@@ -412,8 +405,7 @@ const actualFollow = async () => {
     throw new Error(e)
   }
 }
-const mute = async (item) => {
-  counters.mute++
+const mute = async () => {
   let queryString = ''
   let first = true
   for (let i = 0; i < mutesArray.length; i++) {
@@ -446,7 +438,6 @@ const mute = async (item) => {
 const insertReblog = async (follow) => {}
 
 const unfollowUnmute = async (item) => {
-  counters.unfollow++
   const { follower, following } = item
   for (let i = 0; i < following.length; i++) {
     await pool.query(
@@ -512,5 +503,3 @@ const updateLastOpId = async (opId) => {
     [opId, 'follows']
   )
 }
-
-setInterval(() => console.log(counters), 60000)
