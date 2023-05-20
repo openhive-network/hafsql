@@ -357,6 +357,7 @@ const actualFollow = async () => {
 }
 const mute = async (item) => {
   const { follower, following } = item
+  console.log(item)
   for (let i = 0; i < following; i++) {
     await pool.query(
       `INSERT INTO hafsql.mutes_table (muter, muted)
