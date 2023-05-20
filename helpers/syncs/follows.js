@@ -99,6 +99,9 @@ const getFollows = async (start, limit = 10000) => {
           continue
         }
         const ids = await processFollowing(follower, following, what)
+        if (!ids) {
+          continue
+        }
         followsArray.push({
           type,
           follower: ids.follower,
@@ -160,6 +163,9 @@ const processFollowing = async (follower, following, what) => {
       continue
     }
     followingsArray.push(followingId)
+  }
+  if (followingsArray.length < 1 && !what[0].includes('reset_')) {
+    return null
   }
   ids.following = followingsArray
   return ids
