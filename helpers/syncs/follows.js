@@ -420,6 +420,7 @@ const mute = async (item) => {
         DO NOTHING;`
     )
   } catch (e) {
+    console.log(queryString)
     throw new Error(e)
   }
 }
