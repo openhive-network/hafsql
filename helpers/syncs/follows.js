@@ -23,7 +23,7 @@ export const syncFollows = async () => {
 // Sync done in 4.599083333333334 minutes. Live sync started...
 // string
 // Sync done in 4.677783333333333 minutes. Live sync started...
-export const fillFollows = async (limit = 20000) => {
+export const fillFollows = async (limit = 40000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['follows']
