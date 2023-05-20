@@ -301,35 +301,47 @@ const insertFollows = async (follow) => {
 }
 
 const blacklist = async (item) => {
-  const { follower, following } = item
-  for (let i = 0; i < following.length; i++) {
-    await pool.query(
-      `INSERT INTO hafsql.blacklists_table (blacklister, blacklisted)
-        VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_blacklists_table_un
-        DO NOTHING;`,
-      [follower, following[i]]
-    )
+  try {
+    const { follower, following } = item
+    for (let i = 0; i < following.length; i++) {
+      await pool.query(
+        `INSERT INTO hafsql.blacklists_table (blacklister, blacklisted)
+          VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_blacklists_table_un
+          DO NOTHING;`,
+        [follower, following[i]]
+      )
+    }
+  } catch (e) {
+    throw new Error(e)
   }
 }
 const unblacklist = async (item) => {
-  const { follower, following } = item
-  for (let i = 0; i < following.length; i++) {
-    await pool.query(
-      `DELETE FROM hafsql.blacklists_table
-        WHERE blacklister=$1 AND blacklisted=$2;`,
-      [follower, following[i]]
-    )
+  try {
+    const { follower, following } = item
+    for (let i = 0; i < following.length; i++) {
+      await pool.query(
+        `DELETE FROM hafsql.blacklists_table
+          WHERE blacklister=$1 AND blacklisted=$2;`,
+        [follower, following[i]]
+      )
+    }
+  } catch (e) {
+    throw new Error(e)
   }
 }
 const followBlacklist = async (item) => {
-  const { follower, following } = item
-  for (let i = 0; i < following.length; i++) {
-    await pool.query(
-      `INSERT INTO hafsql.blacklist_follows_table (account, blacklist)
-        VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_blacklist_follows_table_un
-        DO NOTHING;`,
-      [follower, following[i]]
-    )
+  try {
+    const { follower, following } = item
+    for (let i = 0; i < following.length; i++) {
+      await pool.query(
+        `INSERT INTO hafsql.blacklist_follows_table (account, blacklist)
+          VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_blacklist_follows_table_un
+          DO NOTHING;`,
+        [follower, following[i]]
+      )
+    }
+  } catch (e) {
+    throw new Error(e)
   }
 }
 const unfollowBlacklist = async (item) => {
@@ -379,11 +391,15 @@ const actualFollow = async () => {
       first = false
     }
   }
-  await pool.query(
-    `INSERT INTO hafsql.follows_table (follower, following)
-      VALUES ${queryString} ON CONFLICT ON CONSTRAINT hafsql_follows_table_un
-      DO NOTHING;`
-  )
+  try {
+    await pool.query(
+      `INSERT INTO hafsql.follows_table (follower, following)
+        VALUES ${queryString} ON CONFLICT ON CONSTRAINT hafsql_follows_table_un
+        DO NOTHING;`
+    )
+  } catch (e) {
+    throw new Error(e)
+  }
 }
 const mute = async (item) => {
   let queryString = ''
@@ -401,11 +417,15 @@ const mute = async (item) => {
       first = false
     }
   }
-  await pool.query(
-    `INSERT INTO hafsql.mutes_table (muter, muted)
-      VALUES ${queryString} ON CONFLICT ON CONSTRAINT hafsql_mutes_table_un
-      DO NOTHING;`
-  )
+  try {
+    await pool.query(
+      `INSERT INTO hafsql.mutes_table (muter, muted)
+        VALUES ${queryString} ON CONFLICT ON CONSTRAINT hafsql_mutes_table_un
+        DO NOTHING;`
+    )
+  } catch (e) {
+    throw new Error(e)
+  }
 }
 // TODO: After Posts/Comments table - need to verify posts
 const insertReblog = async (follow) => {}
