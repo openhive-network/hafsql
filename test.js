@@ -1,7 +1,11 @@
 import { pool } from './helpers/database.js'
 
 const test = async () => {
-  const res = await pool.query('SELECT length(body) FROM hafsql."TxComment" x order by op_id DESC LIMIT 100000')
-  console.log(res.rows[0])
+  let size = 0
+  const res = await pool.query('SELECT length(body) as test1 FROM hafsql."TxComment" x order by op_id DESC LIMIT 100000')
+  for (let i = 0; i < res.rowCount; i++) {
+    size += res.rows[i].test1
+  }
+  console.log(size)
 }
 test()
