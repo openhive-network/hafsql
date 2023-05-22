@@ -1,10 +1,9 @@
 {
   "type": "module",
   "dependencies": {
-    "@sanity/diff-match-patch": "^3.1.1",
-    "diff-match-patch": "^1.0.5",
+    "diff-match-patch": "1.0.5",
     "dotenv": "^16.0.3",
-    "json-bigint": "^1.0.0",
+    "json-bigint": "1.0.0",
     "pg": "^8.10.0"
   },
   "devDependencies": {
