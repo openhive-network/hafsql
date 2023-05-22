@@ -12,7 +12,7 @@ const test = async () => {
     const [temp] = applyPatches(parsePatch(res.rows[i].body), original)
     original = temp
   }
-  console.log(original)
+  // console.log(original)
 }
 
 const nowTime = Date.now()
