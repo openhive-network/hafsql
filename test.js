@@ -23,11 +23,11 @@ const test = async () => {
     const [temp] = dmp.patch_apply(patch, original)
     original = temp
   }
-  console.log(original)
+  // console.log(original)
 }
 
 const nowTime = Date.now()
-for (let i = 0; i < 1; i++) {
+for (let i = 0; i < 1000000; i++) {
   test()
 }
 console.log((Date.now() - nowTime))
