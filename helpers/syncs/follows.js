@@ -201,7 +201,6 @@ const followersHelper = (item, action) => {
         }
         if (temp.follower === follower && temp.following === following[i]) {
           delete followersArray[k]
-          return true
         }
       }
     }
