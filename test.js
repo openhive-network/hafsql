@@ -20,7 +20,8 @@ const test = async () => {
   let original = res.rows[0].body
   for (let i = 1; i < res.rowCount; i++) {
     const patch = dmp.patch_fromText(res.rows[i].body)
-    original = dmp.patch_apply(patch, original)
+    const [temp] = dmp.patch_apply(patch, original)
+    original = temp
   }
   console.log(original)
 }
