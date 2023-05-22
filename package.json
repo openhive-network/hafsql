@@ -1,6 +1,7 @@
 {
   "type": "module",
   "dependencies": {
+    "@sanity/diff-match-patch": "^3.1.1",
     "dotenv": "^16.0.3",
     "json-bigint": "^1.0.0",
     "pg": "^8.10.0"
