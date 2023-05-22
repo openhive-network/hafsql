@@ -1,5 +1,4 @@
 import { pool } from './helpers/database.js'
-// import { applyPatches, parsePatch } from '@sanity/diff-match-patch'
 import DiffMatchPatch from 'diff-match-patch'
 
 const res = await pool.query(
@@ -27,7 +26,7 @@ const test = async () => {
 }
 
 const nowTime = Date.now()
-for (let i = 0; i < 1000000; i++) {
+for (let i = 0; i < 20000; i++) {
   test()
 }
 console.log((Date.now() - nowTime))
