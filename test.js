@@ -1,11 +1,16 @@
 import { pool } from './helpers/database.js'
+import { applyPatches, parsePatch } from '@sanity/diff-match-patch'
 
 const test = async () => {
-  let size = 0
-  const res = await pool.query('SELECT length(body) as test1 FROM hafsql."TxComment" x order by op_id asc LIMIT 100000')
-  for (let i = 0; i < res.rowCount; i++) {
-    size += res.rows[i].test1
+  const res = await pool.query(
+    'SELECT x.body FROM hafsql."TxComment" x WHERE author =$1 and permlink=$2 ORDER BY op_id ASC',
+    ['mahdiyari', 'hive-twitter-community']
+  )
+  let original = res.rows[0].body
+  for (let i = 1; i < res.rowCount; i++) {
+    const [temp] = applyPatches(parsePatch(res.rows[i].body), original)
+    original = temp
   }
-  console.log(size)
+  console.log(original)
 }
 test()
