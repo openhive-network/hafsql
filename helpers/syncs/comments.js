@@ -17,12 +17,12 @@ export const fillComments = async (limit = 20) => {
   )
   start = start.rows[0].last_op_id
   let comments = await getComments(start, limit)
-  while (comments.rowCount > 0) {
-    await insertComments(comments.rows)
-    const start = comments.rows[comments.rowCount - 1].op_id
-    await updateLastOpId(start)
-    comments = await getComments(start, limit)
-  }
+  // while (comments.rowCount > 0) {
+  await insertComments(comments.rows)
+  start = comments.rows[comments.rowCount - 1].op_id
+  await updateLastOpId(start)
+  comments = await getComments(start, limit)
+  // }
 }
 
 const getComments = async (start, limit = 10000) => {
