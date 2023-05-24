@@ -63,43 +63,47 @@ const insertComments = async (items) => {
 }
 
 const commentsHelper = async (item) => {
-  for (let i = 0; i < commentsArray.length; i++) {
-    if (
-      commentsArray[i].author === item.author &&
-      commentsArray[i].permlink === item.permlink
-    ) {
-      const oldBody = commentsArray[i].body
+  try {
+    for (let i = 0; i < commentsArray.length; i++) {
+      if (
+        commentsArray[i].author === item.author &&
+        commentsArray[i].permlink === item.permlink
+      ) {
+        const oldBody = commentsArray[i].body
+        if (item.body.length > 0 && item.body !== oldBody) {
+          const editedBody = patchBody(oldBody, item.body)
+          commentsArray[i].body = editedBody
+          commentsArray[i].bodyEdited = true
+        }
+        commentsArray[i].edited = item.timestamp
+        commentsArray[i].op_id = item.op_id
+        return
+      }
+    }
+    const comment = await pool.query(
+      'SELECT id, body_edited, last_op_id, body FROM hafsql.comments_table WHERE author=$1 AND permlink=$2;',
+      [item.author, item.permlink]
+    )
+    if (comment.rowCount > 0) {
+      let oldBody = ''
+      if (comment.rows[0].body_edited === true) {
+        oldBody = comment.rows[0].body
+      }
+      const temp = await pool.query('SELECT body FROM hafsql."TxComment" WHERE op_id=$1', [comment.rows[0].last_op_id])
+      oldBody = temp.rows[0].body
+      let extraQuery = ''
+      const params = [item.tags, item.op_id, item.timestamp, comment.rows[0].id]
       if (item.body.length > 0 && item.body !== oldBody) {
         const editedBody = patchBody(oldBody, item.body)
-        commentsArray[i].body = editedBody
-        commentsArray[i].bodyEdited = true
+        extraQuery = ', body=$5, body_edited=$6'
+        params.push(editedBody, true)
       }
-      commentsArray[i].edited = item.timestamp
-      commentsArray[i].op_id = item.op_id
-      return
+      return pool.query(`UPDATE hafsql.comments_table SET tags=$1, last_op_id=$2, edited=$3 ${extraQuery}WHERE id=$4`, params)
     }
+    commentsArray.push(item)
+  } catch (e) {
+    throw new Error(e)
   }
-  const comment = await pool.query(
-    'SELECT id, body_edited, last_op_id, body FROM hafsql.comments_table WHERE author=$1 AND permlink=$2;',
-    [item.author, item.permlink]
-  )
-  if (comment.rowCount > 0) {
-    let oldBody = ''
-    if (comment.rows[0].body_edited === true) {
-      oldBody = comment.rows[0].body
-    }
-    const temp = await pool.query('SELECT body FROM hafsql."TxComment" WHERE op_id=$1', [comment.rows[0].last_op_id])
-    oldBody = temp.rows[0].body
-    let extraQuery = ''
-    const params = [item.tags, item.op_id, item.timestamp, comment.rows[0].id]
-    if (item.body.length > 0 && item.body !== oldBody) {
-      const editedBody = patchBody(oldBody, item.body)
-      extraQuery = ', body=$5, body_edited=$6'
-      params.push(editedBody, true)
-    }
-    return pool.query(`UPDATE hafsql.comments_table SET tags=$1, last_op_id=$2, edited=$3 ${extraQuery}WHERE id=$4`, params)
-  }
-  commentsArray.push(item)
 }
 
 const getTags = (jsonMetadata) => {
