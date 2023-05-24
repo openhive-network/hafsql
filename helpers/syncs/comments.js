@@ -54,7 +54,7 @@ const insertComments = async (items) => {
       queryString += ','
     }
     const body = comment.bodyEdited ? comment.body : "''"
-    queryString += `(${comment.author},${comment.permlink},${comment.op_id},${comment.bodyEdited},${body},${JSON.stringify(comment.tags)})`
+    queryString += `(${comment.author},${comment.permlink},${comment.op_id},${comment.bodyEdited},${body},${JSON.stringify(comment.tags)}::jsonb)`
     if (first) {
       first = false
     }
