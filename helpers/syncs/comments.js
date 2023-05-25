@@ -98,13 +98,12 @@ const commentsHelper = async (item) => {
       const temp = await pool.query('SELECT body FROM hafsql."TxComment" WHERE op_id=$1', [comment.rows[0].last_op_id])
       oldBody = temp.rows[0].body
       let extraQuery = ''
-      const params = [item.tags, item.op_id, item.timestamp, comment.rows[0].id]
+      const params = [JSON.stringify(item.tags), item.op_id, item.timestamp, comment.rows[0].id]
       if (item.body.length > 0 && item.body !== oldBody) {
         const editedBody = patchBody(oldBody, item.body)
         extraQuery = ', body=$5, body_edited=$6'
         params.push(editedBody, true)
       }
-      console.log(typeof item.tags, item.tags)
       return pool.query(`UPDATE hafsql.comments_table SET tags=$1, last_op_id=$2, edited=$3 ${extraQuery}WHERE id=$4`, params)
     }
     commentsArray.push(item)
