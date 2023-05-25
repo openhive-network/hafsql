@@ -50,6 +50,7 @@ const insertComments = async (items) => {
     await commentsHelper(item)
   }
   let queryString = ''
+  const params = []
   let first = true
   for (let i = 0; i < commentsArray.length; i++) {
     const comment = commentsArray[i]
@@ -57,7 +58,8 @@ const insertComments = async (items) => {
       queryString += ','
     }
     const body = comment.bodyEdited ? comment.body : ''
-    queryString += `('${comment.author}','${comment.permlink}',${comment.op_id},${comment.bodyEdited},'${body}','${JSON.stringify(comment.tags)}'::jsonb)`
+    queryString += `($${1 + 6 * i},$${2 + 6 * i},$${3 + 6 * i},$${4 + 6 * i},$${5 + 6 * i},$${6 + 6 * i})`
+    params.push(comment.author, comment.permlink, comment.op_id, comment.bodyEdited, body, JSON.stringify(comment.tags))
     if (first) {
       first = false
     }
