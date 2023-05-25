@@ -104,6 +104,7 @@ const commentsHelper = async (item) => {
         extraQuery = ', body=$5, body_edited=$6'
         params.push(editedBody, true)
       }
+      console.log(params)
       return pool.query(`UPDATE hafsql.comments_table SET tags=$1, last_op_id=$2, edited=$3 ${extraQuery}WHERE id=$4`, params)
     }
     commentsArray.push(item)
