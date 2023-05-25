@@ -22,7 +22,7 @@ export const fillComments = async (limit = 50) => {
     start = comments.rows[comments.rowCount - 1].op_id
     await updateLastOpId(start)
     comments = await getComments(start, limit)
-    if (start > 100000) {
+    if (start > 5000000) {
       break
     }
   }
