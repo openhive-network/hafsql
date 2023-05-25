@@ -65,7 +65,7 @@ const insertComments = async (items) => {
     }
   }
   console.log(queryString)
-  await pool.query(`INSERT INTO hafsql.comments_table (author, permlink, last_op_id, body_edited, body, tags) VALUES ${queryString};`)
+  await pool.query(`INSERT INTO hafsql.comments_table (author, permlink, last_op_id, body_edited, body, tags) VALUES ${queryString};`, params)
 }
 
 const commentsHelper = async (item) => {
