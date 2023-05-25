@@ -10,7 +10,7 @@ export const syncComments = async () => {
   }, intervalTime)
 }
 
-export const fillComments = async (limit = 50) => {
+export const fillComments = async (limit = 10) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['comments']
@@ -104,6 +104,7 @@ const commentsHelper = async (item) => {
         extraQuery = ', body=$5, body_edited=$6'
         params.push(editedBody, true)
       }
+      console.log(params)
       return pool.query(`UPDATE hafsql.comments_table SET tags=$1, last_op_id=$2, edited=$3 ${extraQuery}WHERE id=$4`, params)
     }
     commentsArray.push(item)
