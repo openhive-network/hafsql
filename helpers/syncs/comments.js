@@ -10,7 +10,7 @@ export const syncComments = async () => {
   }, intervalTime)
 }
 
-export const fillComments = async (limit = 20) => {
+export const fillComments = async (limit = 100000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['comments']
@@ -118,6 +118,9 @@ const getTags = (jsonMetadata) => {
           for (let i = 0; i < tags.length; i++) {
             if (tags[i].length <= 24) {
               temp.push(tags[i])
+            }
+            if (i > 10) {
+              break
             }
           }
         }
