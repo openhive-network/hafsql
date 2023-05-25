@@ -10,19 +10,22 @@ export const syncComments = async () => {
   }, intervalTime)
 }
 
-export const fillComments = async (limit = 100000) => {
+export const fillComments = async (limit = 50) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['comments']
   )
   start = start.rows[0].last_op_id
   let comments = await getComments(start, limit)
-  // while (comments.rowCount > 0) {
-  await insertComments(comments.rows)
-  start = comments.rows[comments.rowCount - 1].op_id
-  await updateLastOpId(start)
-  comments = await getComments(start, limit)
-  // }
+  while (comments.rowCount > 0) {
+    await insertComments(comments.rows)
+    start = comments.rows[comments.rowCount - 1].op_id
+    await updateLastOpId(start)
+    comments = await getComments(start, limit)
+    if (start > 100000) {
+      break
+    }
+  }
 }
 
 const getComments = async (start, limit = 10000) => {
