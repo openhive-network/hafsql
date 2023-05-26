@@ -51,11 +51,11 @@ export const setupVirtualOperationViews = async () => {
       o."timestamp",
       (o.body::jsonb -> 'value'::text) ->> 'author'::text AS author,
       (o.body::jsonb -> 'value'::text) ->> 'permlink'::text AS permlink,
-      (o.body::jsonb -> 'value'::text) ->> 'payout'::text AS payout,
+      hafsql_assetamount((o.body::jsonb -> 'value'::text) ->> 'payout'::text) AS payout,
       (o.body::jsonb -> 'value'::text) ->> 'author_rewards'::text AS author_rewards,
-      (o.body::jsonb -> 'value'::text) ->> 'total_payout_value'::text AS total_payout_value,
-      (o.body::jsonb -> 'value'::text) ->> 'curator_payout_value'::text AS curator_payout_value,
-      (o.body::jsonb -> 'value'::text) ->> 'beneficiary_payout_value'::text AS beneficiary_payout_value
+      hafsql_assetamount((o.body::jsonb -> 'value'::text) ->> 'total_payout_value'::text) AS total_payout_value,
+      hafsql_assetamount((o.body::jsonb -> 'value'::text) ->> 'curator_payout_value'::text) AS curator_payout_value,
+      hafsql_assetamount((o.body::jsonb -> 'value'::text) ->> 'beneficiary_payout_value'::text) AS beneficiary_payout_value
     FROM hive.operations o
     WHERE o.op_type_id = ${OPs} + 4;`
   await pool.query(VOCommentReward)
