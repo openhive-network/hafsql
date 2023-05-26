@@ -1,8 +1,8 @@
 import { pool } from '../helpers/database.js'
-import { removeOperationViews, setupOperationViews } from '../helpers/operations.js'
-import { removeVirtualOperationViews, setupVirtualOperationViews } from '../helpers/virtualOperations.js'
-import { setupFunctions } from '../helpers/functions.js'
-import { setupSchema } from '../helpers/schema.js'
+import { removeOperationViews, setupOperationViews } from '../helpers/setups/operations.js'
+import { removeVirtualOperationViews, setupVirtualOperationViews } from '../helpers/setups/virtualOperations.js'
+import { setupFunctions } from '../helpers/setups/functions.js'
+import { setupSchema } from '../helpers/setups/schema.js'
 
 // Creating hafsql schema and all the views
 export const setup = async () => {
@@ -30,4 +30,3 @@ export const setup = async () => {
 setup()
 
 // index operations id, op_type_id
-
