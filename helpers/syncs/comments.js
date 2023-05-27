@@ -10,7 +10,7 @@ export const syncComments = async () => {
   }, intervalTime)
 }
 
-export const fillComments = async (limit = 10) => {
+export const fillComments = async (limit = 30000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['comments']
@@ -22,9 +22,9 @@ export const fillComments = async (limit = 10) => {
     start = comments.rows[comments.rowCount - 1].op_id
     await updateLastOpId(start)
     comments = await getComments(start, limit)
-    if (start > 5000000) {
-      break
-    }
+    // if (start > 5000000) {
+    //   break
+    // }
   }
 }
 
@@ -58,14 +58,15 @@ const insertComments = async (items) => {
       queryString += ','
     }
     const body = comment.bodyEdited ? comment.body : ''
-    queryString += `($${1 + 6 * i},$${2 + 6 * i},$${3 + 6 * i},$${4 + 6 * i},$${5 + 6 * i},$${6 + 6 * i})`
-    params.push(comment.author, comment.permlink, comment.op_id, comment.bodyEdited, body, JSON.stringify(comment.tags))
+    const N = 7
+    queryString += `($${1 + N * i},$${2 + N * i},$${3 + N * i},$${4 + N * i},$${5 + N * i},$${6 + N * i},$${7 + N * i})`
+    params.push(comment.author, comment.permlink, comment.op_id, comment.bodyEdited, body, JSON.stringify(comment.tags), comment.timestamp)
     if (first) {
       first = false
     }
   }
   if (params.length > 0) {
-    await pool.query(`INSERT INTO hafsql.comments_table (author, permlink, last_op_id, body_edited, body, tags) VALUES ${queryString};`, params)
+    await pool.query(`INSERT INTO hafsql.comments_table (author, permlink, last_op_id, body_edited, body, tags, created) VALUES ${queryString};`, params)
   }
 }
 
@@ -82,7 +83,6 @@ const commentsHelper = async (item) => {
           commentsArray[i].body = editedBody
           commentsArray[i].bodyEdited = true
         }
-        commentsArray[i].edited = item.timestamp
         commentsArray[i].op_id = item.op_id
         return
       }
@@ -99,13 +99,13 @@ const commentsHelper = async (item) => {
       const temp = await pool.query('SELECT body FROM hafsql."TxComment" WHERE op_id=$1', [comment.rows[0].last_op_id])
       oldBody = temp.rows[0].body
       let extraQuery = ''
-      const params = [JSON.stringify(item.tags), item.op_id, item.timestamp, comment.rows[0].id]
+      const params = [JSON.stringify(item.tags), item.op_id, comment.rows[0].id]
       if (item.body.length > 0 && item.body !== oldBody) {
         const editedBody = patchBody(oldBody, item.body)
-        extraQuery = ', body=$5, body_edited=$6'
+        extraQuery = ', body=$4, body_edited=$5'
         params.push(editedBody, true)
       }
-      return pool.query(`UPDATE hafsql.comments_table SET tags=$1, last_op_id=$2, edited=$3 ${extraQuery}WHERE id=$4`, params)
+      return pool.query(`UPDATE hafsql.comments_table SET tags=$1, last_op_id=$2 ${extraQuery}WHERE id=$3`, params)
     }
     commentsArray.push(item)
   } catch (e) {
