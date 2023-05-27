@@ -13,6 +13,7 @@ import {
 } from '../helpers/syncs/proposalApprovals.js'
 import { fillFollows, syncFollows } from '../helpers/syncs/follows.js'
 import { fillComments, syncComments } from '../helpers/syncs/comments.js'
+import { fillRewards, syncRewards } from '../helpers/syncs/rewards.js'
 config()
 
 const main = async () => {
@@ -32,6 +33,9 @@ const main = async () => {
   console.log('Syncing comments...')
   await fillComments()
 
+  console.log('Syncing rewards...')
+  await fillRewards()
+
   const timeSpent = (Date.now() - now) / 1000
   console.log(
     'Sync done in ' + timeSpent / 60 + ' minutes. Live sync started...'
@@ -40,7 +44,8 @@ const main = async () => {
   syncRCDelegations()
   syncProposalApprovals()
   syncFollows()
-  // syncComments()
+  syncComments()
+  syncRewards()
 }
 
 main()
