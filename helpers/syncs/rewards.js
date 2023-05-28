@@ -23,7 +23,7 @@ const resetPaidPosts = () => {
     )
     const cmId = startComment.rows[0].id
     await pool.query('UPDATE hafsql.comments_table SET pending_payout_value=0 WHERE id<$1 AND pending_payout_value>0', [cmId])
-    console.log('LOG: Reset took ' + Date.now() - timer + 'ms')
+    console.log('LOG: Reset took ' + (Date.now() - timer) + 'ms')
   }, intervalTime)
 }
 
