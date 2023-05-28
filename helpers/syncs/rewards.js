@@ -18,11 +18,11 @@ const resetPaidPosts = () => {
       'SELECT author, permlink FROM hafsql."VOCommentReward" ORDER BY op_id DESC LIMIT 1'
     )
     const startComment = await pool.query(
-      'SELECT op_id FROM hafsql."TxComment" WHERE author=$1 AND permlink=$2 ORDER BY op_id ASC LIMIT 1',
+      'SELECT id FROM hafsql.comments_table WHERE author=$1 AND permlink=$2',
       [lastPaid.rows[0].author, lastPaid.rows[0].permlink]
     )
-    const cmOpId = startComment.rows[0].op_id
-    await pool.query('UPDATE hafsql.comments_table SET pending_payout_value=0 WHERE op_id<$1 AND pending_payout_value>0', [cmOpId])
+    const cmId = startComment.rows[0].id
+    await pool.query('UPDATE hafsql.comments_table SET pending_payout_value=0 WHERE id<$1 AND pending_payout_value>0', [cmId])
     console.log('LOG: Reset took ' + Date.now() - timer + 'ms')
   }, intervalTime)
 }
