@@ -78,6 +78,7 @@ import DiffMatchPatch from 'diff-match-patch'
 function cleanString (input) {
   let output = ''
   for (let i = 0; i < input.length; i++) {
+    console.log(input.charCodeAt(i))
     if (input.charCodeAt(i) <= 127) {
       output += input.charAt(i)
     }
@@ -92,8 +93,8 @@ const b2 = t.rows[1].body
 const dmp = new DiffMatchPatch()
 const patch = dmp.patch_fromText(b2)
 const [temp] = dmp.patch_apply(patch, b)
-console.log(String.raw`${b}`)
-console.log(String.raw`${b2}`)
-console.log(String.raw`${temp}`)
+// console.log(String.raw`${b}`)
+// console.log(String.raw`${b2}`)
+// console.log(String.raw`${temp}`)
 
 pool.query('UPDATE hafsql.comments_table SET body=$1 WHERE id=2', [cleanString(temp)])
