@@ -1,5 +1,5 @@
-import pg from "pg"
-import { config } from "dotenv"
+import pg from 'pg'
+import { config } from 'dotenv'
 config()
 
 export const pool = new pg.Pool({
@@ -11,4 +11,3 @@ export const pool = new pg.Pool({
   max: process.env.PGPOOLSIZE || 10,
   min: 1
 })
-
