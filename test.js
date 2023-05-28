@@ -1,6 +1,6 @@
 // import pg from 'pg'
 import { pool } from './helpers/database.js'
-// import DiffMatchPatch from 'diff-match-patch'
+import DiffMatchPatch from 'diff-match-patch'
 // import { diff_match_patch as Dmp } from './helpers/dmp.js'
 
 // const res = await pool.query(
@@ -78,4 +78,8 @@ import { pool } from './helpers/database.js'
 // const data = '}~ ¡¢'
 const t = await pool.query('select body from hafsql."TxComment" where author=$1 and permlink=$2 ORDER BY op_id ASC', ['xeroc', 're-piston-20160818t080811'])
 const b = t.rows[0].body
-pool.query('UPDATE hafsql.comments_table SET body=$1 WHERE id=2', [b])
+const b2 = t.rows[1].body
+const dmp = new DiffMatchPatch()
+const patch = dmp.patch_fromText(b2)
+const [temp] = dmp.patch_apply(patch, b)
+pool.query('UPDATE hafsql.comments_table SET body=$1 WHERE id=2', [temp])
