@@ -88,4 +88,4 @@ import { pool } from './helpers/database.js'
 // vwxyz{|}~ ¡¢£¤¥¦§¨
 
 const data = '}~ ¡¢'
-pool.query('UPDATE hafsql.sync_data SET table_name=$1 WHERE last_op_id=5')
+pool.query('UPDATE hafsql.sync_data SET table_name=$1 WHERE last_op_id=5', [data])
