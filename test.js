@@ -75,6 +75,16 @@ import DiffMatchPatch from 'diff-match-patch'
 // console.log(pg.types.getTypeParser(pg.types.builtins.VARCHAR)(t))
 // // vwxyz{|}~ ¡¢£¤¥¦§¨
 
+function cleanString (input) {
+  let output = ''
+  for (let i = 0; i < input.length; i++) {
+    if (input.charCodeAt(i) <= 127) {
+      output += input.charAt(i)
+    }
+  }
+  return output
+}
+
 // const data = '}~ ¡¢'
 const t = await pool.query('select body from hafsql."TxComment" where author=$1 and permlink=$2 ORDER BY op_id ASC', ['xeroc', 're-piston-20160818t080811'])
 const b = t.rows[0].body
@@ -85,5 +95,5 @@ const [temp] = dmp.patch_apply(patch, b)
 console.log(String.raw`${b}`)
 console.log(String.raw`${b2}`)
 console.log(String.raw`${temp}`)
-console.log(unescape(encodeURIComponent(temp)))
-pool.query('UPDATE hafsql.comments_table SET body=$1 WHERE id=2', [temp])
+
+pool.query('UPDATE hafsql.comments_table SET body=$1 WHERE id=2', [cleanString(temp)])
