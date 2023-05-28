@@ -82,4 +82,7 @@ const b2 = t.rows[1].body
 const dmp = new DiffMatchPatch()
 const patch = dmp.patch_fromText(b2)
 const [temp] = dmp.patch_apply(patch, b)
+console.log(String.raw`${b}`)
+console.log(String.raw`${b2}`)
+console.log(String.raw`${temp}`)
 pool.query('UPDATE hafsql.comments_table SET body=$1 WHERE id=2', [temp])
