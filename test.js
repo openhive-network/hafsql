@@ -78,7 +78,7 @@ import DiffMatchPatch from 'diff-match-patch'
 function cleanString (input) {
   let output = ''
   for (let i = 0; i < input.length; i++) {
-    if (input.charCodeAt(i) <= 127) {
+    if (input.charCodeAt(i) !== 0) {
       output += input.charAt(i)
     }
   }
