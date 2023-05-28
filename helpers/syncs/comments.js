@@ -1,6 +1,5 @@
 import { pool } from '../database.js'
 import DiffMatchPatch from 'diff-match-patch'
-import { string as escapeString } from 'pg-escape'
 
 let commentsArray = []
 
@@ -63,7 +62,7 @@ const insertComments = async (items) => {
     const body = comment.bodyEdited ? comment.body : ''
     const N = 7
     queryString += `($${1 + N * i},$${2 + N * i},$${3 + N * i},$${4 + N * i},$${5 + N * i},$${6 + N * i},$${7 + N * i})`
-    params.push(comment.author, comment.permlink, comment.op_id, comment.bodyEdited, escapeString(String.raw`${body}`), JSON.stringify(comment.tags), comment.timestamp)
+    params.push(comment.author, comment.permlink, comment.op_id, comment.bodyEdited, cleanString(body), JSON.stringify(comment.tags), comment.timestamp)
     if (first) {
       first = false
     }
@@ -107,7 +106,7 @@ const commentsHelper = async (item) => {
       if (item.body.length > 0 && item.body !== oldBody) {
         const editedBody = patchBody(oldBody, item.body)
         extraQuery = ', body=$4, body_edited=$5'
-        params.push(escapeString(editedBody), true)
+        params.push(cleanString(editedBody), true)
       }
       return pool.query(`UPDATE hafsql.comments_table SET tags=$1, last_op_id=$2 ${extraQuery}WHERE id=$3`, params)
     }
@@ -127,7 +126,7 @@ const getTags = (jsonMetadata) => {
         if (Array.isArray(tags)) {
           for (let i = 0; i < tags.length; i++) {
             if (tags[i].length <= 24) {
-              temp.push(tags[i])
+              temp.push(cleanString(tags[i]))
             }
             if (i > 10) {
               break
@@ -140,6 +139,17 @@ const getTags = (jsonMetadata) => {
   } catch {
     return []
   }
+}
+
+// Charcode 0 is invalid for Postgres
+const cleanString = (input) => {
+  let output = ''
+  for (let i = 0; i < input.length; i++) {
+    if (input.charCodeAt(i) !== 0) {
+      output += input.charAt(i)
+    }
+  }
+  return output
 }
 
 const patchBody = (oldBody, newBody) => {
