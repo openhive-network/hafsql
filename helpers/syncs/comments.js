@@ -62,13 +62,12 @@ const insertComments = async (items) => {
     const body = comment.bodyEdited ? comment.body : ''
     const N = 7
     queryString += `($${1 + N * i},$${2 + N * i},$${3 + N * i},$${4 + N * i},$${5 + N * i},$${6 + N * i},$${7 + N * i})`
-    params.push(comment.author, comment.permlink, comment.op_id, comment.bodyEdited, body, JSON.stringify(comment.tags), comment.timestamp)
+    params.push(comment.author, comment.permlink, comment.op_id, comment.bodyEdited, JSON.stringify(body), JSON.stringify(comment.tags), comment.timestamp)
     if (first) {
       first = false
     }
   }
   if (params.length > 0) {
-    console.log(params[17455])
     await pool.query(`INSERT INTO hafsql.comments_table (author, permlink, last_op_id, body_edited, body, tags, created) VALUES ${queryString};`, params)
   }
 }
@@ -106,7 +105,7 @@ const commentsHelper = async (item) => {
       if (item.body.length > 0 && item.body !== oldBody) {
         const editedBody = patchBody(oldBody, item.body)
         extraQuery = ', body=$4, body_edited=$5'
-        params.push(editedBody, true)
+        params.push(JSON.stringify(editedBody), true)
       }
       return pool.query(`UPDATE hafsql.comments_table SET tags=$1, last_op_id=$2 ${extraQuery}WHERE id=$3`, params)
     }
