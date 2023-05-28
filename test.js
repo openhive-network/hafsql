@@ -71,9 +71,11 @@ import { pool } from './helpers/database.js'
 //   test()
 // }
 // console.log((Date.now() - nowTime))
-const t = 'u0000'
+// const t = `u0000u0001u0002u0003u0004u0005u0006u0007b
 // console.log(pg.types.getTypeParser(pg.types.builtins.VARCHAR)(t))
-// vwxyz{|}~ ¡¢£¤¥¦§¨
+// // vwxyz{|}~ ¡¢£¤¥¦§¨
 
 // const data = '}~ ¡¢'
-pool.query('UPDATE hafsql.comments_table SET body=$1 WHERE id=1', [t])
+const t = await pool.query('select body from hafsql.comments_table where id=1')
+const b = t.rows[0].body
+pool.query('UPDATE hafsql.comments_table SET body=$1 WHERE id=2', [b])
