@@ -76,6 +76,6 @@ import { pool } from './helpers/database.js'
 // // vwxyz{|}~ ¡¢£¤¥¦§¨
 
 // const data = '}~ ¡¢'
-const t = await pool.query('select body from hafsql.comments_table where id=1')
+const t = await pool.query('select body from hafsql."TxComment" where author=$1 and permlink=$2 ORDER BY op_id DESC', ['xeroc', 're-piston-20160818t080811'])
 const b = t.rows[0].body
 pool.query('UPDATE hafsql.comments_table SET body=$1 WHERE id=2', [b])
