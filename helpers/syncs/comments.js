@@ -63,7 +63,7 @@ const insertComments = async (items) => {
     const body = comment.bodyEdited ? comment.body : ''
     const N = 7
     queryString += `($${1 + N * i},$${2 + N * i},$${3 + N * i},$${4 + N * i},$${5 + N * i},$${6 + N * i},$${7 + N * i})`
-    params.push(comment.author, comment.permlink, comment.op_id, comment.bodyEdited, escapeString(body), JSON.stringify(comment.tags), comment.timestamp)
+    params.push(comment.author, comment.permlink, comment.op_id, comment.bodyEdited, escapeString(String.raw`${body}`), JSON.stringify(comment.tags), comment.timestamp)
     if (first) {
       first = false
     }
