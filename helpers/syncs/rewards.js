@@ -74,7 +74,7 @@ const insertRewards = async (rewards) => {
     if (updated) {
       continue
     }
-    cache[i] = { author, permlink, pendingPayout }
+    cache.push({ author, permlink, pendingPayout })
   }
   for (let k = 0; k < cache.length; k++) {
     await pool.query(
