@@ -10,7 +10,9 @@ export const syncComments = async () => {
   }, intervalTime)
 }
 
-export const fillComments = async (limit = 30000) => {
+// 65535 / 7 = ~9000
+// postgres parameters limit = 65535
+export const fillComments = async (limit = 9000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['comments']
@@ -66,7 +68,6 @@ const insertComments = async (items) => {
     }
   }
   if (params.length > 0) {
-    console.log(queryString.length, params.length)
     await pool.query(`INSERT INTO hafsql.comments_table (author, permlink, last_op_id, body_edited, body, tags, created) VALUES ${queryString};`, params)
   }
 }
