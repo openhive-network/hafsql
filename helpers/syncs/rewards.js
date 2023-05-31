@@ -3,7 +3,7 @@ import { pool } from '../database.js'
 let cache = []
 
 export const syncRewards = async () => {
-  // resetPaidPosts()
+  resetPaidPosts()
   const intervalTime = 3000
   setInterval(() => {
     fillRewards(1000)
@@ -78,12 +78,9 @@ const insertRewards = async (rewards) => {
     cache.push({ author, permlink, pendingPayout })
   }
   for (let k = 0; k < cache.length; k++) {
-    if (k < 10) {
-      console.log(cache[k])
-    }
     await pool.query(
       'UPDATE hafsql.comments_table SET pending_payout_value=$1 WHERE author=$2 AND permlink=$3',
-      [cache.pendingPayout, cache.author, cache.permlink]
+      [cache[k].pendingPayout, cache[k].author, cache[k].permlink]
     )
   }
 }
