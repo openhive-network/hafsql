@@ -3,7 +3,7 @@ import { pool } from '../database.js'
 let cache = []
 
 export const syncRewards = async () => {
-  resetPaidPosts()
+  // resetPaidPosts()
   const intervalTime = 3000
   setInterval(() => {
     fillRewards(1000)
