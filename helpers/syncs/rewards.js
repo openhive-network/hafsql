@@ -11,9 +11,8 @@ export const syncRewards = async () => {
 }
 
 const resetPaidPosts = () => {
-  const intervalTime = 30000
+  const intervalTime = 10000
   setInterval(async () => {
-    const timer = Date.now()
     const lastPaid = await pool.query(
       'SELECT author, permlink FROM hafsql."VOCommentPayoutUpdate" ORDER BY op_id DESC LIMIT 1'
     )
@@ -23,7 +22,7 @@ const resetPaidPosts = () => {
     )
     const cmId = startComment.rows[0].id
     await pool.query('UPDATE hafsql.comments_table SET pending_payout_value=0 WHERE id<=$1 AND pending_payout_value>0', [cmId])
-    console.log('LOG: Reset took ' + (Date.now() - timer) + 'ms')
+    // takes 50-80ms
   }, intervalTime)
 }
 
