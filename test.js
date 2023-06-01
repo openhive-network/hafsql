@@ -86,7 +86,7 @@ function cleanString (input) {
 }
 
 // const data = '}~ ¡¢'
-const t = await pool.query('select body from hafsql."TxComment" where author=$1 and permlink=$2 ORDER BY op_id ASC', ['xeroc', 're-piston-20160818t080811'])
+const t = await pool.query('select body from hafsql."TxComment" where author=$1 and permlink=$2 ORDER BY op_id ASC', ['mahdiyari', 'how-to-build-and-run-a-hive-node-witnessseedconsensus-and-account-history-nodes'])
 const b = t.rows[0].body
 const b2 = t.rows[1].body
 const dmp = new DiffMatchPatch()
@@ -96,4 +96,4 @@ const [temp] = dmp.patch_apply(patch, b)
 // console.log(String.raw`${b2}`)
 console.log(cleanString(temp))
 
-pool.query('UPDATE hafsql.comments_table SET body=$1 WHERE id=2', [cleanString(temp)])
+// pool.query('UPDATE hafsql.comments_table SET body=$1 WHERE id=2', [cleanString(temp)])
