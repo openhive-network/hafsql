@@ -1,5 +1,5 @@
 import { pool } from '../database.js'
-import { validateAccountName } from '../validateUsername.js'
+import { clearUsername, validateAccountName } from '../validateUsername.js'
 
 let accountCache = {}
 let useCache = true
@@ -437,10 +437,6 @@ const getUserId = async (username) => {
     accountCache[username] = id
     return id
   }
-}
-
-const clearUsername = (username) => {
-  return username.slice(0, 16)
 }
 
 const updateLastOpId = async (opId) => {
