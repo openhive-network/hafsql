@@ -124,6 +124,9 @@ const insertReblogs = async (reblogs) => {
       helperArray.push({ account, post })
     } else {
       for (let k = 0; k < helperArray.length; k++) {
+        if (!helperArray[k]) {
+          continue
+        }
         if (account === helperArray[k].account && post === helperArray[k].post) {
           delete helperArray[k]
         }
@@ -151,6 +154,19 @@ const insertReblogs = async (reblogs) => {
     ON CONFLICT ON CONSTRAINT hafsql_reblogs_table_un DO NOTHING;`)
   }
 }
+
+// let reblogsArray = []
+// const processReblogs = (reblogs) => {
+//   for (let i = 0; i < reblogs.length; i++) {
+//     reblogsArray.push(reblogs[i])
+//   }
+//   const intervalTime = 10
+//   const reblogInterval = setInterval(() => {
+//     if (reblogsArray.length > 32000) {
+
+//     }
+//   }, intervalTime)
+// }
 
 const getPostId = async (author, permlink) => {
   const postString = author + ';' + permlink
