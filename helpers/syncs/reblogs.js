@@ -145,6 +145,8 @@ const insertReblogs = async (reblogs) => {
     }
   }
   if (params.length > 0) {
+    console.log(params[0], params[1])
+    console.log(queryString.slice(0, 20))
     await pool.query(`INSERT INTO hafsql.reblogs_table (account, post) VALUES ${queryString};`, params)
   }
 }
