@@ -34,6 +34,9 @@ const getReblogs = async (start, limit = 10000) => {
   if (start < 16724280) {
     start = 16724280
   }
+  if (start < 27000000) {
+    limit = 80000
+  }
   const result = await pool.query(
     `SELECT op_id, json, required_posting_auths, id FROM hafsql."TxCustomJson"
       WHERE id IN($1,$2) AND op_id > $3 ORDER BY op_id ASC LIMIT $4`,
