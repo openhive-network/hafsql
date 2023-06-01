@@ -128,7 +128,6 @@ const insertReblogs = async (reblogs) => {
     }
   }
   let queryString = ''
-  const params = []
   let first = true
   for (let i = 0; i < helperArray.length; i++) {
     const reblog = helperArray[i]
@@ -138,14 +137,14 @@ const insertReblogs = async (reblogs) => {
     if (!first) {
       queryString += ','
     }
-    queryString += `($${1 + i * 2}, $${2 + i * 2})`
-    params.push(reblog.account, reblog.post)
+    queryString += `(${reblog.account}, ${reblog.post})`
     if (first) {
       first = false
     }
   }
-  if (params.length > 0) {
-    await pool.query(`INSERT INTO hafsql.reblogs_table (account, post) VALUES ${queryString};`, params)
+  if (queryString.length > 0) {
+    await pool.query(`INSERT INTO hafsql.reblogs_table (account, post) VALUES ${queryString}
+    ON CONFLICT ON CONSTRAINT hafsql_reblogs_table_un DO NOTHING;`)
   }
 }
 
