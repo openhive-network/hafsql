@@ -14,6 +14,7 @@ import {
 import { fillFollows, syncFollows } from '../helpers/syncs/follows.js'
 import { fillComments, syncComments } from '../helpers/syncs/comments.js'
 import { fillRewards, syncRewards } from '../helpers/syncs/rewards.js'
+import { fillReblogs, syncReblogs } from '../helpers/syncs/reblogs.js'
 config()
 
 const main = async () => {
@@ -36,6 +37,9 @@ const main = async () => {
   console.log('Syncing rewards...')
   await fillRewards()
 
+  console.log('Syncing reblogs...')
+  await fillReblogs()
+
   const timeSpent = (Date.now() - now) / 1000
   console.log(
     'Sync done in ' + timeSpent / 60 + ' minutes. Live sync started...'
@@ -46,6 +50,7 @@ const main = async () => {
   syncFollows()
   syncComments()
   syncRewards()
+  syncReblogs()
 }
 
 main()
