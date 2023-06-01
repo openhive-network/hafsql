@@ -15,7 +15,7 @@ export const syncReblogs = async () => {
   }, intervalTime)
 }
 
-export const fillReblogs = async (limit = 20000) => {
+export const fillReblogs = async (limit = 30000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['reblogs']
