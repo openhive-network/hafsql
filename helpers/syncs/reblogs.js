@@ -103,7 +103,9 @@ const getReblogs = async (start, limit = 10000) => {
       }
       const postId = await getPostId(author, permlink)
       if (!postId) {
-        console.log(postId, author, permlink)
+        if (author === 'peakd') {
+          console.log(postId, author, permlink)
+        }
         continue
       }
       if (postId === 110471761) {
