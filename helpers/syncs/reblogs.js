@@ -21,6 +21,7 @@ export const fillReblogs = async (limit = 30000) => {
     ['reblogs']
   )
   start = start.rows[0].last_op_id
+  start = 4783518666
   let reblogs = await getReblogs(start, limit)
   while (reblogs.length > 0) {
     await insertReblogs(reblogs)
@@ -60,6 +61,7 @@ const getReblogs = async (start, limit = 10000) => {
       if (parsedJson.length !== 2) {
         continue
       }
+      // ["reblog",{"account":"oscargonzalez123","author":"linita","permlink":"esp-eng-divertidos-imantados-de-frutas-para-decorar-la-nevera-hechos-en-foami"}]
       if (parsedJson[0] !== 'reblog') {
         continue
       }
@@ -78,6 +80,7 @@ const getReblogs = async (start, limit = 10000) => {
         continue
       }
       const { account, author, permlink } = parsedJson[1]
+
       let remove = false
       if (Object.hasOwn(parsedJson[1], 'delete') && parsedJson[1].delete === 'delete') {
         remove = true
@@ -100,6 +103,7 @@ const getReblogs = async (start, limit = 10000) => {
       }
       const postId = await getPostId(author, permlink)
       if (!postId) {
+        console.log(postId, author, permlink)
         continue
       }
       if (postId === 110471761) {
