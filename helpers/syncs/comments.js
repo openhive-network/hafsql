@@ -97,9 +97,10 @@ const commentsHelper = async (item) => {
       let oldBody = ''
       if (comment.rows[0].body_edited === true) {
         oldBody = comment.rows[0].body
+      } else {
+        const temp = await pool.query('SELECT body FROM hafsql."TxComment" WHERE author=$1 AND permlink=$2 ORDER BY op_id ASC LIMIT 1', [item.author, item.permlink])
+        oldBody = temp.rows[0].body
       }
-      const temp = await pool.query('SELECT body FROM hafsql."TxComment" WHERE op_id=$1', [comment.rows[0].last_op_id])
-      oldBody = temp.rows[0].body
       let extraQuery = ''
       const params = [JSON.stringify(item.tags), item.op_id, comment.rows[0].id]
       if (item.body.length > 0 && item.body !== oldBody) {
