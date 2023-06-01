@@ -16,15 +16,6 @@ export const syncFollows = async () => {
   }, intervalTime)
 }
 
-// num
-// Sync done in 4.599083333333334 minutes. Live sync started...
-// string
-// Sync done in 4.677783333333333 minutes. Live sync started...
-// num - cached IDs 3 minutes
-
-// full - single row inserts 228.3 minutes ~3.8 hours
-// full - multi row inserts 87.7 minutes ~1.45 hours
-
 // 65535 / 2 = 32000
 // limit must be < 32000
 export const fillFollows = async (limit = 30000) => {
@@ -38,9 +29,6 @@ export const fillFollows = async (limit = 30000) => {
     await insertFollows(follows)
     const start = follows[follows.length - 1].op_id
     await updateLastOpId(start)
-    // if (start >= 100000000) {
-    //   break
-    // }
     follows = await getFollows(start, limit)
   }
 }
@@ -70,7 +58,7 @@ const getFollows = async (start, limit = 10000) => {
       if (parsedJson.length !== 2) {
         continue
       }
-      if (parsedJson[0] !== 'follow' && parsedJson[0] !== 'reblog') {
+      if (parsedJson[0] !== 'follow') {
         continue
       }
       if (typeof parsedJson[1] !== 'object') {
@@ -80,71 +68,37 @@ const getFollows = async (start, limit = 10000) => {
       if (keys.length !== 3) {
         continue
       }
-      const type = parsedJson[0]
-      if (type === 'follow') {
-        if (
-          !Object.hasOwn(parsedJson[1], 'follower') ||
+      if (
+        !Object.hasOwn(parsedJson[1], 'follower') ||
           !Object.hasOwn(parsedJson[1], 'following') ||
           !Object.hasOwn(parsedJson[1], 'what')
-        ) {
-          continue
-        }
-        const { follower, what } = parsedJson[1]
-        let { following } = parsedJson[1]
-        if (!Array.isArray(following)) {
-          following = [following]
-        }
-        if (validateAccountName(follower)) {
-          continue
-        }
-        if (postingAuths[0] !== follower) {
-          continue
-        }
-        if (!Array.isArray(what) || what.length > 1) {
-          continue
-        }
-        const ids = await processFollowing(follower, following, what)
-        if (!ids) {
-          continue
-        }
-        followsArray.push({
-          type,
-          follower: ids.follower,
-          following: ids.following,
-          what,
-          op_id: customJson.op_id
-        })
-      } else {
-        if (
-          !Object.hasOwn(parsedJson[1], 'account') ||
-          !Object.hasOwn(parsedJson[1], 'author') ||
-          !Object.hasOwn(parsedJson[1], 'permlink')
-        ) {
-          continue
-        }
-        const { account, author, permlink } = parsedJson[1]
-        if (validateAccountName(account) || validateAccountName(author)) {
-          continue
-        }
-        if (postingAuths[0] !== account) {
-          continue
-        }
-        // const getIds = await pool.query('SELECT a.name, a.id FROM hive.accounts a WHERE a.name IN($1, $2)', [account, author])
-        // if (getIds.rowCount !== 2) {
-        //   continue
-        // }
-        // const ids = {}
-        // for (let i = 0; i < 2; i++) {
-        //   ids[getIds.rows[i].name] = getIds.rows[i].id
-        // }
-        followsArray.push({
-          type,
-          account,
-          author,
-          permlink,
-          op_id: customJson.op_id
-        })
+      ) {
+        continue
       }
+      const { follower, what } = parsedJson[1]
+      let { following } = parsedJson[1]
+      if (!Array.isArray(following)) {
+        following = [following]
+      }
+      if (validateAccountName(clearUsername(follower))) {
+        continue
+      }
+      if (postingAuths[0] !== clearUsername(follower)) {
+        continue
+      }
+      if (!Array.isArray(what) || what.length > 1) {
+        continue
+      }
+      const ids = await processFollowing(follower, following, what)
+      if (!ids) {
+        continue
+      }
+      followsArray.push({
+        follower: ids.follower,
+        following: ids.following,
+        what,
+        op_id: customJson.op_id
+      })
     } catch (e) {
       continue
     }
@@ -152,91 +106,11 @@ const getFollows = async (start, limit = 10000) => {
   return followsArray
 }
 
-const processFollowing = async (follower, following, what) => {
-  const followingsArray = []
-  const ids = {}
-  ids.follower = await getUserId(follower)
-  for (let i = 0; i < following.length; i++) {
-    if (validateAccountName(following[i])) {
-      continue
-    }
-    if (follower === following[i]) {
-      continue
-    }
-    const followingId = await getUserId(following[i])
-    if (!followingId) {
-      continue
-    }
-    followingsArray.push(followingId)
-  }
-  if (followingsArray.length < 1 && !what[0].includes('reset_')) {
-    return null
-  }
-  ids.following = followingsArray
-  return ids
-}
-
-// Caching ids for duration of the sync
-const getUserId = async (username) => {
-  if (useCache && Object.hasOwn(accountCache, username)) {
-    return accountCache[username]
-  } else {
-    const getId = await pool.query('SELECT a.id FROM hive.accounts a WHERE a.name=$1', [username])
-    if (getId.rowCount < 1) {
-      return null
-    }
-    const id = getId.rows[0].id
-    accountCache[username] = id
-    return id
-  }
-}
-
-const followersHelper = (item, action) => {
-  const { follower, following } = item
-  for (let i = 0; i < following.length; i++) {
-    if (action === 'follow') {
-      followersArray.push({ follower, following: following[i] })
-    } else {
-      for (let k = 0; k < followersArray.length; k++) {
-        const temp = followersArray[k]
-        if (typeof temp === 'undefined') {
-          continue
-        }
-        if (temp.follower === follower && temp.following === following[i]) {
-          delete followersArray[k]
-        }
-      }
-    }
-  }
-}
-const mutesHelper = (item, action) => {
-  const { follower, following } = item
-  for (let i = 0; i < following.length; i++) {
-    if (action === 'mute') {
-      mutesArray.push({ follower, following: following[i] })
-    } else {
-      for (let k = 0; k < mutesArray.length; k++) {
-        const temp = mutesArray[k]
-        if (typeof temp === 'undefined') {
-          continue
-        }
-        if (temp.follower === follower && temp.following === following[i]) {
-          delete mutesArray[k]
-        }
-      }
-    }
-  }
-}
-
 const insertFollows = async (follow) => {
   followersArray = []
   mutesArray = []
   for (let i = 0; i < follow.length; i++) {
     const item = follow[i]
-    if (item.type === 'reblog') {
-      await insertReblog(item)
-      continue
-    }
     if (item.what.length === 0) {
       followersHelper(item, 'unfollow')
       mutesHelper(item, 'unmute')
@@ -433,8 +307,6 @@ const mute = async () => {
     throw new Error(e)
   }
 }
-// TODO: After Posts/Comments table - need to verify posts
-const insertReblog = async (follow) => {}
 
 const unfollowUnmute = async (item) => {
   const { follower, following } = item
@@ -490,11 +362,86 @@ const resetAllLists = async (follow) => {
   await resetFollowMutedList(follow)
 }
 
-// const clearUsername = (username) => {
-//   // const temp = username.replaceAll('\t', '')
-//   // return temp.replaceAll('\r', '')
-//   return username.slice(0, 16)
-// }
+const followersHelper = (item, action) => {
+  const { follower, following } = item
+  for (let i = 0; i < following.length; i++) {
+    if (action === 'follow') {
+      followersArray.push({ follower, following: following[i] })
+    } else {
+      for (let k = 0; k < followersArray.length; k++) {
+        const temp = followersArray[k]
+        if (typeof temp === 'undefined') {
+          continue
+        }
+        if (temp.follower === follower && temp.following === following[i]) {
+          delete followersArray[k]
+        }
+      }
+    }
+  }
+}
+const mutesHelper = (item, action) => {
+  const { follower, following } = item
+  for (let i = 0; i < following.length; i++) {
+    if (action === 'mute') {
+      mutesArray.push({ follower, following: following[i] })
+    } else {
+      for (let k = 0; k < mutesArray.length; k++) {
+        const temp = mutesArray[k]
+        if (typeof temp === 'undefined') {
+          continue
+        }
+        if (temp.follower === follower && temp.following === following[i]) {
+          delete mutesArray[k]
+        }
+      }
+    }
+  }
+}
+
+const processFollowing = async (follower, following, what) => {
+  const followingsArray = []
+  const ids = {}
+  ids.follower = await getUserId(follower)
+  for (let i = 0; i < following.length; i++) {
+    if (validateAccountName(clearUsername(following[i]))) {
+      continue
+    }
+    if (follower === following[i]) {
+      continue
+    }
+    const followingId = await getUserId(following[i])
+    if (!followingId) {
+      continue
+    }
+    followingsArray.push(followingId)
+  }
+  if (followingsArray.length < 1 && !what[0].includes('reset_')) {
+    return null
+  }
+  ids.following = followingsArray
+  return ids
+}
+
+// Caching ids for duration of the sync
+const getUserId = async (username) => {
+  username = clearUsername(username)
+  if (useCache && Object.hasOwn(accountCache, username)) {
+    return accountCache[username]
+  } else {
+    const getId = await pool.query('SELECT a.id FROM hive.accounts a WHERE a.name=$1', [username])
+    if (getId.rowCount < 1) {
+      return null
+    }
+    const id = getId.rows[0].id
+    accountCache[username] = id
+    return id
+  }
+}
+
+const clearUsername = (username) => {
+  return username.slice(0, 16)
+}
 
 const updateLastOpId = async (opId) => {
   return pool.query(
