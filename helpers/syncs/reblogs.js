@@ -109,6 +109,7 @@ const getReblogs = async (start, limit = 10000) => {
       continue
     }
   }
+  return reblogsArray
 }
 
 const insertReblogs = async (reblogs) => {
