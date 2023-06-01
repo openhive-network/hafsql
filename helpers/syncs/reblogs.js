@@ -24,7 +24,7 @@ export const fillReblogs = async (limit = 30000) => {
   let reblogs = await getReblogs(start, limit)
   while (reblogs.length > 0) {
     await insertReblogs(reblogs)
-    start = reblogs.rows[reblogs.length - 1].op_id
+    start = reblogs[reblogs.length - 1].op_id
     await updateLastOpId(start)
     reblogs = await getReblogs(start, limit)
   }
