@@ -35,3 +35,7 @@ export const validateAccountName = value => {
   }
   return null
 }
+
+export const clearUsername = (username) => {
+  return username.slice(0, 16)
+}
