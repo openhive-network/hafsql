@@ -60,7 +60,7 @@ const getReblogs = async (start, limit = 10000) => {
       if (parsedJson.length !== 2) {
         continue
       }
-      if (parsedJson[0] !== 'follow' && parsedJson[0] !== 'reblog') {
+      if (parsedJson[0] !== 'reblog') {
         continue
       }
       if (typeof parsedJson[1] !== 'object') {
@@ -101,6 +101,9 @@ const getReblogs = async (start, limit = 10000) => {
       const postId = await getPostId(author, permlink)
       if (!postId) {
         continue
+      }
+      if (postId === 110471761) {
+        console.log(accountId, postId, remove, customJson.op_id)
       }
       reblogsArray.push({
         account: accountId,
