@@ -119,6 +119,9 @@ const subscribe = async (postingAuths, json) => {
   }
   const account = await getUserId(postingAuths[0])
   const community = await getUserId(json.community)
+  if (!account) {
+    console.log(postingAuths, json)
+  }
   await pool.query(
     `INSERT INTO hafsql.community_subs_table (account, community)
       VALUES($1, $2) ON CONFLICT ON CONSTRAINT hafsql_community_subs_table_un
