@@ -21,7 +21,6 @@ export const fillReblogs = async (limit = 40000) => {
     ['reblogs']
   )
   start = start.rows[0].last_op_id
-  // start = 4783518666
   let reblogs = await getReblogs(start, limit)
   while (reblogs.length > 0) {
     await insertReblogs(reblogs)
@@ -154,19 +153,6 @@ const insertReblogs = async (reblogs) => {
     ON CONFLICT ON CONSTRAINT hafsql_reblogs_table_un DO NOTHING;`)
   }
 }
-
-// let reblogsArray = []
-// const processReblogs = (reblogs) => {
-//   for (let i = 0; i < reblogs.length; i++) {
-//     reblogsArray.push(reblogs[i])
-//   }
-//   const intervalTime = 10
-//   const reblogInterval = setInterval(() => {
-//     if (reblogsArray.length > 32000) {
-
-//     }
-//   }, intervalTime)
-// }
 
 const getPostId = async (author, permlink) => {
   const postString = author + ';' + permlink
