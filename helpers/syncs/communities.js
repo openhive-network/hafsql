@@ -52,6 +52,9 @@ const getCommunities = async (start, limit = 10000) => {
     try {
       const parsedJson = JSON.parse(customJson.json)
       const postingAuths = customJson.required_posting_auths
+      if (postingAuths.length < 1) {
+        continue
+      }
       if (!Array.isArray(parsedJson)) {
         continue
       }
@@ -119,9 +122,6 @@ const subscribe = async (postingAuths, json) => {
   }
   const account = await getUserId(postingAuths[0])
   const community = await getUserId(json.community)
-  if (!account) {
-    console.log(postingAuths, json)
-  }
   await pool.query(
     `INSERT INTO hafsql.community_subs_table (account, community)
       VALUES($1, $2) ON CONFLICT ON CONSTRAINT hafsql_community_subs_table_un
