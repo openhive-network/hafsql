@@ -108,7 +108,7 @@ export const setupTables = async () => {
   );`)
 
   // Community Subs
-  await pool.query(`CREATE TABLE hafsql.community_subs_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.community_subs_table (
     account int4 NOT NULL,
     community int4 NOT NULL,
     CONSTRAINT hafsql_community_subs_table_un UNIQUE (account, community)
