@@ -149,7 +149,7 @@ const setRole = async (postingAuths, json) => {
   if (!Object.hasOwn(json, 'account') || !Object.hasOwn(json, 'role')) {
     return
   }
-  const account = await getUserId(postingAuths[0])
+  const actor = await getUserId(postingAuths[0])
   const community = await getUserId(json.community)
   const target = await getUserId(json.account)
   if (!target) {
@@ -159,8 +159,8 @@ const setRole = async (postingAuths, json) => {
   if (Object.keys(roles).indexOf(role) < 0) {
     return
   }
-  let actorRole = await getRole(account, community)
-  if (account === community) {
+  let actorRole = await getRole(actor, community)
+  if (actor === community) {
     actorRole = roles.owner
   }
   // only mods and up can alter roles
@@ -176,7 +176,7 @@ const setRole = async (postingAuths, json) => {
   if (targetRole === roles.owner) {
     return
   }
-  if (account !== target) {
+  if (actor !== target) {
     // cant modify higher-role user
     if (targetRole >= actorRole) {
       return
@@ -190,7 +190,7 @@ const setRole = async (postingAuths, json) => {
     `INSERT INTO hafsql.community_roles_table (account, community, role)
       VALUES($1, $2, $3) ON CONFLICT ON CONSTRAINT hafsql_community_roles_table_un
       DO UPDATE SET role=$3;`,
-    [account, community, roles[role]]
+    [target, community, roles[role]]
   )
 }
 
