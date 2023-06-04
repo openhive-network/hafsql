@@ -72,12 +72,46 @@ export const setupTables = async () => {
     post int8 NOT NULL,
     CONSTRAINT hafsql_reblogs_table_un UNIQUE (account, post)
   );`)
+  await pool.query('CREATE INDEX hafsql_reblogs_table_post_idx ON hafsql.reblogs_table USING btree (post);')
 
   // Follows
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.follows_table (
     follower int4 NOT NULL,
     following int4 NOT NULL,
     CONSTRAINT hafsql_follows_table_un UNIQUE (follower, following)
+  );`)
+
+  // Comments
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.comments_table (
+    id serial4 NOT NULL,
+    body varchar NULL,
+    body_edited bool NULL DEFAULT false,
+    tags jsonb NULL,
+    author varchar(16) NOT NULL,
+    permlink varchar(256) NOT NULL,
+    last_op_id int8 NOT NULL,
+    created timestamp NOT NULL,
+    pending_payout_value numeric(12, 3) NULL DEFAULT 0,
+    CONSTRAINT hafsql_comments_table_pk PRIMARY KEY (id),
+    CONSTRAINT hafsql_comments_table_un UNIQUE (author, permlink)
+  );`)
+  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_pending_payout_value_idx ON hafsql.comments_table USING btree (pending_payout_value);')
+  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_tags_idx ON hafsql.comments_table USING btree (tags);')
+
+  // Community Roles
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.community_roles_table (
+    account int4 NOT NULL,
+    community int4 NOT NULL,
+    "role" int2 NOT NULL DEFAULT 0,
+    title varchar NULL,
+    CONSTRAINT hafsql_community_roles_table_un UNIQUE (account, community)
+  );`)
+
+  // Community Subs
+  await pool.query(`CREATE TABLE hafsql.community_subs_table (
+    account int4 NOT NULL,
+    community int4 NOT NULL,
+    CONSTRAINT hafsql_community_subs_table_un UNIQUE (account, community)
   );`)
 }
 
@@ -86,7 +120,11 @@ const setupSyncDataTable = async () => {
     'delegations',
     'rc_delegations',
     'proposal_approvals',
-    'follows'
+    'follows',
+    'comments',
+    'rewards',
+    'reblogs',
+    'communities'
   ]
   for (let i = 0; i < tableNames.length; i++) {
     const name = tableNames[i]
