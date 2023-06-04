@@ -28,6 +28,8 @@ export const fillReblogs = async (limit = 40000) => {
     await updateLastOpId(start)
     reblogs = await getReblogs(start, limit)
   }
+  accountCache = {}
+  postCache = {}
 }
 
 const getReblogs = async (start, limit = 10000) => {
