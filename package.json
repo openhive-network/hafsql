@@ -2,10 +2,10 @@
   "type": "module",
   "scripts": {
     "create-indexes": "node src/indexes.js",
-    "start": "pm2 start ecosystem.config.js",
-    "restart": "pm2 restart ecosystem.config.js",
-    "stop": "pm2 stop ecosystem.config.js",
-    "logs": "pm2 logs ecosystem.config.js"
+    "start": "pm2 start ecosystem.config.cjs",
+    "restart": "pm2 restart ecosystem.config.cjs",
+    "stop": "pm2 stop ecosystem.config.cjs",
+    "logs": "pm2 logs ecosystem.config.cjs"
   },
   "dependencies": {
     "diff-match-patch": "1.0.5",
