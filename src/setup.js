@@ -18,7 +18,3 @@ export const setup = async () => {
   await setupTables()
   await setupExtraViews()
 }
-
-setup()
-
-// index operations id, op_type_id
