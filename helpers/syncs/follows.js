@@ -31,6 +31,7 @@ export const fillFollows = async (limit = 30000) => {
     await updateLastOpId(start)
     follows = await getFollows(start, limit)
   }
+  accountCache = {}
 }
 
 const getFollows = async (start, limit = 10000) => {
