@@ -72,7 +72,7 @@ export const setupTables = async () => {
     post int8 NOT NULL,
     CONSTRAINT hafsql_reblogs_table_un UNIQUE (account, post)
   );`)
-  await pool.query('CREATE INDEX hafsql_reblogs_table_post_idx ON hafsql.reblogs_table USING btree (post);')
+  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_reblogs_table_post_idx ON hafsql.reblogs_table USING btree (post);')
 
   // Follows
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.follows_table (
