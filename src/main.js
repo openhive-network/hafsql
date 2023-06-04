@@ -16,9 +16,11 @@ import { fillComments, syncComments } from '../helpers/syncs/comments.js'
 import { fillRewards, syncRewards } from '../helpers/syncs/rewards.js'
 import { fillReblogs, syncReblogs } from '../helpers/syncs/reblogs.js'
 import { fillCommunities, syncCommunities } from '../helpers/syncs/communities.js'
+import { setup } from './setup.js'
 config()
 
 const main = async () => {
+  await setup()
   const now = Date.now()
   console.log('Syncing delegations...')
   await fillDelegations()
