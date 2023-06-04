@@ -20,13 +20,13 @@ config()
 
 const main = async () => {
   const now = Date.now()
-  console.log('Syncing old data...')
+  console.log('Syncing delegations...')
   await fillDelegations()
 
-  console.log('Syncing old RC data...')
+  console.log('Syncing RC delegations...')
   await fillRCDelegations()
 
-  console.log('Syncing old ProposalApprovals data...')
+  console.log('Syncing proposals...')
   await fillProposalApprovals()
 
   console.log('Syncing follows, mutes, blacklists, etc...')
@@ -46,7 +46,7 @@ const main = async () => {
 
   const timeSpent = (Date.now() - now) / 1000
   console.log(
-    'Sync done in ' + timeSpent / 60 + ' minutes. Live sync started...'
+    'Sync done in ' + timeSpent / 60 + ' minutes. Live sync starting...'
   )
   syncDelegations()
   syncRCDelegations()
@@ -56,6 +56,8 @@ const main = async () => {
   syncRewards()
   syncReblogs()
   syncCommunities()
+
+  console.log('Live sync ready and running.')
 }
 
 main()
