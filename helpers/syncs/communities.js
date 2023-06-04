@@ -35,6 +35,7 @@ export const fillCommunities = async (limit = 20000) => {
     await updateLastOpId(start)
     communities = await getCommunities(start, limit)
   }
+  accountCache = {}
 }
 
 const getCommunities = async (start, limit = 10000) => {
