@@ -1,7 +1,6 @@
 import { pool } from '../database.js'
 
 export const setupExtraViews = async () => {
-  await removeExtraViews()
   // Blocks
   await pool.query(`CREATE OR REPLACE VIEW hafsql."Blocks"
   AS SELECT b.num AS block_num,
@@ -90,7 +89,7 @@ export const setupExtraViews = async () => {
     FROM hafsql.community_roles_table c;`)
 }
 
-const removeExtraViews = async () => {
+export const removeExtraViews = async () => {
   await pool.query(`DROP VIEW IF EXISTS
     hafsql."Blocks",
     hafsql."Transactions",
