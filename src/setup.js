@@ -3,7 +3,7 @@ import { removeVirtualOperationViews, setupVirtualOperationViews } from '../help
 import { setupFunctions } from '../helpers/setups/functions.js'
 import { setupSchema } from '../helpers/setups/schema.js'
 import { setupTables } from '../helpers/setups/tables.js'
-import { setupExtraViews } from '../helpers/setups/extraViews.js'
+import { removeExtraViews, setupExtraViews } from '../helpers/setups/extraViews.js'
 
 // Creating hafsql schema and all the views
 export const setup = async () => {
@@ -12,6 +12,7 @@ export const setup = async () => {
   await setupFunctions()
   await removeOperationViews()
   await removeVirtualOperationViews()
+  await removeExtraViews()
   await setupOperationViews()
   await setupVirtualOperationViews()
   await setupTables()
