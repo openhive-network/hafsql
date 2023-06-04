@@ -201,7 +201,7 @@ const setUserTitle = async (postingAuths, json) => {
   if (!Object.hasOwn(json, 'account') || !Object.hasOwn(json, 'title')) {
     return
   }
-  const account = await getUserId(postingAuths[0])
+  const actor = await getUserId(postingAuths[0])
   const community = await getUserId(json.community)
   const target = await getUserId(json.account)
   if (!target) {
@@ -211,8 +211,8 @@ const setUserTitle = async (postingAuths, json) => {
     return
   }
   const title = cleanString(json.title)
-  let actorRole = await getRole(account, community)
-  if (account === community) {
+  let actorRole = await getRole(actor, community)
+  if (actor === community) {
     actorRole = roles.owner
   }
   // only mods can set user titles
@@ -223,7 +223,7 @@ const setUserTitle = async (postingAuths, json) => {
     `INSERT INTO hafsql.community_roles_table (account, community, title)
       VALUES($1, $2, $3) ON CONFLICT ON CONSTRAINT hafsql_community_roles_table_un
       DO UPDATE SET title=$3;`,
-    [account, community, title]
+    [target, community, title]
   )
 }
 
