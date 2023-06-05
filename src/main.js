@@ -17,6 +17,7 @@ import { fillRewards, syncRewards } from '../helpers/syncs/rewards.js'
 import { fillReblogs, syncReblogs } from '../helpers/syncs/reblogs.js'
 import { fillCommunities, syncCommunities } from '../helpers/syncs/communities.js'
 import { setup } from './setup.js'
+import { createLastIndexes } from '../helpers/setups/tables.js'
 config()
 
 const main = async () => {
@@ -45,6 +46,10 @@ const main = async () => {
 
   console.log('Syncing communities...')
   await fillCommunities()
+
+  // Indexes
+  console.log('Creating related indexes...')
+  await createLastIndexes()
 
   const timeSpent = (Date.now() - now) / 1000
   console.log(
