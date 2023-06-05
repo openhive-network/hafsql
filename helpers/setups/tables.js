@@ -16,9 +16,6 @@ export const setupTables = async () => {
     vests varchar NOT NULL,
     CONSTRAINT hafsql_delegations_table_un UNIQUE (delegator, delegatee)
   );`)
-  await pool.query(
-    'CREATE INDEX IF NOT EXISTS hafsql_delegations_table_delegatee_idx ON hafsql.delegations_table USING btree (delegatee);'
-  )
 
   // RC Delegations
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.rc_delegations_table (
@@ -27,9 +24,6 @@ export const setupTables = async () => {
     rc varchar NOT NULL,
     CONSTRAINT hafsql_rc_delegations_table_un UNIQUE (delegator, delegatee)
   );`)
-  await pool.query(
-    'CREATE INDEX IF NOT EXISTS hafsql_rc_delegations_table_delegatee_idx ON hafsql.rc_delegations_table USING btree (delegatee);'
-  )
 
   // Proposal Approvals
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.proposal_approvals_table (
@@ -72,7 +66,6 @@ export const setupTables = async () => {
     post int8 NOT NULL,
     CONSTRAINT hafsql_reblogs_table_un UNIQUE (account, post)
   );`)
-  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_reblogs_table_post_idx ON hafsql.reblogs_table USING btree (post);')
 
   // Follows
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.follows_table (
@@ -89,14 +82,14 @@ export const setupTables = async () => {
     tags jsonb NULL,
     author varchar(16) NOT NULL,
     permlink varchar(256) NOT NULL,
+    parent_author varchar(16) NOT NULL,
+    parent_permlink varchar(256) NOT NULL,
     last_op_id int8 NOT NULL,
     created timestamp NOT NULL,
     pending_payout_value numeric(12, 3) NULL DEFAULT 0,
     CONSTRAINT hafsql_comments_table_pk PRIMARY KEY (id),
     CONSTRAINT hafsql_comments_table_un UNIQUE (author, permlink)
   );`)
-  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_pending_payout_value_idx ON hafsql.comments_table USING btree (pending_payout_value);')
-  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_tags_idx ON hafsql.comments_table USING btree (tags);')
 
   // Community Roles
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.community_roles_table (
@@ -113,6 +106,18 @@ export const setupTables = async () => {
     community int4 NOT NULL,
     CONSTRAINT hafsql_community_subs_table_un UNIQUE (account, community)
   );`)
+}
+
+export const createLastIndexes = async () => {
+  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_pending_payout_value_idx ON hafsql.comments_table USING btree (pending_payout_value);')
+  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_tags_idx ON hafsql.comments_table USING btree (tags);')
+  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_reblogs_table_post_idx ON hafsql.reblogs_table USING btree (post);')
+  await pool.query(
+    'CREATE INDEX IF NOT EXISTS hafsql_rc_delegations_table_delegatee_idx ON hafsql.rc_delegations_table USING btree (delegatee);'
+  )
+  await pool.query(
+    'CREATE INDEX IF NOT EXISTS hafsql_delegations_table_delegatee_idx ON hafsql.delegations_table USING btree (delegatee);'
+  )
 }
 
 const setupSyncDataTable = async () => {
