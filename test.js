@@ -96,5 +96,5 @@ import { pool } from './helpers/database.js'
 // // console.log(String.raw`${b2}`)
 // console.log(cleanString(temp))
 const t1 = Date.now()
-await pool.query('select x.blacklister FROM hafsql.blacklists_table x where blacklister = 1129328 and blacklisted =9936905565641')
+await pool.query('DELETE FROM hafsql.blacklists_table x where blacklister = 1129328 and blacklisted =9936905565641')
 console.log(Date.now() - t1)
