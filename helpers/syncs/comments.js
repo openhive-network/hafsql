@@ -12,7 +12,7 @@ export const syncComments = async () => {
 
 // 65535 / 7 = ~9000
 // postgres parameters limit = 65535
-export const fillComments = async (limit = 9000) => {
+export const fillComments = async (limit = 20000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['comments']
@@ -24,9 +24,6 @@ export const fillComments = async (limit = 9000) => {
     start = comments.rows[comments.rowCount - 1].op_id
     await updateLastOpId(start)
     comments = await getComments(start, limit)
-    // if (start > 5000000) {
-    //   break
-    // }
   }
 }
 
@@ -42,33 +39,28 @@ const insertComments = async (items) => {
   commentsArray = []
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
-    // const { timestamp, author, permlink, title, body } = item
-    // const opId = item.op_id
-    // const parentAuthor = item.parent_author
-    // const parentPermlink = item.parent_permlink
     item.bodyEdited = false
     const json = item.json_metadata
     item.tags = getTags(json)
     await commentsHelper(item)
   }
-  let queryString = ''
-  const params = []
-  let first = true
+  const params = [[], [], [], [], [], [], [], [], []]
   for (let i = 0; i < commentsArray.length; i++) {
     const comment = commentsArray[i]
-    if (!first) {
-      queryString += ','
-    }
     const body = comment.bodyEdited ? comment.body : ''
-    const N = 7
-    queryString += `($${1 + N * i},$${2 + N * i},$${3 + N * i},$${4 + N * i},$${5 + N * i},$${6 + N * i},$${7 + N * i})`
-    params.push(comment.author, comment.permlink, comment.op_id, comment.bodyEdited, cleanString(body), JSON.stringify(comment.tags), comment.timestamp)
-    if (first) {
-      first = false
-    }
+    params[0].push(comment.author)
+    params[1].push(comment.permlink)
+    params[2].push(comment.parent_author)
+    params[3].push(comment.parent_permlink)
+    params[4].push(comment.comment.op_id)
+    params[5].push(comment.bodyEdited)
+    params[6].push(cleanString(body))
+    params[7].push(JSON.stringify(comment.tags))
+    params[8].push(comment.timestamp)
   }
-  if (params.length > 0) {
-    await pool.query(`INSERT INTO hafsql.comments_table (author, permlink, last_op_id, body_edited, body, tags, created) VALUES ${queryString};`, params)
+  if (params[0].length > 0) {
+    await pool.query(`INSERT INTO hafsql.comments_table (author, permlink, parent_author, parent_permlink, last_op_id, body_edited, body, tags, created)
+      SELECT * FROM UNNEST ($1::text[], $2::text[], $3::text[], $4::text[], $5::int[], $6::bool[], $7::text[], $8::text[], $9::text[]);`, params)
   }
 }
 
