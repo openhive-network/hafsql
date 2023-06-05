@@ -1,6 +1,6 @@
 // import pg from 'pg'
 import { pool } from './helpers/database.js'
-import DiffMatchPatch from 'diff-match-patch'
+// import DiffMatchPatch from 'diff-match-patch'
 // import { diff_match_patch as Dmp } from './helpers/dmp.js'
 
 // const res = await pool.query(
@@ -75,25 +75,26 @@ import DiffMatchPatch from 'diff-match-patch'
 // console.log(pg.types.getTypeParser(pg.types.builtins.VARCHAR)(t))
 // // vwxyz{|}~ ¡¢£¤¥¦§¨
 
-function cleanString (input) {
-  let output = ''
-  for (let i = 0; i < input.length; i++) {
-    if (input.charCodeAt(i) !== 0) {
-      output += input.charAt(i)
-    }
-  }
-  return output
-}
+// function cleanString (input) {
+//   let output = ''
+//   for (let i = 0; i < input.length; i++) {
+//     if (input.charCodeAt(i) !== 0) {
+//       output += input.charAt(i)
+//     }
+//   }
+//   return output
+// }
 
-// const data = '}~ ¡¢'
-const t = await pool.query('select body from hafsql."TxComment" where author=$1 and permlink=$2 ORDER BY op_id ASC', ['mahdiyari', 'how-to-build-and-run-a-hive-node-witnessseedconsensus-and-account-history-nodes'])
-const b = t.rows[0].body
-const b2 = t.rows[1].body
-const dmp = new DiffMatchPatch()
-const patch = dmp.patch_fromText(b2)
-const [temp] = dmp.patch_apply(patch, b)
-// console.log(String.raw`${b}`)
-// console.log(String.raw`${b2}`)
-console.log(cleanString(temp))
-
-// pool.query('UPDATE hafsql.comments_table SET body=$1 WHERE id=2', [cleanString(temp)])
+// // const data = '}~ ¡¢'
+// const t = await pool.query('select body from hafsql."TxComment" where author=$1 and permlink=$2 ORDER BY op_id ASC', ['mahdiyari', 'how-to-build-and-run-a-hive-node-witnessseedconsensus-and-account-history-nodes'])
+// const b = t.rows[0].body
+// const b2 = t.rows[1].body
+// const dmp = new DiffMatchPatch()
+// const patch = dmp.patch_fromText(b2)
+// const [temp] = dmp.patch_apply(patch, b)
+// // console.log(String.raw`${b}`)
+// // console.log(String.raw`${b2}`)
+// console.log(cleanString(temp))
+const t1 = Date.now()
+await pool.query('select x.blacklister FROM hafsql.blacklists_table x where blacklister = 1129328 and blacklisted =9936905565641')
+console.log(Date.now() - t1)
