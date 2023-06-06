@@ -52,7 +52,7 @@ const insertComments = async (items) => {
     params[1].push(comment.permlink)
     params[2].push(comment.parent_author)
     params[3].push(comment.parent_permlink)
-    params[4].push(comment.comment.op_id)
+    params[4].push(comment.op_id)
     params[5].push(comment.bodyEdited)
     params[6].push(cleanString(body))
     params[7].push(JSON.stringify(comment.tags))
