@@ -60,7 +60,7 @@ const insertComments = async (items) => {
   }
   if (params[0].length > 0) {
     await pool.query(`INSERT INTO hafsql.comments_table (author, permlink, parent_author, parent_permlink, last_op_id, body_edited, body, tags, created)
-      SELECT * FROM UNNEST ($1::text[], $2::text[], $3::text[], $4::text[], $5::int[], $6::bool[], $7::text[], $8::text[], $9::text[]);`, params)
+      SELECT * FROM UNNEST ($1::text[], $2::text[], $3::text[], $4::text[], $5::int8[], $6::bool[], $7::text[], $8::jsonb[], $9::timestamp[]);`, params)
   }
 }
 
