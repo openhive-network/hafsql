@@ -1,7 +1,7 @@
 # HafSQL
 
-Space used by indexes: 185GB (non-compressed)
-
+Space used by indexes +400GB (non-compressed)
+Space used by tables 56GB
 
 ## What is HafSQL
 HafSQL is a HAF application that runs inside the HAF database. It will run on the `hafsql` schema inside the HAF database.  
