@@ -1,5 +1,5 @@
-import pg from "pg"
-import { config } from "dotenv"
+import pg from 'pg'
+import { config } from 'dotenv'
 config()
 
 // Indexes need haf_admin access
@@ -15,7 +15,7 @@ const pool = new pg.Pool({
 
 const CONCURRENTLY = process.env.CONCURRENTLY === 'false' ? '' : 'CONCURRENTLY'
 
-const total = 37;
+const total = 37
 
 // Needed for sorting by ID asc or desc
 const setupHafIndexes = async () => {
@@ -153,7 +153,7 @@ const setupOperationIndexes = async () => {
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_operations_from_account ON hive.operations ((body::jsonb->'value'->>'from_account'))
     WHERE op_type_id = 20 OR op_type_id = 49 + 7;`)
   console.log('Created 21 out of ' + total + ' indexes...')
-  
+
   // TxSetWithdrawVestingRoute 20 - VOFillVestingWithdraw 49 + 7
   // to_account
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_operations_to_account ON hive.operations ((body::jsonb->'value'->>'to_account'))
@@ -225,8 +225,6 @@ const setupOperationIndexes = async () => {
   await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_operations_receiver ON hive.operations ((body::jsonb->'value'->>'receiver'))
     WHERE op_type_id = 49 + 17;`)
   console.log('Created 36 out of ' + total + ' indexes...')
-
-  
 }
 
 const main = async () => {
