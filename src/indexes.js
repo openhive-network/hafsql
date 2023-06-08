@@ -4,12 +4,12 @@ config()
 
 // Indexes need haf_admin access
 export const pool = new pg.Pool({
-  application_name: 'HafSQL',
+  application_name: 'HafSQL-indexes',
   database: process.env.PGDATABASE || 'haf_block_log',
   user: 'haf_admin',
   host: process.env.PGHOST || '172.17.0.2',
   port: process.env.PGPORT || 5432,
-  max: process.env.PGPOOLSIZE || 10,
+  max: process.env.PGPOOLSIZE || 2,
   min: 1
 })
 
@@ -28,11 +28,12 @@ const setupHafIndexes = async () => {
 export const setupOperationIndexes = async () => {
   // TxVote 0
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txvote_voter ON hive.operations ((body::jsonb->'value'->>'voter')) WHERE op_type_id = 0;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txvote_voter ON hive.operations ((body::jsonb->'value'->>'voter'), id DESC)
+      WHERE op_type_id = 0;`
   )
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txvote_author_permlink ON hive.operations
-      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink')) WHERE op_type_id = 0;`
+      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink'), id DESC) WHERE op_type_id = 0;`
   )
 
   console.log('Created 2 out of ' + total + ' indexes...')
@@ -40,122 +41,122 @@ export const setupOperationIndexes = async () => {
   // TxComment 1
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcomment_author_permlink ON hive.operations
-      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink')) WHERE op_type_id = 1;`
+      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink'), id DESC) WHERE op_type_id = 1;`
   )
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcomment_parent_author_parent_permlink ON hive.operations
-      ((body::jsonb->'value'->>'parent_author'), (body::jsonb->'value'->>'parent_permlink')) WHERE op_type_id = 1;`
+      ((body::jsonb->'value'->>'parent_author'), (body::jsonb->'value'->>'parent_permlink'), id DESC) WHERE op_type_id = 1;`
   )
 
   console.log('Created 4 out of ' + total + ' indexes...')
 
   // TxTransfer 2
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfer_from ON hive.operations ((body::jsonb->'value'->>'from')) WHERE op_type_id = 2;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfer_from ON hive.operations ((body::jsonb->'value'->>'from'), id DESC) WHERE op_type_id = 2;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfer_to ON hive.operations ((body::jsonb->'value'->>'to')) WHERE op_type_id = 2;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfer_to ON hive.operations ((body::jsonb->'value'->>'to'), id DESC) WHERE op_type_id = 2;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfer_memo ON hive.operations ((body::jsonb->'value'->>'memo')) WHERE op_type_id = 2;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfer_memo ON hive.operations ((body::jsonb->'value'->>'memo'), id DESC) WHERE op_type_id = 2;`
   )
 
   console.log('Created 7 out of ' + total + ' indexes...')
 
   // TxTransferToVesting 3
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfertovesting_from ON hive.operations ((body::jsonb->'value'->>'from')) WHERE op_type_id = 3;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfertovesting_from ON hive.operations ((body::jsonb->'value'->>'from'), id DESC) WHERE op_type_id = 3;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfertovesting_to ON hive.operations ((body::jsonb->'value'->>'to')) WHERE op_type_id = 3;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfertovesting_to ON hive.operations ((body::jsonb->'value'->>'to'), id DESC) WHERE op_type_id = 3;`
   )
 
   console.log('Created 9 out of ' + total + ' indexes...')
 
   // TxWithdrawVesting 4
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txwithdrawvesting_account ON hive.operations ((body::jsonb->'value'->>'account')) WHERE op_type_id = 4;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txwithdrawvesting_account ON hive.operations ((body::jsonb->'value'->>'account'), id DESC) WHERE op_type_id = 4;`
   )
 
   console.log('Created 10 out of ' + total + ' indexes...')
 
   // TxLimitOrderCreate 5
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txlimitordercreate_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 5;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txlimitordercreate_owner ON hive.operations ((body::jsonb->'value'->>'owner'), id DESC) WHERE op_type_id = 5;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txlimitordercreate_orderid ON hive.operations ((body::jsonb->'value'->>'orderid')) WHERE op_type_id = 5;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txlimitordercreate_orderid ON hive.operations ((body::jsonb->'value'->>'orderid'), id DESC) WHERE op_type_id = 5;`
   )
 
   console.log('Created 12 out of ' + total + ' indexes...')
 
   // TxLimitOrderCancel 6
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txlimitordercancel_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 6;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txlimitordercancel_owner ON hive.operations ((body::jsonb->'value'->>'owner'), id DESC) WHERE op_type_id = 6;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txlimitordercancel_orderid ON hive.operations ((body::jsonb->'value'->>'orderid')) WHERE op_type_id = 6;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txlimitordercancel_orderid ON hive.operations ((body::jsonb->'value'->>'orderid'), id DESC) WHERE op_type_id = 6;`
   )
 
   console.log('Created 14 out of ' + total + ' indexes...')
 
   // TxFeedPublish 7
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txfeedpublish_publisher ON hive.operations ((body::jsonb->'value'->>'publisher')) WHERE op_type_id = 7;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txfeedpublish_publisher ON hive.operations ((body::jsonb->'value'->>'publisher'), id DESC) WHERE op_type_id = 7;`
   )
 
   console.log('Created 15 out of ' + total + ' indexes...')
 
   // TxConvert 8
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txconvert_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 8;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txconvert_owner ON hive.operations ((body::jsonb->'value'->>'owner'), id DESC) WHERE op_type_id = 8;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txconvert_requestid ON hive.operations ((body::jsonb->'value'->>'requestid')) WHERE op_type_id = 8;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txconvert_requestid ON hive.operations ((body::jsonb->'value'->>'requestid'), id DESC) WHERE op_type_id = 8;`
   )
 
   console.log('Created 17 out of ' + total + ' indexes...')
 
   // TxAccountCreate 9
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountcreate_creator ON hive.operations ((body::jsonb->'value'->>'creator')) WHERE op_type_id = 9;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountcreate_creator ON hive.operations ((body::jsonb->'value'->>'creator'), id DESC) WHERE op_type_id = 9;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountcreate_new_account_name ON hive.operations ((body::jsonb->'value'->>'new_account_name')) WHERE op_type_id = 9;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountcreate_new_account_name ON hive.operations ((body::jsonb->'value'->>'new_account_name'), id DESC) WHERE op_type_id = 9;`
   )
 
   console.log('Created 19 out of ' + total + ' indexes...')
 
   // TxAccountUpdate 10
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountupdate_account ON hive.operations ((body::jsonb->'value'->>'account')) WHERE op_type_id = 10;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountupdate_account ON hive.operations ((body::jsonb->'value'->>'account'), id DESC) WHERE op_type_id = 10;`
   )
 
   console.log('Created 20 out of ' + total + ' indexes...')
 
   // TxWitnessUpdate 11
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txwitnessupdate_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 11;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txwitnessupdate_owner ON hive.operations ((body::jsonb->'value'->>'owner'), id DESC) WHERE op_type_id = 11;`
   )
 
   console.log('Created 21 out of ' + total + ' indexes...')
 
   // TxAccountWitnessVote 12
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountwitnessvote_account ON hive.operations ((body::jsonb->'value'->>'account')) WHERE op_type_id = 12;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountwitnessvote_account ON hive.operations ((body::jsonb->'value'->>'account'), id DESC) WHERE op_type_id = 12;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountwitnessvote_witness ON hive.operations ((body::jsonb->'value'->>'witness')) WHERE op_type_id = 12;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountwitnessvote_witness ON hive.operations ((body::jsonb->'value'->>'witness'), id DESC) WHERE op_type_id = 12;`
   )
 
   console.log('Created 23 out of ' + total + ' indexes...')
 
   // TxAccountWitnessProxy 13
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountwitnessproxy_account ON hive.operations ((body::jsonb->'value'->>'account')) WHERE op_type_id = 13;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountwitnessproxy_account ON hive.operations ((body::jsonb->'value'->>'account'), id DESC) WHERE op_type_id = 13;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountwitnessproxy_proxy ON hive.operations ((body::jsonb->'value'->>'proxy')) WHERE op_type_id = 13;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountwitnessproxy_proxy ON hive.operations ((body::jsonb->'value'->>'proxy'), id DESC) WHERE op_type_id = 13;`
   )
 
   console.log('Created 25 out of ' + total + ' indexes...')
@@ -163,10 +164,10 @@ export const setupOperationIndexes = async () => {
   // TxPow 14
   // TxCustom 15
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustom_id ON hive.operations ((body::jsonb->'value'->>'id')) WHERE op_type_id = 15;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustom_id ON hive.operations ((body::jsonb->'value'->>'id'), id DESC) WHERE op_type_id = 15;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustom_required_auths ON hive.operations ((body::jsonb->'value'->'required_auths')) WHERE op_type_id = 15;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustom_required_auths ON hive.operations ((body::jsonb->'value'->'required_auths'), id DESC) WHERE op_type_id = 15;`
   )
 
   console.log('Created 27 out of ' + total + ' indexes...')
@@ -175,20 +176,20 @@ export const setupOperationIndexes = async () => {
   // TxDeleteComment 17
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txdeletecomment_author_permlink ON hive.operations
-      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink')) WHERE op_type_id = 17;`
+      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink'), id DESC) WHERE op_type_id = 17;`
   )
 
   console.log('Created 28 out of ' + total + ' indexes...')
 
   // TxCustomJson 18
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustomjson_id_id ON hive.operations ((body::jsonb->'value'->>'id'), id ASC) WHERE op_type_id = 18;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustomjson_id_id ON hive.operations ((body::jsonb->'value'->>'id'), id DESC) WHERE op_type_id = 18;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustomjson_required_auths ON hive.operations ((body::jsonb->'value'->'required_auths')) WHERE op_type_id = 18;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustomjson_required_auths ON hive.operations ((body::jsonb->'value'->'required_auths'), id DESC) WHERE op_type_id = 18;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustomjson_required_posting_auths ON hive.operations ((body::jsonb->'value'->'required_posting_auths')) WHERE op_type_id = 18;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcustomjson_required_posting_auths ON hive.operations ((body::jsonb->'value'->'required_posting_auths'), id DESC) WHERE op_type_id = 18;`
   )
 
   console.log('Created 31 out of ' + total + ' indexes...')
@@ -196,44 +197,45 @@ export const setupOperationIndexes = async () => {
   // TxCommentOptions 19
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcommentoptions_author_permlink ON hive.operations
-      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink')) WHERE op_type_id = 19;`
+      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink'), id DESC) WHERE op_type_id = 19;`
   )
 
   console.log('Created 32 out of ' + total + ' indexes...')
 
   // TxSetWithdrawVestingRoute 20
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txsetwithdrawvestingroute_from_account ON hive.operations ((body::jsonb->'value'->>'from_account')) WHERE op_type_id = 20;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txsetwithdrawvestingroute_from_account ON hive.operations ((body::jsonb->'value'->>'from_account'), id DESC) WHERE op_type_id = 20;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txsetwithdrawvestingroute_to_account ON hive.operations ((body::jsonb->'value'->>'to_account')) WHERE op_type_id = 20;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txsetwithdrawvestingroute_to_account ON hive.operations ((body::jsonb->'value'->>'to_account'), id DESC) WHERE op_type_id = 20;`
   )
 
   console.log('Created 34 out of ' + total + ' indexes...')
 
   // TxLimitOrderCreate2 21
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txlimitordercreate2_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 21;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txlimitordercreate2_owner ON hive.operations ((body::jsonb->'value'->>'owner'), id DESC) WHERE op_type_id = 21;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txlimitordercreate2_orderid ON hive.operations ((body::jsonb->'value'->>'orderid')) WHERE op_type_id = 21;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txlimitordercreate2_orderid ON hive.operations ((body::jsonb->'value'->>'orderid'), id DESC) WHERE op_type_id = 21;`
   )
 
   console.log('Created 36 out of ' + total + ' indexes...')
 
   // TxClaimAccount 22
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txclaimaccount_creator ON hive.operations ((body::jsonb->'value'->>'creator')) WHERE op_type_id = 22;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txclaimaccount_creator ON hive.operations ((body::jsonb->'value'->>'creator'), id DESC) WHERE op_type_id = 22;`
   )
 
   console.log('Created 37 out of ' + total + ' indexes...')
 
   // TxCreateClaimedAccount 23
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcreateclaimedaccount_creator ON hive.operations ((body::jsonb->'value'->>'creator')) WHERE op_type_id = 23;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcreateclaimedaccount_creator ON hive.operations ((body::jsonb->'value'->>'creator'), id DESC) WHERE op_type_id = 23;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcreateclaimedaccount_new_account_name ON hive.operations ((body::jsonb->'value'->>'new_account_name')) WHERE op_type_id = 23;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcreateclaimedaccount_new_account_name ON hive.operations ((body::jsonb->'value'->>'new_account_name'), id DESC)
+      WHERE op_type_id = 23;`
   )
 
   console.log('Created 39 out of ' + total + ' indexes...')
@@ -247,10 +249,12 @@ export const setupOperationIndexes = async () => {
 
   // TxChangeRecoveryAccount 26
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txchangerecoveryaccount_account_to_recover ON hive.operations ((body::jsonb->'value'->>'account_to_recover')) WHERE op_type_id = 26;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txchangerecoveryaccount_account_to_recover ON hive.operations ((body::jsonb->'value'->>'account_to_recover'), id DESC)
+      WHERE op_type_id = 26;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txchangerecoveryaccount_new_recovery_account ON hive.operations ((body::jsonb->'value'->>'new_recovery_account')) WHERE op_type_id = 26;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txchangerecoveryaccount_new_recovery_account ON hive.operations ((body::jsonb->'value'->>'new_recovery_account'), id DESC)
+      WHERE op_type_id = 26;`
   )
 
   console.log('Created 41 out of ' + total + ' indexes...')
@@ -286,30 +290,30 @@ export const setupOperationIndexes = async () => {
 
   // TxTransferToSavings 32
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfertosavings_from ON hive.operations ((body::jsonb->'value'->>'from')) WHERE op_type_id = 32;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfertosavings_from ON hive.operations ((body::jsonb->'value'->>'from'), id DESC) WHERE op_type_id = 32;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfertosavings_to ON hive.operations ((body::jsonb->'value'->>'to')) WHERE op_type_id = 32;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfertosavings_to ON hive.operations ((body::jsonb->'value'->>'to'), id DESC) WHERE op_type_id = 32;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfertosavings_memo ON hive.operations ((body::jsonb->'value'->>'memo')) WHERE op_type_id = 32;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransfertosavings_memo ON hive.operations ((body::jsonb->'value'->>'memo'), id DESC) WHERE op_type_id = 32;`
   )
 
   console.log('Created 44 out of ' + total + ' indexes...')
 
   // TxTransferFromSavings 33
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransferfromsavings_from ON hive.operations ((body::jsonb->'value'->>'from')) WHERE op_type_id = 33;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransferfromsavings_from ON hive.operations ((body::jsonb->'value'->>'from'), id DESC) WHERE op_type_id = 33;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransferfromsavings_to ON hive.operations ((body::jsonb->'value'->>'to')) WHERE op_type_id = 33;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txtransferfromsavings_to ON hive.operations ((body::jsonb->'value'->>'to'), id DESC) WHERE op_type_id = 33;`
   )
 
   console.log('Created 46 out of ' + total + ' indexes...')
 
   // TxCancelTransferFromSavings 34
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcanceltransferfromsavings_from ON hive.operations ((body::jsonb->'value'->>'from')) WHERE op_type_id = 34;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcanceltransferfromsavings_from ON hive.operations ((body::jsonb->'value'->>'from'), id DESC) WHERE op_type_id = 34;`
   )
 
   console.log('Created 47 out of ' + total + ' indexes...')
@@ -322,41 +326,48 @@ export const setupOperationIndexes = async () => {
   // set_reset_account 38
   // TxClaimRewardBalance 39
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txclaimrewardbalance_account ON hive.operations ((body::jsonb->'value'->>'account')) WHERE op_type_id = 39;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txclaimrewardbalance_account ON hive.operations ((body::jsonb->'value'->>'account'), id DESC)
+      WHERE op_type_id = 39;`
   )
 
   console.log('Created 48 out of ' + total + ' indexes...')
 
   // TxDelegateVestingShares 40
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txdelegatevestingshares_delegator_id ON hive.operations ((body::jsonb->'value'->>'delegator'), id) WHERE op_type_id = 40;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txdelegatevestingshares_delegator_id ON hive.operations ((body::jsonb->'value'->>'delegator'), id DESC)
+      WHERE op_type_id = 40;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txdelegatevestingshares_delegatee ON hive.operations ((body::jsonb->'value'->>'delegatee')) WHERE op_type_id = 40;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txdelegatevestingshares_delegatee ON hive.operations ((body::jsonb->'value'->>'delegatee'), id DESC)
+      WHERE op_type_id = 40;`
   )
 
   console.log('Created 50 out of ' + total + ' indexes...')
 
   // TxAccountCreateWithDelegation 41
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountcreatewithdelegation_creator ON hive.operations ((body::jsonb->'value'->>'creator')) WHERE op_type_id = 41;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountcreatewithdelegation_creator ON hive.operations ((body::jsonb->'value'->>'creator'), id DESC)
+      WHERE op_type_id = 41;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountcreatewithdelegation_new_account_name ON hive.operations ((body::jsonb->'value'->>'new_account_name')) WHERE op_type_id = 41;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountcreatewithdelegation_new_account_name ON hive.operations ((body::jsonb->'value'->>'new_account_name'), id DESC)
+      WHERE op_type_id = 41;`
   )
 
   console.log('Created 52 out of ' + total + ' indexes...')
 
   // TxWitnessSetProperties 42
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txwitnesssetproperties_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 42;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txwitnesssetproperties_owner ON hive.operations ((body::jsonb->'value'->>'owner'), id DESC)
+      WHERE op_type_id = 42;`
   )
 
   console.log('Created 53 out of ' + total + ' indexes...')
 
   // TxAccountUpdate2 43
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountupdate2_account ON hive.operations ((body::jsonb->'value'->>'account')) WHERE op_type_id = 43;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txaccountupdate2_account ON hive.operations ((body::jsonb->'value'->>'account'), id DESC)
+      WHERE op_type_id = 43;`
   )
 
   console.log('Created 54 out of ' + total + ' indexes...')
@@ -367,10 +378,12 @@ export const setupOperationIndexes = async () => {
 
   // TxUpdateProposalVotes 45
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txupdateproposalvotes_voter ON hive.operations ((body::jsonb->'value'->>'voter')) WHERE op_type_id = 45;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txupdateproposalvotes_voter ON hive.operations ((body::jsonb->'value'->>'voter'), id DESC)
+      WHERE op_type_id = 45;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txupdateproposalvotes_proposal_ids ON hive.operations ((body::jsonb->'value'->'proposal_ids')) WHERE op_type_id = 45;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txupdateproposalvotes_proposal_ids ON hive.operations ((body::jsonb->'value'->'proposal_ids'), id DESC)
+      WHERE op_type_id = 45;`
   )
 
   console.log('Created 56 out of ' + total + ' indexes...')
@@ -385,10 +398,12 @@ export const setupOperationIndexes = async () => {
 
   // TxCollateralizedConvert 48
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcollateralizedconvert_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 48;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcollateralizedconvert_owner ON hive.operations ((body::jsonb->'value'->>'owner'), id DESC)
+      WHERE op_type_id = 48;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcollateralizedconvert_requestid ON hive.operations ((body::jsonb->'value'->>'requestid')) WHERE op_type_id = 48;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcollateralizedconvert_requestid ON hive.operations ((body::jsonb->'value'->>'requestid'), id DESC)
+      WHERE op_type_id = 48;`
   )
 
   console.log('Created 58 out of ' + total + ' indexes...')
@@ -403,10 +418,12 @@ export const setupOperationIndexes = async () => {
 export const setupVirtualOperationIndexes = async () => {
   // VOFillConvertRequest 49 + 1
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillconvertrequest_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 49 + 1;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillconvertrequest_owner ON hive.operations ((body::jsonb->'value'->>'owner'), id DESC)
+      WHERE op_type_id = 49 + 1;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillconvertrequest_requestid ON hive.operations ((body::jsonb->'value'->>'requestid')) WHERE op_type_id = 49 + 1;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillconvertrequest_requestid ON hive.operations ((body::jsonb->'value'->>'requestid'), id DESC)
+      WHERE op_type_id = 49 + 1;`
   )
 
   console.log('Created 60 out of ' + total + ' indexes...')
@@ -414,14 +431,15 @@ export const setupVirtualOperationIndexes = async () => {
   // VOAuthorReward 49 + 2
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voauthorreward_author_permlink ON hive.operations
-      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink')) WHERE op_type_id = 49 + 2;`
+      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink'), id DESC) WHERE op_type_id = 49 + 2;`
   )
 
   console.log('Created 61 out of ' + total + ' indexes...')
 
   // VOCurationReward 49 + 3
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vocurationreward_curator ON hive.operations ((body::jsonb->'value'->>'curator')) WHERE op_type_id = 49 + 3;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vocurationreward_curator ON hive.operations ((body::jsonb->'value'->>'curator'), id DESC)
+      WHERE op_type_id = 49 + 3;`
   )
 
   console.log('Created 62 out of ' + total + ' indexes...')
@@ -429,7 +447,7 @@ export const setupVirtualOperationIndexes = async () => {
   // VOCommentReward 49 + 4
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vocommentreward_author_permlink ON hive.operations
-      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink')) WHERE op_type_id = 49 + 4;`
+      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink'), id DESC) WHERE op_type_id = 49 + 4;`
   )
 
   console.log('Created 63 out of ' + total + ' indexes...')
@@ -437,33 +455,40 @@ export const setupVirtualOperationIndexes = async () => {
   // VOLiquidityReward 49 + 5
   // VOInterestOperation 49 + 6
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vointerestoperation_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 49 + 6;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vointerestoperation_owner ON hive.operations ((body::jsonb->'value'->>'owner'), id DESC)
+      WHERE op_type_id = 49 + 6;`
   )
 
   console.log('Created 64 out of ' + total + ' indexes...')
 
   // VOFillVestingWithdraw 49 + 7
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillvestingwithdraw_from_account ON hive.operations ((body::jsonb->'value'->>'from_account')) WHERE op_type_id = 49 + 7;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillvestingwithdraw_from_account ON hive.operations ((body::jsonb->'value'->>'from_account'), id DESC)
+      WHERE op_type_id = 49 + 7;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillvestingwithdraw_to_account ON hive.operations ((body::jsonb->'value'->>'to_account')) WHERE op_type_id = 49 + 7;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillvestingwithdraw_to_account ON hive.operations ((body::jsonb->'value'->>'to_account'), id DESC)
+      WHERE op_type_id = 49 + 7;`
   )
 
   console.log('Created 65 out of ' + total + ' indexes...')
 
   // VOFillOrder 49 + 8
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillorder_current_owner ON hive.operations ((body::jsonb->'value'->>'current_owner')) WHERE op_type_id = 49 + 8;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillorder_current_owner ON hive.operations ((body::jsonb->'value'->>'current_owner'), id DESC)
+      WHERE op_type_id = 49 + 8;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillorder_current_orderid ON hive.operations ((body::jsonb->'value'->>'current_orderid')) WHERE op_type_id = 49 + 8;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillorder_current_orderid ON hive.operations ((body::jsonb->'value'->>'current_orderid'), id DESC)
+      WHERE op_type_id = 49 + 8;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillorder_open_owner ON hive.operations ((body::jsonb->'value'->>'open_owner')) WHERE op_type_id = 49 + 8;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillorder_open_owner ON hive.operations ((body::jsonb->'value'->>'open_owner'), id DESC)
+      WHERE op_type_id = 49 + 8;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillorder_open_orderid ON hive.operations ((body::jsonb->'value'->>'open_orderid')) WHERE op_type_id = 49 + 8;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillorder_open_orderid ON hive.operations ((body::jsonb->'value'->>'open_orderid'), id DESC)
+      WHERE op_type_id = 49 + 8;`
   )
 
   console.log('Created 69 out of ' + total + ' indexes...')
@@ -473,10 +498,12 @@ export const setupVirtualOperationIndexes = async () => {
 
   // VOFillTransferFromSavings 49 + 10
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofilltransferfromsavings_from ON hive.operations ((body::jsonb->'value'->>'from')) WHERE op_type_id = 49 + 10;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofilltransferfromsavings_from ON hive.operations ((body::jsonb->'value'->>'from'), id DESC)
+      WHERE op_type_id = 49 + 10;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofilltransferfromsavings_to ON hive.operations ((body::jsonb->'value'->>'to')) WHERE op_type_id = 49 + 10;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofilltransferfromsavings_to ON hive.operations ((body::jsonb->'value'->>'to'), id DESC)
+      WHERE op_type_id = 49 + 10;`
   )
 
   console.log('Created 71 out of ' + total + ' indexes...')
@@ -485,21 +512,24 @@ export const setupVirtualOperationIndexes = async () => {
   // VOCommentPayoutUpdate 49 + 12
   // VOReturnVestingDelegation 49 + 13
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voreturnvestingdelegation_account ON hive.operations ((body::jsonb->'value'->>'account')) WHERE op_type_id = 49 + 13;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voreturnvestingdelegation_account ON hive.operations ((body::jsonb->'value'->>'account'), id DESC)
+      WHERE op_type_id = 49 + 13;`
   )
 
   console.log('Created 72 out of ' + total + ' indexes...')
 
   // VOCommentBenefactorReward 49 + 14
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vocommentbenefactorreward_benefactor ON hive.operations ((body::jsonb->'value'->>'benefactor')) WHERE op_type_id = 49 + 14;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vocommentbenefactorreward_benefactor ON hive.operations ((body::jsonb->'value'->>'benefactor'), id DESC)
+      WHERE op_type_id = 49 + 14;`
   )
 
   console.log('Created 73 out of ' + total + ' indexes...')
 
   // VOProducerReward 49 + 15
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voproducerreward_producer ON hive.operations ((body::jsonb->'value'->>'producer')) WHERE op_type_id = 49 + 15;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voproducerreward_producer ON hive.operations ((body::jsonb->'value'->>'producer'), id DESC)
+      WHERE op_type_id = 49 + 15;`
   )
 
   console.log('Created 74 out of ' + total + ' indexes...')
@@ -507,10 +537,12 @@ export const setupVirtualOperationIndexes = async () => {
   // VOClearNullAccountBalance 49 + 16
   // VOProposalPay 49 + 17
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voproposalpay_proposal_id ON hive.operations ((body::jsonb->'value'->>'proposal_id')) WHERE op_type_id = 49 + 17;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voproposalpay_proposal_id ON hive.operations ((body::jsonb->'value'->>'proposal_id'), id DESC)
+      WHERE op_type_id = 49 + 17;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voproposalpay_receiver ON hive.operations ((body::jsonb->'value'->>'receiver')) WHERE op_type_id = 49 + 17;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voproposalpay_receiver ON hive.operations ((body::jsonb->'value'->>'receiver'), id DESC)
+      WHERE op_type_id = 49 + 17;`
   )
 
   console.log('Created 76 out of ' + total + ' indexes...')
@@ -523,7 +555,7 @@ export const setupVirtualOperationIndexes = async () => {
   // VOEffectiveCommentVote 49 + 23
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voeffectivecommentvote_author_permlink ON hive.operations
-      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink')) WHERE op_type_id = 49 + 23;`
+      ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink'), id DESC) WHERE op_type_id = 49 + 23;`
   )
 
   console.log('Created 77 out of ' + total + ' indexes...')
@@ -533,7 +565,8 @@ export const setupVirtualOperationIndexes = async () => {
   // VOExpiredAccountNotification 49 + 26
   // VOChangedRecoveryAccount 49 + 27
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vochangedrecoveryaccount_account ON hive.operations ((body::jsonb->'value'->>'account')) WHERE op_type_id = 49 + 27;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vochangedrecoveryaccount_account ON hive.operations ((body::jsonb->'value'->>'account'), id DESC)
+      WHERE op_type_id = 49 + 27;`
   )
 
   console.log('Created 78 out of ' + total + ' indexes...')
@@ -543,20 +576,24 @@ export const setupVirtualOperationIndexes = async () => {
   // VOVestingSharesSplit 49 + 30
   // VOAccountCreated 49 + 31
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voaccountcreated_new_account_name ON hive.operations ((body::jsonb->'value'->>'new_account_name')) WHERE op_type_id = 49 + 31;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voaccountcreated_new_account_name ON hive.operations ((body::jsonb->'value'->>'new_account_name'), id DESC)
+      WHERE op_type_id = 49 + 31;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voaccountcreated_creator ON hive.operations ((body::jsonb->'value'->>'creator')) WHERE op_type_id = 49 + 31;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voaccountcreated_creator ON hive.operations ((body::jsonb->'value'->>'creator'), id DESC)
+      WHERE op_type_id = 49 + 31;`
   )
 
   console.log('Created 80 out of ' + total + ' indexes...')
 
   // VOFillCollateralizedConvertRequest 49 + 32
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillcollateralizedconvertrequest_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 49 + 32;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillcollateralizedconvertrequest_owner ON hive.operations ((body::jsonb->'value'->>'owner'), id DESC)
+      WHERE op_type_id = 49 + 32;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillcollateralizedconvertrequest_requestid ON hive.operations ((body::jsonb->'value'->>'requestid')) WHERE op_type_id = 49 + 32;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vofillcollateralizedconvertrequest_requestid ON hive.operations ((body::jsonb->'value'->>'requestid'), id DESC)
+      WHERE op_type_id = 49 + 32;`
   )
 
   console.log('Created 82 out of ' + total + ' indexes...')
@@ -573,10 +610,12 @@ export const setupVirtualOperationIndexes = async () => {
   // VOProposalFee 49 + 38
   // VOCollateralizedConvertImmediateConversion 49 + 39
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vocollateralizedconvertimmediateconversion_owner ON hive.operations ((body::jsonb->'value'->>'owner')) WHERE op_type_id = 49 + 39;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vocollateralizedconvertimmediateconversion_owner ON hive.operations ((body::jsonb->'value'->>'owner'), id DESC)
+      WHERE op_type_id = 49 + 39;`
   )
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vocollateralizedconvertimmediateconversion_requestid ON hive.operations ((body::jsonb->'value'->>'requestid')) WHERE op_type_id = 49 + 39;`
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_vocollateralizedconvertimmediateconversion_requestid ON hive.operations ((body::jsonb->'value'->>'requestid'), id DESC)
+      WHERE op_type_id = 49 + 39;`
   )
 
   console.log('Created 84 out of ' + total + ' indexes...')
