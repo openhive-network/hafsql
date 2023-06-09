@@ -91,11 +91,11 @@ export const setupExtraViews = async () => {
 
 export const removeExtraViews = async () => {
   await pool.query(`DROP VIEW IF EXISTS
-    hafsql."Blocks",
-    hafsql."Transactions",
-    hafsql."DynamicGlobalProperties",
-    hafsql."Delegations",
-    hafsql."Comments",
-    hafsql."CommunitySubs",
-    hafsql."CommunityRoles";`)
+    hafsql.blocks,
+    hafsql.transactions,
+    hafsql.dynamic_global_properties,
+    hafsql.delegations,
+    hafsql.comments,
+    hafsql.community_subs,
+    hafsql.community_roles;`)
 }
