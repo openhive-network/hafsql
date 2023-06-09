@@ -14,7 +14,7 @@ const resetPaidPosts = () => {
   const intervalTime = 10000
   setInterval(async () => {
     const lastPaid = await pool.query(
-      'SELECT author, permlink FROM hafsql."VOCommentPayoutUpdate" ORDER BY op_id DESC LIMIT 1'
+      'SELECT author, permlink FROM hafsql.vo_comment_payout_update ORDER BY op_id DESC LIMIT 1'
     )
     const startComment = await pool.query(
       'SELECT id FROM hafsql.comments_table WHERE author=$1 AND permlink=$2',
@@ -33,10 +33,10 @@ export const fillRewards = async (limit = 20000) => {
   )
   start = start.rows[0].last_op_id
   const lastPaid = await pool.query(
-    'SELECT author, permlink FROM hafsql."VOCommentPayoutUpdate" ORDER BY op_id DESC LIMIT 1'
+    'SELECT author, permlink FROM hafsql.vo_comment_payout_update ORDER BY op_id DESC LIMIT 1'
   )
   const startComment = await pool.query(
-    'SELECT op_id FROM hafsql."TxComment" WHERE author=$1 AND permlink=$2 ORDER BY op_id ASC LIMIT 1',
+    'SELECT op_id FROM hafsql.op_comment WHERE author=$1 AND permlink=$2 ORDER BY op_id ASC LIMIT 1',
     [lastPaid.rows[0].author, lastPaid.rows[0].permlink]
   )
   const cmOpId = startComment.rows[0].op_id
@@ -52,7 +52,7 @@ export const fillRewards = async (limit = 20000) => {
 
 const getRewards = async (start, limit = 10000) => {
   return pool.query(
-    `SELECT op_id, author, permlink, pending_payout FROM hafsql."VOEffectiveCommentVote"
+    `SELECT op_id, author, permlink, pending_payout FROM hafsql.vo_effective_comment_vote
       WHERE op_id>$1 ORDER BY op_id ASC LIMIT $2`,
     [start, limit]
   )
