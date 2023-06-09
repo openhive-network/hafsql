@@ -36,7 +36,7 @@ export const fillFollows = async (limit = 30000) => {
 
 const getFollows = async (start, limit = 10000) => {
   const result = await pool.query(
-    `SELECT op_id, json, required_posting_auths FROM hafsql."TxCustomJson"
+    `SELECT op_id, json, required_posting_auths FROM hafsql.op_custom_json
       WHERE id=$1 AND op_id > $2 ORDER BY op_id ASC LIMIT $3`,
     ['follow', start, limit]
   )
