@@ -29,7 +29,7 @@ export const fillProposalApprovals = async (limit = 20000) => {
 
 const getProposalApprovals = async (start, limit = 10000) => {
   return pool.query(
-    `SELECT op_id, voter, proposal_ids, approve FROM hafsql."TxUpdateProposalVotes"
+    `SELECT op_id, voter, proposal_ids, approve FROM hafsql.op_update_proposal_votes
       WHERE op_id > $1 ORDER BY op_id ASC LIMIT $2`,
     [start, limit]
   )
