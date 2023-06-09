@@ -142,14 +142,14 @@ export const setupOperationIndexes = async () => {
   )
   // required_auths
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_required_auths_idx ON hive.operations USING GIN ((body::jsonb->'value'->'required_auths'), op_type_id, id DESC)
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_required_auths_idx ON hive.operations USING GIN ((body::jsonb->'value'->'required_auths'), op_type_id, id)
       WHERE op_type_id IN (15, 18);`
   )
   console.log('Created 19 out of ' + total + ' indexes...')
 
   // required_posting_auths
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_required_posting_auths_idx ON hive.operations USING GIN ((body::jsonb->'value'->'required_posting_auths'), op_type_id, id DESC)
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_required_posting_auths_idx ON hive.operations USING GIN ((body::jsonb->'value'->'required_posting_auths'), op_type_id, id)
       WHERE op_type_id IN (15, 18);`
   )
   console.log('Created 20 out of ' + total + ' indexes...')
