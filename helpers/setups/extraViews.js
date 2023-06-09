@@ -81,7 +81,7 @@ export const setupExtraViews = async () => {
     FROM hafsql.community_subs_table c;`)
 
   // Community Roles
-  await pool.query(`CREATE OR REPLACE VIEW hafsql.community_roles"
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.community_roles
   AS SELECT c.account,
     c.community,
     CASE WHEN c.role=-2 THEN 'muted' WHEN c.role=8 THEN 'owner' WHEN c.role=2 THEN 'member' WHEN c.role=4 THEN 'mod' WHEN c.role=6 THEN 'admin' ELSE 'guest' END AS role,
