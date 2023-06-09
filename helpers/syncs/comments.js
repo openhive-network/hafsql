@@ -12,6 +12,8 @@ export const syncComments = async () => {
 
 // 65535 / 7 = ~9000
 // postgres parameters limit = 65535
+
+// TODO: deleted comments
 export const fillComments = async (limit = 20000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
@@ -30,7 +32,7 @@ export const fillComments = async (limit = 20000) => {
 const getComments = async (start, limit = 10000) => {
   return pool.query(
     `SELECT op_id, "timestamp", author, permlink, parent_author, parent_permlink, title, body, json_metadata
-      FROM hafsql."TxComment" WHERE op_id > $1 ORDER BY op_id ASC LIMIT $2`,
+      FROM hafsql.op_comment WHERE op_id > $1 ORDER BY op_id ASC LIMIT $2`,
     [start, limit]
   )
 }
@@ -90,7 +92,7 @@ const commentsHelper = async (item) => {
       if (comment.rows[0].body_edited === true) {
         oldBody = comment.rows[0].body
       } else {
-        const temp = await pool.query('SELECT body FROM hafsql."TxComment" WHERE author=$1 AND permlink=$2 ORDER BY op_id ASC LIMIT 1', [item.author, item.permlink])
+        const temp = await pool.query('SELECT body FROM hafsql.op_comment WHERE author=$1 AND permlink=$2 ORDER BY op_id ASC LIMIT 1', [item.author, item.permlink])
         oldBody = temp.rows[0].body
       }
       let extraQuery = ''
