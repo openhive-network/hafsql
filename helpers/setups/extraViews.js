@@ -2,7 +2,7 @@ import { pool } from '../database.js'
 
 export const setupExtraViews = async () => {
   // Blocks
-  await pool.query(`CREATE OR REPLACE VIEW hafsql."Blocks"
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.blocks
   AS SELECT b.num AS block_num,
     b.created_at as "timestamp",
     b.producer_account_id as witness,
@@ -15,7 +15,7 @@ export const setupExtraViews = async () => {
     FROM hive.blocks b;`)
 
   // Transactions
-  await pool.query(`CREATE OR REPLACE VIEW hafsql."Transactions"
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.transactions
   AS SELECT x.block_num,
     x.trx_in_block,
     x.trx_hash AS trx_id,
@@ -26,7 +26,7 @@ export const setupExtraViews = async () => {
     FROM hive.transactions x;`)
 
   // DynamicGlobalProperties
-  await pool.query(`CREATE OR REPLACE VIEW hafsql."DynamicGlobalProperties"
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.dynamic_global_properties
   AS SELECT b.num AS block_num,
     b.created_at as "timestamp",
     b.total_vesting_fund_hive as total_vesting_fund_hive,
@@ -40,14 +40,14 @@ export const setupExtraViews = async () => {
     FROM hive.blocks b;`)
 
   // Delegations
-  await pool.query(`CREATE OR REPLACE VIEW hafsql."Delegations"
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.delegations
   AS SELECT x.delegator,
     x.delegatee,
     x.vests
     FROM hafsql.delegations_table x;`)
 
   // Comments
-  await pool.query(`CREATE OR REPLACE VIEW hafsql."Comments"
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.comments
   AS SELECT x.id,
     x.author,
     x.permlink,
@@ -75,13 +75,13 @@ export const setupExtraViews = async () => {
     FROM hafsql.comments_table x;`)
 
   // Community Subs
-  await pool.query(`CREATE OR REPLACE VIEW hafsql."CommunitySubs"
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.community_subs
   AS SELECT c.account,
     c.community
     FROM hafsql.community_subs_table c;`)
 
   // Community Roles
-  await pool.query(`CREATE OR REPLACE VIEW hafsql."CommunityRoles"
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.community_roles"
   AS SELECT c.account,
     c.community,
     CASE WHEN c.role=-2 THEN 'muted' WHEN c.role=8 THEN 'owner' WHEN c.role=2 THEN 'member' WHEN c.role=4 THEN 'mod' WHEN c.role=6 THEN 'admin' ELSE 'guest' END AS role,
