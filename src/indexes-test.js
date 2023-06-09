@@ -34,7 +34,7 @@ export const setupOperationIndexes = async () => {
   )
   // author
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_author_permlink_idx ON hive.operations
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_author_idx ON hive.operations
       ((body::jsonb->'value'->>'author'), op_type_id, id DESC)
       WHERE op_type_id IN (0, 1, 17, 19, ${OPs + 2}, ${OPs + 4}, ${OPs + 23});`
   )
@@ -48,7 +48,7 @@ export const setupOperationIndexes = async () => {
 
   // parent_author
   await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_parent_author_parent_permlink_idx ON hive.operations
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_parent_author_idx ON hive.operations
       ((body::jsonb->'value'->>'parent_author'), id DESC) WHERE op_type_id = 1;`
   )
   // parent_author, parent_permlink
