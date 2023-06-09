@@ -253,6 +253,7 @@ export const setupVirtualOperationIndexes = async () => {
 const main = async () => {
   const startTime = Date.now() / 1000
   console.log(`Creating indexes ${CONCURRENTLY}. It will take a long time...`)
+  await pool.query('CREATE EXTENSION btree_gin;')
   await setupOperationIndexes()
   await setupVirtualOperationIndexes()
   await setupHafIndexes()
