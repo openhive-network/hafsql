@@ -29,7 +29,7 @@ export const fillDelegations = async (limit = 20000) => {
 
 const getDelegations = async (start, limit = 10000) => {
   return pool.query(
-    `SELECT op_id, delegator, delegatee, vesting_shares FROM hafsql."TxDelegateVestingShares"
+    `SELECT op_id, delegator, delegatee, vesting_shares FROM hafsql.op_delegate_vesting_shares
       WHERE op_id > $1 ORDER BY op_id ASC LIMIT $2`,
     [start, limit]
   )
