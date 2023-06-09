@@ -40,7 +40,7 @@ export const fillCommunities = async (limit = 20000) => {
 
 const getCommunities = async (start, limit = 10000) => {
   const result = await pool.query(
-    `SELECT op_id, json, required_posting_auths FROM hafsql."TxCustomJson"
+    `SELECT op_id, json, required_posting_auths FROM hafsql.op_custom_json
       WHERE id=$1 AND op_id > $2 ORDER BY op_id ASC LIMIT $3`,
     ['community', start, limit]
   )
