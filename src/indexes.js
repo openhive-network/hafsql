@@ -377,14 +377,14 @@ export const setupOperationIndexes = async () => {
   // await pool.query(`CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txcreateproposal_receiver ON hive.operations ((body::jsonb->'value'->>'receiver')) WHERE op_type_id = 44;`)
 
   // TxUpdateProposalVotes 45
-  await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txupdateproposalvotes_voter ON hive.operations ((body::jsonb->'value'->>'voter'), id DESC)
-      WHERE op_type_id = 45;`
-  )
-  await pool.query(
-    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txupdateproposalvotes_proposal_ids ON hive.operations ((body::jsonb->'value'->'proposal_ids'), id DESC)
-      WHERE op_type_id = 45;`
-  )
+  // await pool.query(
+  //   `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txupdateproposalvotes_voter ON hive.operations ((body::jsonb->'value'->>'voter'), id DESC)
+  //     WHERE op_type_id = 45;`
+  // )
+  // await pool.query(
+  //   `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_txupdateproposalvotes_proposal_ids ON hive.operations ((body::jsonb->'value'->'proposal_ids'), id DESC)
+  //     WHERE op_type_id = 45;`
+  // )
 
   console.log('Created 56 out of ' + total + ' indexes...')
 
