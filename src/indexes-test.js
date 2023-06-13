@@ -71,7 +71,7 @@ export const setupOperationIndexes = async () => {
   // memo
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_memo_idx ON hive.operations ((body::jsonb->'value'->>'memo'), op_type_id, id DESC)
-      WHERE op_type_id IN (2, 32, 33, 49, ${OPs + 34}, ${OPs + 35});`
+      WHERE op_type_id IN (2, 32, 33, 49, ${OPs + 10}, ${OPs + 34}, ${OPs + 35});`
   )
   console.log('Created 5 out of ' + total + ' indexes...')
 
