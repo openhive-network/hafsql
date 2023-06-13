@@ -9,7 +9,7 @@ export const pool = new pg.Pool({
   user: 'haf_admin',
   host: process.env.PGHOST || '172.17.0.2',
   port: process.env.PGPORT || 5432,
-  max: process.env.PGPOOLSIZE || 10,
+  max: process.env.PGPOOLSIZE || 2,
   min: 1
 })
 
