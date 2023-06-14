@@ -46,6 +46,13 @@ export const setupExtraViews = async () => {
     x.vests
     FROM hafsql.delegations_table x;`)
 
+  // RC Delegations
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.rc_delegations
+  AS SELECT x.delegator,
+    x.delegatee,
+    x.rc
+    FROM hafsql.rc_delegations_table x;`)
+
   // Comments
   await pool.query(`CREATE OR REPLACE VIEW hafsql.comments
   AS SELECT x.id,
@@ -87,6 +94,65 @@ export const setupExtraViews = async () => {
     CASE WHEN c.role=-2 THEN 'muted' WHEN c.role=8 THEN 'owner' WHEN c.role=2 THEN 'member' WHEN c.role=4 THEN 'mod' WHEN c.role=6 THEN 'admin' ELSE 'guest' END AS role,
     c.title
     FROM hafsql.community_roles_table c;`)
+
+  // Blacklists
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.blacklists
+  AS SELECT x.blacklister AS blacklister_id,
+    x.blacklisted AS blacklisted_id,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.blacklister) AS blacklister_name,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.blacklisted) AS blacklisted_name
+    FROM hafsql.blacklists_table x;`)
+
+  // Mutes
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.mutes
+  AS SELECT x.muter AS muter_id,
+    x.muted AS muted_id,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.muter) AS muter_name,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.muted) AS muted_name
+    FROM hafsql.mutes_table x;`)
+
+  // Blacklist Follows
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.blacklist_follows
+  AS SELECT x.account AS account_id,
+    x.blacklist AS blacklist_id,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.account) AS account_name,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.blacklist) AS blacklist_name
+    FROM hafsql.blacklist_follows_table x;`)
+
+  // Mute Follows
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.mute_follows
+  AS SELECT x.account AS account_id,
+    x.mute_list AS mute_list_id,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.account) AS account_name,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.mute_list) AS mute_list_name
+    FROM hafsql.mute_follows_table x;`)
+
+  // Follows
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.follows
+  AS SELECT x.follower AS follower_id,
+    x.following AS following_id,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.follower) AS follower_name,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.following) AS following_name
+    FROM hafsql.follows_table x;`)
+
+  // Reblogs
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.reblogs
+  AS SELECT x.account AS account_id,
+    x.post AS post_id,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.account) AS account_name
+    FROM hafsql.reblogs_table x;`)
+
+  // Proposal Approvlas
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.proposal_approvals
+  AS SELECT x.id AS proposal_id,
+    x.voter
+    FROM hafsql.proposal_approvals_table x;`)
+
+  // Accounts
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.accounts
+  AS SELECT x.id,
+    x.name
+    FROM hive.accounts x;`)
 }
 
 export const removeExtraViews = async () => {
