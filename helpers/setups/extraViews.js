@@ -22,7 +22,7 @@ export const setupExtraViews = async () => {
     x.ref_block_num,
     x.ref_block_prefix,
     x.expiration,
-    x.signature
+    array_fill(encode(x.signature, 'hex'), array[1]) || array(select encode(tm.signature, 'hex') from hive.transactions_multisig tm where tm.trx_hash=x.trx_hash) as signatures
     FROM hive.transactions x;`)
 
   // DynamicGlobalProperties
@@ -153,6 +153,31 @@ export const setupExtraViews = async () => {
   AS SELECT x.id,
     x.name
     FROM hive.accounts x;`)
+
+  // Operations
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.operations
+  AS SELECT x.id,
+    x.block_num,
+    x.trx_in_block,
+    x.op_pos,
+    x.op_type_id,
+    x.timestamp,
+    x.body
+    FROM hive.operations x;`)
+
+  // Operation Types
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.operation_types
+  AS SELECT x.id,
+    x.name,
+    x.is_virtual 
+    FROM hive.operation_types x;`)
+
+  // Applied Hardforks
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.applied_hardforks
+  AS SELECT x.hardfork_num,
+    x.block_num,
+    x.hardfork_vop_id
+    FROM hive.applied_hardforks x;`)
 }
 
 export const removeExtraViews = async () => {
@@ -161,7 +186,20 @@ export const removeExtraViews = async () => {
     hafsql.transactions,
     hafsql.dynamic_global_properties,
     hafsql.delegations,
+    hafsql.rc_delegations,
     hafsql.comments,
+    hafsql.blacklists,
+    hafsql.mutes,
+    hafsql.blacklist_follows,
+    hafsql.mute_follows,
+    hafsql.follows,
+    hafsql.reblogs,
+    hafsql.proposal_approvals,
+    hafsql.accounts,
+    hafsql.operations,
+    hafsql.operation_types,
+    hafsql.applied_hardforks,
     hafsql.community_subs,
-    hafsql.community_roles;`)
+    hafsql.community_roles;`
+  )
 }
