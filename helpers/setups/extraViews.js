@@ -65,7 +65,7 @@ export const setupExtraViews = async () => {
     x.created,
     (SELECT "timestamp" FROM hafsql.op_comment WHERE op_id=x.last_op_id) AS edited,
     CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) < '7 days' THEN (x.created + INTERVAL '7 days') ELSE '1969-12-31 23:59:59' END AS cashout_time,
-    CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) < '7 days' THEN (NOW() AT TIME ZONE 'UTC' - x.created) ELSE '00:00:00.000' END AS remaining_till_cashout,
+    CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) < '7 days' THEN (x.created + '7 days') ELSE '00:00:00.000' END AS remaining_till_cashout,
     CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) >= '7 days' THEN (x.created + INTERVAL '7 days') ELSE '1969-12-31 23:59:59' END AS last_payout,
     x.tags,
     (SELECT json_metadata FROM hafsql.op_comment WHERE op_id=x.last_op_id) AS json_metadata,
