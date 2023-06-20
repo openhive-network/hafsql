@@ -15,7 +15,7 @@ export const pool = new pg.Pool({
 
 const CONCURRENTLY = process.env.CONCURRENTLY === 'false' ? '' : 'CONCURRENTLY'
 
-const total = 11
+const total = 14
 const OPs = 49
 
 // Needed for sorting by ID asc or desc
@@ -28,10 +28,10 @@ const setupHafIndexes = async () => {
 
 export const setupOperationIndexes = async () => {
   // voter
-  // await pool.query(
-  //   `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voter_idx ON hive.operations ((body::jsonb->'value'->>'voter'), op_type_id, id DESC)
-  //     WHERE op_type_id IN (0, 45);`
-  // )
+  await pool.query(
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voter_idx ON hive.operations ((body::jsonb->'value'->>'voter'), op_type_id, id DESC)
+      WHERE op_type_id IN (0, 45);`
+  )
   // author
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_author_idx ON hive.operations
@@ -44,7 +44,7 @@ export const setupOperationIndexes = async () => {
       ((body::jsonb->'value'->>'author'), (body::jsonb->'value'->>'permlink'), op_type_id, id DESC)
       WHERE op_type_id IN (0, 1, 17, 19, ${OPs + 2}, ${OPs + 4}, ${OPs + 23});`
   )
-  console.log('Created 2 out of ' + total + ' indexes...')
+  console.log('Created 3 out of ' + total + ' indexes...')
 
   // parent_author
   await pool.query(
@@ -56,24 +56,24 @@ export const setupOperationIndexes = async () => {
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_parent_author_parent_permlink_idx ON hive.operations
       ((body::jsonb->'value'->>'parent_author'), (body::jsonb->'value'->>'parent_permlink'), id DESC) WHERE op_type_id = 1;`
   )
-  console.log('Created 4 out of ' + total + ' indexes...')
+  console.log('Created 5 out of ' + total + ' indexes...')
 
   // from
-  // await pool.query(
-  //   `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_from_idx ON hive.operations ((body::jsonb->'value'->>'from'), op_type_id, id DESC)
-  //     WHERE op_type_id IN (2, 3, 32, 33, 34, ${OPs + 10});`
-  // )
+  await pool.query(
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_from_idx ON hive.operations ((body::jsonb->'value'->>'from'), op_type_id, id DESC)
+      WHERE op_type_id IN (2, 3, 32, 33, 34, ${OPs + 10});`
+  )
   // to
-  // await pool.query(
-  //   `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_to_idx ON hive.operations ((body::jsonb->'value'->>'to'), op_type_id, id DESC)
-  //     WHERE op_type_id IN (2, 3, 32, 33, ${OPs + 10});`
-  // )
+  await pool.query(
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_to_idx ON hive.operations ((body::jsonb->'value'->>'to'), op_type_id, id DESC)
+      WHERE op_type_id IN (2, 3, 32, 33, ${OPs + 10});`
+  )
   // memo
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_memo_idx ON hive.operations ((body::jsonb->'value'->>'memo'), op_type_id, id DESC)
       WHERE op_type_id IN (2, 32, 33, 49, ${OPs + 10}, ${OPs + 34}, ${OPs + 35});`
   )
-  console.log('Created 5 out of ' + total + ' indexes...')
+  console.log('Created 8 out of ' + total + ' indexes...')
 
   // account
   // await pool.query(
@@ -92,7 +92,7 @@ export const setupOperationIndexes = async () => {
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_orderid_idx ON hive.operations ((body::jsonb->'value'->>'orderid'), op_type_id, id DESC)
       WHERE op_type_id IN (5, 6, 21);`
   )
-  console.log('Created 6 out of ' + total + ' indexes...')
+  console.log('Created 9 out of ' + total + ' indexes...')
 
   // publisher
   // await pool.query(
@@ -106,7 +106,7 @@ export const setupOperationIndexes = async () => {
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_requestid_idx ON hive.operations ((body::jsonb->'value'->>'requestid'), op_type_id, id DESC)
       WHERE op_type_id IN (8, 48, ${OPs + 1}, ${OPs + 32}, ${OPs + 39});`
   )
-  console.log('Created 7 out of ' + total + ' indexes...')
+  console.log('Created 10 out of ' + total + ' indexes...')
 
   // creator
   // await pool.query(
@@ -145,7 +145,7 @@ export const setupOperationIndexes = async () => {
   //   `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_required_auths_idx ON hive.operations ((body::jsonb->'value'->>'required_auths'), op_type_id, id)
   //     WHERE op_type_id IN (15, 18);`
   // )
-  console.log('Created 8 out of ' + total + ' indexes...')
+  console.log('Created 11 out of ' + total + ' indexes...')
 
   // // required_posting_auths
   // await pool.query(
@@ -222,7 +222,7 @@ export const setupVirtualOperationIndexes = async () => {
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_open_orderid_idx ON hive.operations ((body::jsonb->'value'->>'open_orderid'), id DESC)
       WHERE op_type_id = ${OPs + 8};`
   )
-  console.log('Created 10 out of ' + total + ' indexes...')
+  console.log('Created 13 out of ' + total + ' indexes...')
 
   // VOCommentBenefactorReward 49 + 14
   // await pool.query(
