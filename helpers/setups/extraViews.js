@@ -83,14 +83,18 @@ export const setupExtraViews = async () => {
 
   // Community Subs
   await pool.query(`CREATE OR REPLACE VIEW hafsql.community_subs
-  AS SELECT c.account,
-    c.community
+  AS SELECT x.account AS account_id,
+    x.community AS community_id,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.account) AS account_name,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.community) AS community_name
     FROM hafsql.community_subs_table c;`)
 
   // Community Roles
   await pool.query(`CREATE OR REPLACE VIEW hafsql.community_roles
-  AS SELECT c.account,
-    c.community,
+  AS SELECT x.account AS account_id,
+    x.community AS community_id,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.account) AS account_name,
+    (SELECT a.name FROM hive.accounts a WHERE id=x.community) AS community_name,
     CASE WHEN c.role=-2 THEN 'muted' WHEN c.role=8 THEN 'owner' WHEN c.role=2 THEN 'member' WHEN c.role=4 THEN 'mod' WHEN c.role=6 THEN 'admin' ELSE 'guest' END AS role,
     c.title
     FROM hafsql.community_roles_table c;`)
