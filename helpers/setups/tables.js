@@ -87,6 +87,7 @@ export const setupTables = async () => {
     last_op_id int8 NOT NULL,
     created timestamp NOT NULL,
     pending_payout_value numeric(12, 3) NULL DEFAULT 0,
+    deleted bool NULL DEFAULT false,
     CONSTRAINT hafsql_comments_table_pk PRIMARY KEY (id),
     CONSTRAINT hafsql_comments_table_un UNIQUE (author, permlink)
   );`)
@@ -131,7 +132,8 @@ const setupSyncDataTable = async () => {
     'comments',
     'rewards',
     'reblogs',
-    'communities'
+    'communities',
+    'delete_comments'
   ]
   for (let i = 0; i < tableNames.length; i++) {
     const name = tableNames[i]
