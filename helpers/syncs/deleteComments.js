@@ -57,7 +57,7 @@ const insertDeleteComments = async (deletedCm) => {
     }
   }
   return pool.query(
-    'UPDATE hafsql.comments SET deleted=true WHERE author=$1 AND permlink=$2;',
+    'UPDATE hafsql.comments_table SET deleted=true WHERE author=$1 AND permlink=$2;',
     [author, permlink]
   )
 }
