@@ -18,6 +18,7 @@ import { fillReblogs, syncReblogs } from '../helpers/syncs/reblogs.js'
 import { fillCommunities, syncCommunities } from '../helpers/syncs/communities.js'
 import { setup } from './setup.js'
 import { createLastIndexes } from '../helpers/setups/tables.js'
+import { fillDeleteComments, syncDeleteComments } from '../helpers/syncs/deleteComments.js'
 config()
 
 const main = async () => {
@@ -37,6 +38,9 @@ const main = async () => {
 
   console.log('Syncing comments...')
   await fillComments()
+
+  console.log('Syncing deleted comments...')
+  await fillDeleteComments()
 
   console.log('Syncing rewards...')
   await fillRewards()
@@ -60,6 +64,7 @@ const main = async () => {
   syncProposalApprovals()
   syncFollows()
   syncComments()
+  syncDeleteComments()
   syncRewards()
   syncReblogs()
   syncCommunities()
