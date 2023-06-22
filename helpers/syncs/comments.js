@@ -13,7 +13,6 @@ export const syncComments = async () => {
 // 65535 / 7 = ~9000
 // postgres parameters limit = 65535
 
-// TODO: deleted comments
 export const fillComments = async (limit = 20000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
