@@ -5,6 +5,7 @@ let filling = true
 export const syncDeleteComments = async () => {
   const intervalTime = 3000
   filling = false
+  notDeletedComments = []
   setInterval(() => {
     fillDeleteComments(1000)
   }, intervalTime)
