@@ -33,7 +33,12 @@ HafSQL also provides the following additional parsed data:
 Ubuntu 22  
 Nodejs v18  
 HAF 1.27.4  
+  
 
+```bash
+git clone https://gitlab.com/mahdiyari/hafsql
+```
+  
 To install node.js v18 on Ubuntu 22:
 ```bash
 ./run.sh install_node
