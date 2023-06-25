@@ -64,6 +64,8 @@ touch custom_pg_hba.conf
 hba_file = '/home/hived/datadir/haf_postgresql_conf.d/custom_pg_hba.conf' # Don't change
 ```
 **^^ Don't change the path in the above line ^^**  
+  
+  
 
 `custom_pg_hba.conf`:
 ```conf
