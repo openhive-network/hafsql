@@ -110,13 +110,14 @@ Depending on your situation, you can create indexes in two ways.
 
 1. CONCURRENTLY=true  
 Creating indexes will not interrupt the live sync of the HAF/hived node. Your node will be running just fine.  
-It is slower compared to the second option and will take longer.  
-This is the default option.
-
+It is **very very slower** compared to the second option and will take longer.  
+This is the default option to not break the operation of a live node.  
+I strongly recommend using the second option unless you can wait potentially days.  
+  
 2. CONCURRENTLY=false  
 The live sync of the HAF/hived will be paused. Other than that, there shouldn't be any other interruptions.  
 hived will continue syncing just fine after the index creation.  
-It is faster in creating the indexes.  
+It is faster in creating the indexes. Around 5-7 hours.  
   
 
 After deciding your method in .env file, you can create the indexes.  
