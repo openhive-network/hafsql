@@ -52,7 +52,7 @@ npm install
 #### Preperations
 You need to have a line for `haf_admin` in you pg_hba.conf to create the indexes. Assuming you are using dockerized haf, the following is the easiest way of doing so.
 ```bash
-cd haf-data-dir
+cd haf-datadir
 mkdir -p haf_postgresql_conf.d
 cd haf_postgresql_conf.d
 touch custom_postgres.conf
