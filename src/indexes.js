@@ -3,7 +3,7 @@ import { config } from 'dotenv'
 config()
 
 // Indexes need haf_admin access
-export const pool = new pg.Pool({
+const pool = new pg.Pool({
   application_name: 'HafSQL-indexes',
   database: process.env.PGDATABASE || 'haf_block_log',
   user: 'haf_admin',
@@ -14,12 +14,15 @@ export const pool = new pg.Pool({
 })
 
 const CONCURRENTLY = process.env.CONCURRENTLY === 'false' ? '' : 'CONCURRENTLY'
+const INDEXMAXTHREADS = process.env.INDEXMAXTHREADS || 4
 
 const total = 33
 const OPs = 49
+const client = await pool.connect()
 
 // Needed for sorting by ID asc or desc
 const setupHafIndexes = async () => {
+  const pool = client
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hive_operations_op_type_id_id_hafsql ON hive.operations (op_type_id, id)`
   )
@@ -27,6 +30,7 @@ const setupHafIndexes = async () => {
 }
 
 export const setupOperationIndexes = async () => {
+  const pool = client
   // voter
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_voter_idx ON hive.operations ((body::jsonb->'value'->>'voter'), op_type_id, id DESC)
@@ -193,6 +197,7 @@ export const setupOperationIndexes = async () => {
 }
 
 export const setupVirtualOperationIndexes = async () => {
+  const pool = client
   // curator
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_curator_idx ON hive.operations ((body::jsonb->'value'->>'curator'), id DESC)
@@ -241,7 +246,9 @@ export const setupVirtualOperationIndexes = async () => {
 const main = async () => {
   const startTime = Date.now() / 1000
   console.log(`Creating indexes ${CONCURRENTLY}. It will take a long time...`)
-  await pool.query('CREATE EXTENSION IF NOT EXISTS btree_gin;')
+  // client = await pool.connect()
+  await client.query('SET max_parallel_maintenance_workers = $1;', [INDEXMAXTHREADS])
+  await client.query('CREATE EXTENSION IF NOT EXISTS btree_gin;')
   await setupOperationIndexes()
   await setupVirtualOperationIndexes()
   await setupHafIndexes()
