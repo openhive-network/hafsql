@@ -132,7 +132,12 @@ If you have a fast storage like NVMe, you can edit `INDEXMAXTHREADS` in the `.en
 I would recommend 8-12 for NVMe and 2-4 for slower storage. Postgresql will use extra CPU threads only if needed.  
 This is only for the index creation and will not affect the other parts.  
 Make sure `INDEXMAXTHREADS` <= CPU threads - 1  
-  
+My tests:  
+|Test case|Finish time|
+|---------|--------|
+|0 threads - 1 index|24m - 100%|
+|4 threads - 1 index|9m - 38%|
+|8 threads - 1 index|7m - 28%|
   
 ##### STEP 2
 
