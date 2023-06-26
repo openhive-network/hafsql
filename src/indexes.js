@@ -247,7 +247,7 @@ const main = async () => {
   const startTime = Date.now() / 1000
   console.log(`Creating indexes ${CONCURRENTLY}. It will take a long time...`)
   // client = await pool.connect()
-  await client.query('SET max_parallel_maintenance_workers = $1;', [INDEXMAXTHREADS])
+  await client.query(`SET max_parallel_maintenance_workers = ${INDEXMAXTHREADS};`)
   await client.query('CREATE EXTENSION IF NOT EXISTS btree_gin;')
   await setupOperationIndexes()
   await setupVirtualOperationIndexes()
