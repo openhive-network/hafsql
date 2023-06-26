@@ -131,6 +131,7 @@ npm run create-indexes
 If you have a fast storage like NVMe, you can edit `INDEXMAXTHREADS` in the `.env` file according to the thread count of your CPU and make index creation faster.  
 I would recommend 8-12 for NVMe and 2-4 for slower storage. Postgresql will use extra CPU threads only if needed.  
 This is only for the index creation and will not affect the other parts.  
+Make sure `INDEXMAXTHREADS` <= CPU threads - 1  
     
   
 ##### STEP 2
