@@ -255,6 +255,7 @@ const main = async () => {
   const timeSpent = (Date.now() / 1000 - startTime) / 60
   console.log(`Indexes done. Total time spent = ${timeSpent} minutes`)
   console.log('Draining the pool...')
+  client.release(true)
   pool.end()
 }
 
