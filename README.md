@@ -142,13 +142,6 @@ My tests:
 |8 threads - 1 index|7m - 28%|
 |12 threads - 1 index|6m - 25%|
   
-|Test case|CONCURRENTLY|Finish time|
-|---------|--------|--------|
-|0 threads - all indexes|true|-|
-|8 threads - all indexes|true|-|
-|0 threads - all indexes|false|16h - 100%|
-|8 threads - all indexes|false|-|
-
   
 ##### STEP 2
 
