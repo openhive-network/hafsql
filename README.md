@@ -156,6 +156,11 @@ See logs:
 npm run logs
 ```
 
+List apps:
+```bash
+npm run list
+```
+
 To stop:
 ```bash
 npm run stop
