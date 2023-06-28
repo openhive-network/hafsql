@@ -32,7 +32,7 @@ HafSQL also provides the following additional parsed data:
 #### Requirements
 Ubuntu 22  
 Nodejs v18  
-HAF 1.27.4  
+HAF 1.27.4 (not compatible with 1.27.3 and below)  
   
 
 ```bash
