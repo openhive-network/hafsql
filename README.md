@@ -31,8 +31,8 @@ HafSQL also provides the following additional parsed data:
 
 #### Requirements
 Ubuntu 22  
-Nodejs v18  
-HAF 1.27.4 (not compatible with 1.27.3 and below)  
+Nodejs v18  (for manual installation)
+HAF 1.27.4 (not compatible with 1.27.3 or 1.27.5)  
   
 
 ```bash
@@ -100,7 +100,8 @@ host    replication     all             ::1/128                 md5
 
 Restart the container and you should be good to go.
 
-##### STEP 1
+##### Configs
+
 Create `.env` file from `example.env` and edit if necessary.
 ```bash
 cp example.env .env
@@ -119,6 +120,9 @@ The live sync of the HAF/hived will be paused. Other than that, there shouldn't 
 hived will continue syncing just fine after the index creation.  
 It is faster in creating the indexes. Around 4 hours.  
   
+
+
+##### STEP 1
 
 After deciding your method in .env file, you can create the indexes.  
   
@@ -162,7 +166,7 @@ See logs:
 npm run logs
 ```
 
-List apps:
+## Manual installation
 ```bash
 npm run list
 ```
@@ -176,3 +180,19 @@ To restart:
 ```bash
 npm run restart
 ```
+
+## Dockerized setup
+First you need to follow [#Preperations](https://gitlab.com/mahdiyari/hafsql#preperations) and [#Configs](https://gitlab.com/mahdiyari/hafsql#configs)  
+  
+Building:
+```bash
+docker build -t hafsql-v1.0.0 .
+```
+
+Running:
+```bash
+docker run --rm -it --name hafsql hafsql-v1.0.0
+```
+  
+It will create the indexes then start syncing after that.
+
