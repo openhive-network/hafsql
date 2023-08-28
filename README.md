@@ -186,12 +186,12 @@ First you need to follow [#Preperations](https://gitlab.com/mahdiyari/hafsql#pre
   
 Building:
 ```bash
-docker build -t hafsql-v1.0.0 .
+docker build -t hafsql-v1.0.2 .
 ```
 
 Running:
 ```bash
-docker run --rm -it --name hafsql-sync hafsql-v1.0.0
+docker run --rm -it --name hafsql-sync hafsql-v1.0.2
 ```
   
 It will create the indexes then start syncing after that.
