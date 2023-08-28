@@ -191,8 +191,25 @@ docker build -t hafsql-v1.0.0 .
 
 Running:
 ```bash
-docker run --rm -it --name hafsql hafsql-v1.0.0
+docker run --rm -it --name hafsql-sync hafsql-v1.0.0
 ```
   
 It will create the indexes then start syncing after that.
+
+***
+#### Options
+HafSQL makes it possible to run only what you need. For a public API you probably want all of them to be enabled. Configurable in `.env`. Below are the default values.
+```conf
+# modular syncing
+COMMENTS=true # comments, rewards, reblogs
+COMMUNITIES=true
+DELEGATIONS=true
+RCDELEGATIONS=true
+FOLLOWS=true # follows, mutes, blacklists
+PROPOSALS=true
+
+# don't create indexes for operations and virtual operations
+# useful if you don't intend to provide a public API and/or search the ops/vops views
+SKIPOPERATIONINDEXES=false
+```
 
