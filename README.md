@@ -166,7 +166,6 @@ See logs:
 npm run logs
 ```
 
-## Manual installation
 ```bash
 npm run list
 ```
