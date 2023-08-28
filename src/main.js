@@ -24,32 +24,8 @@ config()
 const main = async () => {
   await setup()
   const now = Date.now()
-  console.log('Syncing delegations...')
-  await fillDelegations()
 
-  console.log('Syncing RC delegations...')
-  await fillRCDelegations()
-
-  console.log('Syncing proposals...')
-  await fillProposalApprovals()
-
-  console.log('Syncing follows, mutes, blacklists, etc...')
-  await fillFollows()
-
-  console.log('Syncing comments...')
-  await fillComments()
-
-  console.log('Syncing deleted comments...')
-  await fillDeleteComments()
-
-  console.log('Syncing rewards...')
-  await fillRewards()
-
-  console.log('Syncing reblogs...')
-  await fillReblogs()
-
-  console.log('Syncing communities...')
-  await fillCommunities()
+  await fillings()
 
   // Indexes
   console.log('Creating related indexes...')
@@ -59,17 +35,80 @@ const main = async () => {
   console.log(
     'Sync done in ' + timeSpent / 60 + ' minutes. Live sync starting...'
   )
-  syncDelegations()
-  syncRCDelegations()
-  syncProposalApprovals()
-  syncFollows()
-  syncComments()
-  syncDeleteComments()
-  syncRewards()
-  syncReblogs()
-  syncCommunities()
+
+  startSyncing()
 
   console.log('Live sync ready and running.')
+}
+
+const fillings = async () => {
+  if (process.env.DELEGATIONS !== false) {
+    console.log('Syncing delegations...')
+    await fillDelegations()
+  }
+
+  if (process.env.RCDELEGATIONS !== false) {
+    console.log('Syncing RC delegations...')
+    await fillRCDelegations()
+  }
+
+  if (process.env.PROPOSALS !== false) {
+    console.log('Syncing proposals...')
+    await fillProposalApprovals()
+  }
+
+  if (process.env.FOLLOWS !== false) {
+    console.log('Syncing follows, mutes, blacklists, ...')
+    await fillFollows()
+  }
+
+  if (process.env.COMMENTS !== false) {
+    console.log('Syncing comments...')
+    await fillComments()
+
+    console.log('Syncing deleted comments...')
+    await fillDeleteComments()
+
+    console.log('Syncing rewards...')
+    await fillRewards()
+
+    console.log('Syncing reblogs...')
+    await fillReblogs()
+  }
+
+  if (process.env.COMMUNITIES !== false) {
+    console.log('Syncing communities...')
+    await fillCommunities()
+  }
+}
+
+const startSyncing = async () => {
+  if (process.env.DELEGATIONS !== false) {
+    syncDelegations()
+  }
+
+  if (process.env.RCDELEGATIONS !== false) {
+    syncRCDelegations()
+  }
+
+  if (process.env.PROPOSALS !== false) {
+    syncProposalApprovals()
+  }
+
+  if (process.env.FOLLOWS !== false) {
+    syncFollows()
+  }
+
+  if (process.env.COMMENTS !== false) {
+    syncComments()
+    syncDeleteComments()
+    syncRewards()
+    syncReblogs()
+  }
+
+  if (process.env.COMMUNITIES !== false) {
+    syncCommunities()
+  }
 }
 
 main()
