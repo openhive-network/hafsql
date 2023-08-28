@@ -148,10 +148,10 @@ My tests:
   
 |Test case|CONCURRENTLY|Finish time|
 |---------|--------|--------|
-|0 threads - 1 index|true|23h|
-|8 threads - 1 index|true|31h|
-|0 threads - 1 index|false|16h|
-|8 threads - 1 index|false|4h|
+|0 threads - All indexes|true|23h|
+|8 threads - All indexes|true|31h|
+|0 threads - All indexes|false|16h|
+|8 threads - All indexes|false|4h|
   
 ##### STEP 2
 
