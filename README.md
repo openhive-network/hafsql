@@ -166,6 +166,7 @@ See logs:
 npm run logs
 ```
 
+Monitor:
 ```bash
 npm run list
 ```
