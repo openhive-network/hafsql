@@ -274,18 +274,3 @@ const updateLastOpId = async (opId) => {
     [opId, 'communities']
   )
 }
-
-// id community
-// json ["unsubscribe",{"community":"hive-166847"}]
-
-// id community
-// json ["subscribe",{"community":"hive-166847"}]
-
-// ["setRole",{"community":"hive-19812","account":"test-safari","role":"admin","notes":"test admin"}]
-// ["setUserTitle",{"community":"hive-180934","account":"french-tech","title":"Tech FR"}]
-
-// ["pinPost",{"community":"hive-168869","account":"galenkp","permlink":"weekend-engagement-week-156-three-year-anniversary-week"}]
-// ["unpinPost",{"community":"hive-161155","account":"zapfic.club","permlink":"the-weekend-might-be-over-but-at-least-that-means-its-time-for-zapfic50monday-write-me-a-story-in-precisely-50-words"}]
-
-// ["unmutePost",{"community":"hive-106316","account":"cosmo-kuro","permlink":"ghosts-spirits-and-apparitions-exploring-the-world-of-paranormal-phenomena","notes":"undone for now"}]
-// ["mutePost",{"community":"hive-106316","account":"cosmo-kuro","permlink":"ghosts-spirits-and-apparitions-exploring-the-world-of-paranormal-phenomena","notes":"Please read our about before posting here again... Thanks"}]
