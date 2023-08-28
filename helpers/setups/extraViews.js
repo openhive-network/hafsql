@@ -78,7 +78,8 @@ export const setupExtraViews = async () => {
     COALESCE((SELECT max_accepted_payout FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), 1000000.0) AS max_accepted_payout,
     COALESCE((SELECT percent_hbd FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), '10000') AS percent_hbd,
     COALESCE((SELECT allow_votes FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), 'true') AS allow_votes,
-    COALESCE((SELECT allow_curation_rewards FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), 'true') AS allow_curation_rewards
+    COALESCE((SELECT allow_curation_rewards FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), 'true') AS allow_curation_rewards,
+    x.deleted,
     FROM hafsql.comments_table x;`)
 
   // Community Subs
