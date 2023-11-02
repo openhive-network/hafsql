@@ -4,10 +4,10 @@ export const setupOperationViews = async () => {
   const OpVote = `CREATE OR REPLACE VIEW hafsql.op_vote
     AS SELECT o.id as op_id,
       o."timestamp",
-      (o.body::jsonb -> 'value'::text) ->> 'voter'::text AS "voter",
-      (o.body::jsonb -> 'value'::text) ->> 'author'::text AS "author",
-      (o.body::jsonb -> 'value'::text) ->> 'weight'::text AS "weight",
-      (o.body::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink"
+      (o.body_binary::jsonb -> 'value'::text) ->> 'voter'::text AS "voter",
+      (o.body_binary::jsonb -> 'value'::text) ->> 'author'::text AS "author",
+      (o.body_binary::jsonb -> 'value'::text) ->> 'weight'::text AS "weight",
+      (o.body_binary::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink"
     FROM hive.operations o
     WHERE o.op_type_id = 0;`
   await pool.query(OpVote)
@@ -15,13 +15,13 @@ export const setupOperationViews = async () => {
   const OpComment = `CREATE OR REPLACE VIEW hafsql.op_comment
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'author'::text AS "author",
-    (o.body::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink",
-    (o.body::jsonb -> 'value'::text) ->> 'parent_author'::text AS "parent_author",
-    (o.body::jsonb -> 'value'::text) ->> 'parent_permlink'::text AS "parent_permlink",
-    (o.body::jsonb -> 'value'::text) ->> 'title'::text AS "title",
-    (o.body::jsonb -> 'value'::text) ->> 'body'::text AS "body",
-    (o.body::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'author'::text AS "author",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'parent_author'::text AS "parent_author",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'parent_permlink'::text AS "parent_permlink",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'title'::text AS "title",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'body'::text AS "body",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata"
     FROM hive.operations o
     WHERE o.op_type_id = 1;`
   await pool.query(OpComment)
@@ -29,10 +29,10 @@ export const setupOperationViews = async () => {
   const OpTransfer = `CREATE OR REPLACE VIEW hafsql.op_transfer
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
-    (o.body::jsonb -> 'value'::text) ->> 'to'::text AS "to",
-    (o.body::jsonb -> 'value'::text) ->> 'amount'::text AS "amount",
-    (o.body::jsonb -> 'value'::text) ->> 'memo'::text AS "memo"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS "from",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS "to",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'amount'::text AS "amount",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'memo'::text AS "memo"
     FROM hive.operations o
     WHERE o.op_type_id = 2;`
   await pool.query(OpTransfer)
@@ -40,9 +40,9 @@ export const setupOperationViews = async () => {
   const OpTransferToVesting = `CREATE OR REPLACE VIEW hafsql.op_transfer_to_vesting
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
-    (o.body::jsonb -> 'value'::text) ->> 'to'::text AS "to",
-    (o.body::jsonb -> 'value'::text) ->> 'amount'::text AS "amount"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS "from",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS "to",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'amount'::text AS "amount"
     FROM hive.operations o
     WHERE o.op_type_id = 3;`
   await pool.query(OpTransferToVesting)
@@ -50,8 +50,8 @@ export const setupOperationViews = async () => {
   const OpWithdrawVesting = `CREATE OR REPLACE VIEW hafsql.op_withdraw_vesting
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
-    (o.body::jsonb -> 'value'::text) ->> 'vesting_shares'::text AS "vesting_shares"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'account'::text AS "account",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'vesting_shares'::text AS "vesting_shares"
     FROM hive.operations o
     WHERE o.op_type_id = 4;`
   await pool.query(OpWithdrawVesting)
@@ -59,12 +59,12 @@ export const setupOperationViews = async () => {
   const OpLimitOrderCreate = `CREATE OR REPLACE VIEW hafsql.op_limit_order_create
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
-    (o.body::jsonb -> 'value'::text) ->> 'orderid'::text AS "orderid",
-    (o.body::jsonb -> 'value'::text) ->> 'amount_to_sell'::text AS "amount_to_sell",
-    (o.body::jsonb -> 'value'::text) ->> 'min_to_receive'::text AS "min_to_receive",
-    (o.body::jsonb -> 'value'::text) ->> 'fill_or_kill'::text AS "fill_or_kill",
-    (o.body::jsonb -> 'value'::text) ->> 'expiration'::text AS "expiration"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'orderid'::text AS "orderid",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'amount_to_sell'::text AS "amount_to_sell",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'min_to_receive'::text AS "min_to_receive",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'fill_or_kill'::text AS "fill_or_kill",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'expiration'::text AS "expiration"
     FROM hive.operations o
     WHERE o.op_type_id = 5;`
   await pool.query(OpLimitOrderCreate)
@@ -72,8 +72,8 @@ export const setupOperationViews = async () => {
   const OpLimitOrderCancel = `CREATE OR REPLACE VIEW hafsql.op_limit_order_cancel
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
-    (o.body::jsonb -> 'value'::text) ->> 'orderid'::text AS "orderid"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'orderid'::text AS "orderid"
     FROM hive.operations o
     WHERE o.op_type_id = 6;`
   await pool.query(OpLimitOrderCancel)
@@ -81,9 +81,9 @@ export const setupOperationViews = async () => {
   const OpFeedPublish = `CREATE OR REPLACE VIEW hafsql.op_feed_publish
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'publisher'::text AS "publisher",
-    (o.body::jsonb -> 'value'::text) ->> 'exchange_rate'::text AS "exchange_rate",
-    (o.body::jsonb -> 'value'::text) ->> 'quote'::text AS "quote"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'publisher'::text AS "publisher",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'exchange_rate'::text AS "exchange_rate",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'quote'::text AS "quote"
     FROM hive.operations o
     WHERE o.op_type_id = 7;`
   await pool.query(OpFeedPublish)
@@ -91,9 +91,9 @@ export const setupOperationViews = async () => {
   const OpConvert = `CREATE OR REPLACE VIEW hafsql.op_convert
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
-    (o.body::jsonb -> 'value'::text) ->> 'requestid'::text AS "requestid",
-    (o.body::jsonb -> 'value'::text) ->> 'amount'::text AS "amount"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'requestid'::text AS "requestid",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'amount'::text AS "amount"
     FROM hive.operations o
     WHERE o.op_type_id = 8;`
   await pool.query(OpConvert)
@@ -101,14 +101,14 @@ export const setupOperationViews = async () => {
   const OpAccountCreate = `CREATE OR REPLACE VIEW hafsql.op_account_create
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'fee'::text AS "fee",
-    (o.body::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
-    (o.body::jsonb -> 'value'::text) ->> 'new_account_name'::text AS "new_account_name",
-    (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
-    (o.body::jsonb -> 'value'::text) ->> 'active'::text AS "active",
-    (o.body::jsonb -> 'value'::text) ->> 'posting'::text AS "posting",
-    (o.body::jsonb -> 'value'::text) ->> 'memo_key'::text AS "memo_key",
-    (o.body::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'fee'::text AS "fee",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'new_account_name'::text AS "new_account_name",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'active'::text AS "active",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'posting'::text AS "posting",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'memo_key'::text AS "memo_key",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata"
     FROM hive.operations o
     WHERE o.op_type_id = 9;`
   await pool.query(OpAccountCreate)
@@ -116,12 +116,12 @@ export const setupOperationViews = async () => {
   const OpAccountUpdate = `CREATE OR REPLACE VIEW hafsql.op_account_update
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
-    (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
-    (o.body::jsonb -> 'value'::text) ->> 'active'::text AS "active",
-    (o.body::jsonb -> 'value'::text) ->> 'posting'::text AS "posting",
-    (o.body::jsonb -> 'value'::text) ->> 'memo_key'::text AS "memo_key",
-    (o.body::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'account'::text AS "account",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'active'::text AS "active",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'posting'::text AS "posting",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'memo_key'::text AS "memo_key",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata"
     FROM hive.operations o
     WHERE o.op_type_id = 10;`
   await pool.query(OpAccountUpdate)
@@ -129,11 +129,11 @@ export const setupOperationViews = async () => {
   const OpWitnessUpdate = `CREATE OR REPLACE VIEW hafsql.op_witness_update
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
-    (o.body::jsonb -> 'value'::text) ->> 'url'::text AS "url",
-    (o.body::jsonb -> 'value'::text) ->> 'block_signing_key'::text AS "block_signing_key",
-    (o.body::jsonb -> 'value'::text) ->> 'props'::text AS "posting",
-    (o.body::jsonb -> 'value'::text) ->> 'fee'::text AS "fee"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'url'::text AS "url",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'block_signing_key'::text AS "block_signing_key",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'props'::text AS "posting",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'fee'::text AS "fee"
     FROM hive.operations o
     WHERE o.op_type_id = 11;`
   await pool.query(OpWitnessUpdate)
@@ -141,9 +141,9 @@ export const setupOperationViews = async () => {
   const OpAccountWitnessVote = `CREATE OR REPLACE VIEW hafsql.op_account_witness_vote
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
-    (o.body::jsonb -> 'value'::text) ->> 'witness'::text AS "witness",
-    (o.body::jsonb -> 'value'::text) ->> 'approve'::text AS "approve"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'account'::text AS "account",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'witness'::text AS "witness",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'approve'::text AS "approve"
     FROM hive.operations o
     WHERE o.op_type_id = 12;`
   await pool.query(OpAccountWitnessVote)
@@ -151,8 +151,8 @@ export const setupOperationViews = async () => {
   const OpAccountWitnessProxy = `CREATE OR REPLACE VIEW hafsql.op_account_witness_proxy
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
-    (o.body::jsonb -> 'value'::text) ->> 'proxy'::text AS "proxy"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'account'::text AS "account",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'proxy'::text AS "proxy"
     FROM hive.operations o
     WHERE o.op_type_id = 13;`
   await pool.query(OpAccountWitnessProxy)
@@ -160,11 +160,11 @@ export const setupOperationViews = async () => {
   const OpPow = `CREATE OR REPLACE VIEW hafsql.op_pow
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'worker_account'::text AS "worker_account",
-    (o.body::jsonb -> 'value'::text) ->> 'block_id'::text AS "block_id",
-    (o.body::jsonb -> 'value'::text) ->> 'nonce'::text AS "nonce",
-    (o.body::jsonb -> 'value'::text) ->> 'work'::text AS "work",
-    (o.body::jsonb -> 'value'::text) ->> 'props'::text AS "props"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'worker_account'::text AS "worker_account",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'block_id'::text AS "block_id",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'nonce'::text AS "nonce",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'work'::text AS "work",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'props'::text AS "props"
     FROM hive.operations o
     WHERE o.op_type_id = 14;`
   await pool.query(OpPow)
@@ -172,9 +172,9 @@ export const setupOperationViews = async () => {
   const OpCustom = `CREATE OR REPLACE VIEW hafsql.op_custom
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) -> 'required_auths' AS "required_auths",
-    (o.body::jsonb -> 'value'::text) ->> 'id'::text AS "id",
-    (o.body::jsonb -> 'value'::text) ->> 'data'::text AS "data"
+    (o.body_binary::jsonb -> 'value'::text) -> 'required_auths' AS "required_auths",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'id'::text AS "id",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'data'::text AS "data"
     FROM hive.operations o
     WHERE o.op_type_id = 15;`
   await pool.query(OpCustom)
@@ -184,8 +184,8 @@ export const setupOperationViews = async () => {
   const OpDeleteComment = `CREATE OR REPLACE VIEW hafsql.op_delete_comment
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'author'::text AS "author",
-    (o.body::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'author'::text AS "author",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink"
     FROM hive.operations o
     WHERE o.op_type_id = 17;`
   await pool.query(OpDeleteComment)
@@ -193,10 +193,10 @@ export const setupOperationViews = async () => {
   const OpCustomJson = `CREATE OR REPLACE VIEW hafsql.op_custom_json
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) -> 'required_auths' AS "required_auths",
-    (o.body::jsonb -> 'value'::text) -> 'required_posting_auths' AS "required_posting_auths",
-    (o.body::jsonb -> 'value'::text) ->> 'id'::text AS "id",
-    (o.body::jsonb -> 'value'::text) ->> 'json'::text AS "json"
+    (o.body_binary::jsonb -> 'value'::text) -> 'required_auths' AS "required_auths",
+    (o.body_binary::jsonb -> 'value'::text) -> 'required_posting_auths' AS "required_posting_auths",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'id'::text AS "id",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'json'::text AS "json"
     FROM hive.operations o
     WHERE o.op_type_id = 18;`
   await pool.query(OpCustomJson)
@@ -204,14 +204,14 @@ export const setupOperationViews = async () => {
   const OpCommentOptions = `CREATE OR REPLACE VIEW hafsql.op_comment_options
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'author'::text AS "author",
-    (o.body::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink",
-    hafsql_assetamount((o.body::jsonb -> 'value'::text) ->> 'max_accepted_payout'::text) AS "max_accepted_payout",
-    hafsql_assetsymbol((o.body::jsonb -> 'value'::text) ->> 'max_accepted_payout'::text) AS "max_accepted_payout_symbol",
-    (o.body::jsonb -> 'value'::text) ->> 'percent_hbd'::text AS "percent_hbd",
-    (o.body::jsonb -> 'value'::text) ->> 'allow_votes'::text AS "allow_votes",
-    (o.body::jsonb -> 'value'::text) ->> 'allow_curation_rewards'::text AS "allow_curation_rewards",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'author'::text AS "author",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink",
+    hafsql_assetamount((o.body_binary::jsonb -> 'value'::text) ->> 'max_accepted_payout'::text) AS "max_accepted_payout",
+    hafsql_assetsymbol((o.body_binary::jsonb -> 'value'::text) ->> 'max_accepted_payout'::text) AS "max_accepted_payout_symbol",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'percent_hbd'::text AS "percent_hbd",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'allow_votes'::text AS "allow_votes",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'allow_curation_rewards'::text AS "allow_curation_rewards",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 19;`
   await pool.query(OpCommentOptions)
@@ -219,10 +219,10 @@ export const setupOperationViews = async () => {
   const OpSetWithdrawVestingRoute = `CREATE OR REPLACE VIEW hafsql.op_setWithdraw_vesting_route
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'from_account'::text AS "from_account",
-    (o.body::jsonb -> 'value'::text) ->> 'to_account'::text AS "to_account",
-    (o.body::jsonb -> 'value'::text) ->> 'percent'::text AS "percent",
-    (o.body::jsonb -> 'value'::text) ->> 'auto_vest'::text AS "auto_vest"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'from_account'::text AS "from_account",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'to_account'::text AS "to_account",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'percent'::text AS "percent",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'auto_vest'::text AS "auto_vest"
     FROM hive.operations o
     WHERE o.op_type_id = 20;`
   await pool.query(OpSetWithdrawVestingRoute)
@@ -230,12 +230,12 @@ export const setupOperationViews = async () => {
   const OpLimitOrderCreate2 = `CREATE OR REPLACE VIEW hafsql.op_limit_order_create2
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
-    (o.body::jsonb -> 'value'::text) ->> 'orderid'::text AS "orderid",
-    (o.body::jsonb -> 'value'::text) ->> 'amount_to_sell'::text AS "amount_to_sell",
-    (o.body::jsonb -> 'value'::text) ->> 'exchange_rate'::text AS "exchange_rate",
-    (o.body::jsonb -> 'value'::text) ->> 'fill_or_kill'::text AS "fill_or_kill",
-    (o.body::jsonb -> 'value'::text) ->> 'expiration'::text AS "expiration"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'orderid'::text AS "orderid",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'amount_to_sell'::text AS "amount_to_sell",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'exchange_rate'::text AS "exchange_rate",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'fill_or_kill'::text AS "fill_or_kill",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'expiration'::text AS "expiration"
     FROM hive.operations o
     WHERE o.op_type_id = 21;`
   await pool.query(OpLimitOrderCreate2)
@@ -243,9 +243,9 @@ export const setupOperationViews = async () => {
   const OpClaimAccount = `CREATE OR REPLACE VIEW hafsql.op_claim_account
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
-    (o.body::jsonb -> 'value'::text) ->> 'fee'::text AS "fee",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'fee'::text AS "fee",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 22;`
   await pool.query(OpClaimAccount)
@@ -253,14 +253,14 @@ export const setupOperationViews = async () => {
   const OpCreateClaimedAccount = `CREATE OR REPLACE VIEW hafsql.op_create_claimed_account
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
-    (o.body::jsonb -> 'value'::text) ->> 'new_account_name'::text AS "new_account_name",
-    (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
-    (o.body::jsonb -> 'value'::text) ->> 'active'::text AS "active",
-    (o.body::jsonb -> 'value'::text) ->> 'posting'::text AS "posting",
-    (o.body::jsonb -> 'value'::text) ->> 'memo_key'::text AS "memo_key",
-    (o.body::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'new_account_name'::text AS "new_account_name",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'active'::text AS "active",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'posting'::text AS "posting",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'memo_key'::text AS "memo_key",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 23;`
   await pool.query(OpCreateClaimedAccount)
@@ -268,10 +268,10 @@ export const setupOperationViews = async () => {
   const OpRequestAccountRecovery = `CREATE OR REPLACE VIEW hafsql.op_request_account_recovery
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'recovery_account'::text AS "recovery_account",
-    (o.body::jsonb -> 'value'::text) ->> 'account_to_recover'::text AS "account_to_recover",
-    (o.body::jsonb -> 'value'::text) ->> 'new_owner_authority'::text AS "new_owner_authority",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'recovery_account'::text AS "recovery_account",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'account_to_recover'::text AS "account_to_recover",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'new_owner_authority'::text AS "new_owner_authority",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 24;`
   await pool.query(OpRequestAccountRecovery)
@@ -279,10 +279,10 @@ export const setupOperationViews = async () => {
   const OpRecoverAccount = `CREATE OR REPLACE VIEW hafsql.op_recover_account
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'account_to_recover'::text AS "account_to_recover",
-    (o.body::jsonb -> 'value'::text) ->> 'new_owner_authority'::text AS "new_owner_authority",
-    (o.body::jsonb -> 'value'::text) ->> 'recent_owner_authority'::text AS "recent_owner_authority",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'account_to_recover'::text AS "account_to_recover",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'new_owner_authority'::text AS "new_owner_authority",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'recent_owner_authority'::text AS "recent_owner_authority",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 25;`
   await pool.query(OpRecoverAccount)
@@ -290,9 +290,9 @@ export const setupOperationViews = async () => {
   const OpChangeRecoveryAccount = `CREATE OR REPLACE VIEW hafsql.op_change_recovery_account
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'account_to_recover'::text AS "account_to_recover",
-    (o.body::jsonb -> 'value'::text) ->> 'new_recovery_account'::text AS "new_recovery_account",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'account_to_recover'::text AS "account_to_recover",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'new_recovery_account'::text AS "new_recovery_account",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 26;`
   await pool.query(OpChangeRecoveryAccount)
@@ -300,16 +300,16 @@ export const setupOperationViews = async () => {
   const OpEscrowTransfer = `CREATE OR REPLACE VIEW hafsql.op_escrow_transfer
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
-    (o.body::jsonb -> 'value'::text) ->> 'to'::text AS "to",
-    (o.body::jsonb -> 'value'::text) ->> 'hbd_amount'::text AS "hbd_amount",
-    (o.body::jsonb -> 'value'::text) ->> 'hive_amount'::text AS "hive_amount",
-    (o.body::jsonb -> 'value'::text) ->> 'escrow_id'::text AS "escrow_id",
-    (o.body::jsonb -> 'value'::text) ->> 'agent'::text AS "agent",
-    (o.body::jsonb -> 'value'::text) ->> 'fee'::text AS "fee",
-    (o.body::jsonb -> 'value'::text) ->> 'json_meta'::text AS "json_meta",
-    (o.body::jsonb -> 'value'::text) ->> 'ratification_deadline'::text AS "ratification_deadline",
-    (o.body::jsonb -> 'value'::text) ->> 'escrow_expiration'::text AS "escrow_expiration"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS "from",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS "to",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'hbd_amount'::text AS "hbd_amount",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'hive_amount'::text AS "hive_amount",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'escrow_id'::text AS "escrow_id",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'agent'::text AS "agent",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'fee'::text AS "fee",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'json_meta'::text AS "json_meta",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'ratification_deadline'::text AS "ratification_deadline",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'escrow_expiration'::text AS "escrow_expiration"
     FROM hive.operations o
     WHERE o.op_type_id = 27;`
   await pool.query(OpEscrowTransfer)
@@ -317,11 +317,11 @@ export const setupOperationViews = async () => {
   const OpEscrowDispute = `CREATE OR REPLACE VIEW hafsql.op_escrow_dispute
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
-    (o.body::jsonb -> 'value'::text) ->> 'to'::text AS "to",
-    (o.body::jsonb -> 'value'::text) ->> 'agent'::text AS "agent",
-    (o.body::jsonb -> 'value'::text) ->> 'who'::text AS "who",
-    (o.body::jsonb -> 'value'::text) ->> 'escrow_id'::text AS "escrow_id"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS "from",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS "to",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'agent'::text AS "agent",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'who'::text AS "who",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'escrow_id'::text AS "escrow_id"
     FROM hive.operations o
     WHERE o.op_type_id = 28;`
   await pool.query(OpEscrowDispute)
@@ -329,14 +329,14 @@ export const setupOperationViews = async () => {
   const OpEscrowRelease = `CREATE OR REPLACE VIEW hafsql.op_escrow_release
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
-    (o.body::jsonb -> 'value'::text) ->> 'to'::text AS "to",
-    (o.body::jsonb -> 'value'::text) ->> 'agent'::text AS "agent",
-    (o.body::jsonb -> 'value'::text) ->> 'who'::text AS "who",
-    (o.body::jsonb -> 'value'::text) ->> 'receiver'::text AS "receiver",
-    (o.body::jsonb -> 'value'::text) ->> 'escrow_id'::text AS "escrow_id",
-    (o.body::jsonb -> 'value'::text) ->> 'hbd_amount'::text AS "hbd_amount",
-    (o.body::jsonb -> 'value'::text) ->> 'hive_amount'::text AS "hive_amount"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS "from",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS "to",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'agent'::text AS "agent",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'who'::text AS "who",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'receiver'::text AS "receiver",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'escrow_id'::text AS "escrow_id",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'hbd_amount'::text AS "hbd_amount",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'hive_amount'::text AS "hive_amount"
     FROM hive.operations o
     WHERE o.op_type_id = 29;`
   await pool.query(OpEscrowRelease)
@@ -344,8 +344,8 @@ export const setupOperationViews = async () => {
   const OpPow2 = `CREATE OR REPLACE VIEW hafsql.op_pow2
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'work'::text AS "work",
-    (o.body::jsonb -> 'value'::text) ->> 'props'::text AS "props"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'work'::text AS "work",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'props'::text AS "props"
     FROM hive.operations o
     WHERE o.op_type_id = 30;`
   await pool.query(OpPow2)
@@ -353,12 +353,12 @@ export const setupOperationViews = async () => {
   const OpEscrowApprove = `CREATE OR REPLACE VIEW hafsql.op_escrow_approve
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
-    (o.body::jsonb -> 'value'::text) ->> 'to'::text AS "to",
-    (o.body::jsonb -> 'value'::text) ->> 'agent'::text AS "agent",
-    (o.body::jsonb -> 'value'::text) ->> 'who'::text AS "who",
-    (o.body::jsonb -> 'value'::text) ->> 'escrow_id'::text AS "escrow_id",
-    (o.body::jsonb -> 'value'::text) ->> 'approve'::text AS "approve"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS "from",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS "to",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'agent'::text AS "agent",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'who'::text AS "who",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'escrow_id'::text AS "escrow_id",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'approve'::text AS "approve"
     FROM hive.operations o
     WHERE o.op_type_id = 31;`
   await pool.query(OpEscrowApprove)
@@ -366,10 +366,10 @@ export const setupOperationViews = async () => {
   const OpTransferToSavings = `CREATE OR REPLACE VIEW hafsql.op_transfer_to_savings
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
-    (o.body::jsonb -> 'value'::text) ->> 'to'::text AS "to",
-    (o.body::jsonb -> 'value'::text) ->> 'amount'::text AS "amount",
-    (o.body::jsonb -> 'value'::text) ->> 'memo'::text AS "memo"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS "from",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS "to",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'amount'::text AS "amount",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'memo'::text AS "memo"
     FROM hive.operations o
     WHERE o.op_type_id = 32;`
   await pool.query(OpTransferToSavings)
@@ -377,11 +377,11 @@ export const setupOperationViews = async () => {
   const OpTransferFromSavings = `CREATE OR REPLACE VIEW hafsql.op_transfer_from_savings
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
-    (o.body::jsonb -> 'value'::text) ->> 'request_id'::text AS "request_id",
-    (o.body::jsonb -> 'value'::text) ->> 'to'::text AS "to",
-    (o.body::jsonb -> 'value'::text) ->> 'amount'::text AS "amount",
-    (o.body::jsonb -> 'value'::text) ->> 'memo'::text AS "memo"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS "from",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'request_id'::text AS "request_id",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS "to",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'amount'::text AS "amount",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'memo'::text AS "memo"
     FROM hive.operations o
     WHERE o.op_type_id = 33;`
   await pool.query(OpTransferFromSavings)
@@ -389,8 +389,8 @@ export const setupOperationViews = async () => {
   const OpCancelTransferFromSavings = `CREATE OR REPLACE VIEW hafsql.op_cancel_transfer_from_savings
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
-    (o.body::jsonb -> 'value'::text) ->> 'request_id'::text AS "request_id"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS "from",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'request_id'::text AS "request_id"
     FROM hive.operations o
     WHERE o.op_type_id = 34;`
   await pool.query(OpCancelTransferFromSavings)
@@ -400,8 +400,8 @@ export const setupOperationViews = async () => {
   const OpDeclineVotingRights = `CREATE OR REPLACE VIEW hafsql.op_decline_voting_rights
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
-    (o.body::jsonb -> 'value'::text) ->> 'decline'::text AS "decline"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'account'::text AS "account",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'decline'::text AS "decline"
     FROM hive.operations o
     WHERE o.op_type_id = 36;`
   await pool.query(OpDeclineVotingRights)
@@ -412,10 +412,10 @@ export const setupOperationViews = async () => {
   const OpClaimRewardBalance = `CREATE OR REPLACE VIEW hafsql.op_claim_reward_balance
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
-    (o.body::jsonb -> 'value'::text) ->> 'reward_hive'::text AS "reward_hive",
-    (o.body::jsonb -> 'value'::text) ->> 'reward_hbd'::text AS "reward_hbd",
-    (o.body::jsonb -> 'value'::text) ->> 'reward_vests'::text AS "reward_vests"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'account'::text AS "account",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'reward_hive'::text AS "reward_hive",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'reward_hbd'::text AS "reward_hbd",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'reward_vests'::text AS "reward_vests"
     FROM hive.operations o
     WHERE o.op_type_id = 39;`
   await pool.query(OpClaimRewardBalance)
@@ -423,9 +423,9 @@ export const setupOperationViews = async () => {
   const OpDelegateVestingShares = `CREATE OR REPLACE VIEW hafsql.op_delegate_vesting_shares
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'delegator'::text AS "delegator",
-    (o.body::jsonb -> 'value'::text) ->> 'delegatee'::text AS "delegatee",
-    (o.body::jsonb -> 'value'::text) ->> 'vesting_shares'::text AS "vesting_shares"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'delegator'::text AS "delegator",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'delegatee'::text AS "delegatee",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'vesting_shares'::text AS "vesting_shares"
     FROM hive.operations o
     WHERE o.op_type_id = 40;`
   await pool.query(OpDelegateVestingShares)
@@ -433,16 +433,16 @@ export const setupOperationViews = async () => {
   const OpAccountCreateWithDelegation = `CREATE OR REPLACE VIEW hafsql.op_account_create_with_delegation
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
-    (o.body::jsonb -> 'value'::text) ->> 'new_account_name'::text AS "new_account_name",
-    (o.body::jsonb -> 'value'::text) ->> 'fee'::text AS "fee",
-    (o.body::jsonb -> 'value'::text) ->> 'delegation'::text AS "delegation",
-    (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
-    (o.body::jsonb -> 'value'::text) ->> 'active'::text AS "active",
-    (o.body::jsonb -> 'value'::text) ->> 'posting'::text AS "posting",
-    (o.body::jsonb -> 'value'::text) ->> 'memo_key'::text AS "memo_key",
-    (o.body::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'new_account_name'::text AS "new_account_name",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'fee'::text AS "fee",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'delegation'::text AS "delegation",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'active'::text AS "active",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'posting'::text AS "posting",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'memo_key'::text AS "memo_key",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 41;`
   await pool.query(OpAccountCreateWithDelegation)
@@ -450,9 +450,9 @@ export const setupOperationViews = async () => {
   const OpWitnessSetProperties = `CREATE OR REPLACE VIEW hafsql.op_witness_set_properties
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
-    (o.body::jsonb -> 'value'::text) ->> 'props'::text AS "props",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'props'::text AS "props",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 42;`
   await pool.query(OpWitnessSetProperties)
@@ -460,10 +460,10 @@ export const setupOperationViews = async () => {
   const OpAccountUpdate2 = `CREATE OR REPLACE VIEW hafsql.op_account_update2
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'account'::text AS "account",
-    (o.body::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata",
-    (o.body::jsonb -> 'value'::text) ->> 'posting_json_metadata'::text AS "posting_json_metadata",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'account'::text AS "account",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'json_metadata'::text AS "json_metadata",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'posting_json_metadata'::text AS "posting_json_metadata",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 43;`
   await pool.query(OpAccountUpdate2)
@@ -471,14 +471,14 @@ export const setupOperationViews = async () => {
   const OpCreateProposal = `CREATE OR REPLACE VIEW hafsql.op_create_proposal
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
-    (o.body::jsonb -> 'value'::text) ->> 'receiver'::text AS "receiver",
-    (o.body::jsonb -> 'value'::text) ->> 'subject'::text AS "subject",
-    (o.body::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink",
-    (o.body::jsonb -> 'value'::text) ->> 'start_date'::text AS "start_date",
-    (o.body::jsonb -> 'value'::text) ->> 'end_date'::text AS "end_date",
-    (o.body::jsonb -> 'value'::text) ->> 'daily_pay'::text AS "daily_pay",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'receiver'::text AS "receiver",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'subject'::text AS "subject",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'start_date'::text AS "start_date",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'end_date'::text AS "end_date",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'daily_pay'::text AS "daily_pay",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 44;`
   await pool.query(OpCreateProposal)
@@ -486,10 +486,10 @@ export const setupOperationViews = async () => {
   const OpUpdateProposalVotes = `CREATE OR REPLACE VIEW hafsql.op_update_proposal_votes
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'voter'::text AS "voter",
-    (o.body::jsonb -> 'value'::text) -> 'proposal_ids' AS "proposal_ids",
-    (o.body::jsonb -> 'value'::text) ->> 'approve'::text AS "approve",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'voter'::text AS "voter",
+    (o.body_binary::jsonb -> 'value'::text) -> 'proposal_ids' AS "proposal_ids",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'approve'::text AS "approve",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 45;`
   await pool.query(OpUpdateProposalVotes)
@@ -497,9 +497,9 @@ export const setupOperationViews = async () => {
   const OpRemoveProposal = `CREATE OR REPLACE VIEW hafsql.op_remove_proposal
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'proposal_owner'::text AS "proposal_owner",
-    (o.body::jsonb -> 'value'::text) -> 'proposal_ids' AS "proposal_ids",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'proposal_owner'::text AS "proposal_owner",
+    (o.body_binary::jsonb -> 'value'::text) -> 'proposal_ids' AS "proposal_ids",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 46;`
   await pool.query(OpRemoveProposal)
@@ -507,12 +507,12 @@ export const setupOperationViews = async () => {
   const OpUpdateProposal = `CREATE OR REPLACE VIEW hafsql.op_update_proposal
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'proposal_id'::text AS "proposal_id",
-    (o.body::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
-    (o.body::jsonb -> 'value'::text) ->> 'daily_pay'::text AS "daily_pay",
-    (o.body::jsonb -> 'value'::text) ->> 'subject'::text AS "subject",
-    (o.body::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'proposal_id'::text AS "proposal_id",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'creator'::text AS "creator",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'daily_pay'::text AS "daily_pay",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'subject'::text AS "subject",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'permlink'::text AS "permlink",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 47;`
   await pool.query(OpUpdateProposal)
@@ -520,9 +520,9 @@ export const setupOperationViews = async () => {
   const OpCollateralizedConvert = `CREATE OR REPLACE VIEW hafsql.op_collateralized_convert
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
-    (o.body::jsonb -> 'value'::text) ->> 'requestid'::text AS "requestid",
-    (o.body::jsonb -> 'value'::text) ->> 'amount'::text AS "amount"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS "owner",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'requestid'::text AS "requestid",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'amount'::text AS "amount"
     FROM hive.operations o
     WHERE o.op_type_id = 48;`
   await pool.query(OpCollateralizedConvert)
@@ -530,13 +530,13 @@ export const setupOperationViews = async () => {
   const OpRecurrentTransfer = `CREATE OR REPLACE VIEW hafsql.op_recurrent_transfer
   AS SELECT o.id AS op_id,
     o."timestamp",
-    (o.body::jsonb -> 'value'::text) ->> 'from'::text AS "from",
-    (o.body::jsonb -> 'value'::text) ->> 'to'::text AS "to",
-    (o.body::jsonb -> 'value'::text) ->> 'amount'::text AS "amount",
-    (o.body::jsonb -> 'value'::text) ->> 'memo'::text AS "memo",
-    (o.body::jsonb -> 'value'::text) ->> 'recurrence'::text AS "recurrence",
-    (o.body::jsonb -> 'value'::text) ->> 'executions'::text AS "executions",
-    (o.body::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
+    (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS "from",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS "to",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'amount'::text AS "amount",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'memo'::text AS "memo",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'recurrence'::text AS "recurrence",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'executions'::text AS "executions",
+    (o.body_binary::jsonb -> 'value'::text) ->> 'extensions'::text AS "extensions"
     FROM hive.operations o
     WHERE o.op_type_id = 49;`
   await pool.query(OpRecurrentTransfer)
