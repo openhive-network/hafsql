@@ -2,7 +2,7 @@ import { pool } from '../database.js'
 
 export const setupFunctions = async () => {
   const AssetAmount = `CREATE OR REPLACE FUNCTION hafsql_assetamount(text) RETURNS float
-    AS $$ SELECT ($1::jsonb->>'amount')::int / power(10, ($1::jsonb->>'precision')::int) $$
+    AS $$ SELECT ($1::jsonb->>'amount')::int8 / power(10, ($1::jsonb->>'precision')::int8) $$
     LANGUAGE SQL
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;`
