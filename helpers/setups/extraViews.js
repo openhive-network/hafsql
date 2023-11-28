@@ -68,7 +68,7 @@ export const setupExtraViews = async () => {
     CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) < '7 days' THEN (x.created + INTERVAL '7 days') - NOW() AT TIME ZONE 'UTC' ELSE '00:00:00.000' END AS remaining_till_cashout,
     CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) >= '7 days' THEN (x.created + INTERVAL '7 days') ELSE '1969-12-31 23:59:59' END AS last_payout,
     x.tags,
-    (SELECT json_metadata FROM hafsql.op_comment WHERE op_id=x.last_op_id) AS json_metadata,
+    x.metadata AS json_metadata,
     x.pending_payout_value,
     COALESCE((SELECT SUM(author_rewards::int8) FROM hafsql.vo_comment_reward WHERE author=x.author and permlink=x.permlink), '0') AS author_rewards,
     COALESCE((SELECT MAX(total_payout_value) FROM hafsql.vo_comment_reward WHERE author=x.author and permlink=x.permlink), 0) AS total_payout_value,
