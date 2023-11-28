@@ -31,7 +31,7 @@ HafSQL also provides the following additional parsed data:
 
 #### Requirements
 Ubuntu 22  
-Nodejs v18  (for manual installation)
+Nodejs v18  (for manual installation)  
 HAF 1.27.5 (not compatible with 1.27.4 or below)  
   
 
@@ -191,7 +191,7 @@ docker build -t hafsql-v1.1.0 .
 
 Running:
 ```bash
-docker run --rm -itd --restart unless-stopped --name hafsql-sync hafsql-v1.1.0
+docker run -itd --restart unless-stopped --name hafsql-sync hafsql-v1.1.0
 ```
   
 It will create the indexes then start syncing after that.
