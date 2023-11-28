@@ -10,10 +10,10 @@ export const syncComments = async () => {
   }, intervalTime)
 }
 
-// 65535 / 7 = ~9000
+// 65535 / 10 = ~6500
 // postgres parameters limit = 65535
 
-export const fillComments = async (limit = 20000) => {
+export const fillComments = async (limit = 6500) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['comments']
@@ -28,7 +28,7 @@ export const fillComments = async (limit = 20000) => {
   }
 }
 
-const getComments = async (start, limit = 10000) => {
+const getComments = async (start, limit = 6500) => {
   return pool.query(
     `SELECT op_id, "timestamp", author, permlink, parent_author, parent_permlink, title, body, json_metadata
       FROM hafsql.op_comment WHERE op_id > $1 ORDER BY op_id ASC LIMIT $2`,
@@ -45,7 +45,7 @@ const insertComments = async (items) => {
     item.tags = getTags(json)
     await commentsHelper(item)
   }
-  const params = [[], [], [], [], [], [], [], [], []]
+  const params = [[], [], [], [], [], [], [], [], [], []]
   for (let i = 0; i < commentsArray.length; i++) {
     const comment = commentsArray[i]
     const body = comment.bodyEdited ? comment.body : ''
@@ -58,10 +58,15 @@ const insertComments = async (items) => {
     params[6].push(cleanString(body))
     params[7].push(JSON.stringify(comment.tags))
     params[8].push(comment.timestamp)
+    if (isJsonString(comment.json_metadata)) {
+      params[9].push(comment.json_metadata)
+    } else {
+      params[9].push({})
+    }
   }
   if (params[0].length > 0) {
-    await pool.query(`INSERT INTO hafsql.comments_table (author, permlink, parent_author, parent_permlink, last_op_id, body_edited, body, tags, created)
-      SELECT * FROM UNNEST ($1::text[], $2::text[], $3::text[], $4::text[], $5::int8[], $6::bool[], $7::text[], $8::jsonb[], $9::timestamp[])
+    await pool.query(`INSERT INTO hafsql.comments_table (author, permlink, parent_author, parent_permlink, last_op_id, body_edited, body, tags, created, metadata)
+      SELECT * FROM UNNEST ($1::text[], $2::text[], $3::text[], $4::text[], $5::int8[], $6::bool[], $7::text[], $8::jsonb[], $9::timestamp[], $10::jsonb[])
       ON CONFLICT ON CONSTRAINT hafsql_comments_table_un DO NOTHING;`, params)
   }
 }
@@ -133,6 +138,15 @@ const getTags = (jsonMetadata) => {
   } catch {
     return []
   }
+}
+
+const isJsonString = (str) => {
+  try {
+    JSON.parse(str)
+  } catch (e) {
+    return false
+  }
+  return true
 }
 
 // Charcode 0 is invalid for Postgres
