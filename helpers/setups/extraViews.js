@@ -167,7 +167,7 @@ export const setupExtraViews = async () => {
     x.op_pos,
     x.op_type_id,
     x.timestamp,
-    x.body
+    x.body_binary::jsonb
     FROM hive.operations x;`)
 
   // Operation Types
