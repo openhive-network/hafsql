@@ -15,17 +15,21 @@ const pool = new pg.Pool({
 
 const CONCURRENTLY = process.env.CONCURRENTLY === 'false' ? '' : 'CONCURRENTLY'
 const INDEXMAXTHREADS = process.env.INDEXMAXTHREADS || 4
-const SKIPINDEXES = process.env.SKIPOPERATIONINDEXES === true
+const SKIPINDEXES = process.env.SKIPOPERATIONINDEXES === 'true'
 
 const OPs = 49
 const client = await pool.connect()
 let i = 0
 
-// Needed for sorting by ID asc or desc
 const setupHafIndexes = async () => {
   const pool = client
+  // Needed for sorting by ID asc or desc
   await pool.query(
     `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hive_operations_op_type_id_id_hafsql ON hive.operations (op_type_id, id)`
+  )
+  i++
+  await pool.query(
+    `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hive_operations_timestamp_hafsql ON hive.operations ("timestamp")`
   )
   i++
 }
