@@ -32,7 +32,7 @@ HafSQL also provides the following additional parsed data:
 #### Requirements
 Ubuntu 22  
 Nodejs v18  (for manual installation)
-HAF 1.27.4 (not compatible with 1.27.3 or 1.27.5)  
+HAF 1.27.5 (not compatible with 1.27.4 or below)  
   
 
 ```bash
@@ -186,19 +186,19 @@ First you need to follow [#Preperations](https://gitlab.com/mahdiyari/hafsql#pre
   
 Building:
 ```bash
-docker build -t hafsql-v1.0.2 .
+docker build -t hafsql-v1.1.0 .
 ```
 
 Running:
 ```bash
-docker run --rm -it --name hafsql-sync hafsql-v1.0.2
+docker run --rm -itd --restart unless-stopped --name hafsql-sync hafsql-v1.1.0
 ```
   
 It will create the indexes then start syncing after that.
 
 ***
 #### Options
-HafSQL makes it possible to run only what you need. For a public API you probably want all of them to be enabled. Configurable in `.env`. Below are the default values.
+HafSQL makes it possible to run only what you need. For a public API you probably want all of them to be enabled. Configurable in `.env`. Below are the default values included in example.env.
 ```conf
 # modular syncing
 COMMENTS=true # comments, rewards, reblogs

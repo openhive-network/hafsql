@@ -84,6 +84,7 @@ export const setupTables = async () => {
     permlink varchar(255) NOT NULL,
     parent_author varchar(16) NOT NULL,
     parent_permlink varchar(255) NOT NULL,
+    metadata jsonb NULL,
     last_op_id int8 NOT NULL,
     created timestamp NOT NULL,
     pending_payout_value numeric(12, 3) NULL DEFAULT 0,
@@ -120,6 +121,7 @@ export const createLastIndexes = async () => {
   await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_pending_payout_value_idx ON hafsql.comments_table USING btree (pending_payout_value);')
   await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_tags_idx ON hafsql.comments_table USING gin (tags);')
   await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_parent_author_parent_permlink_idx ON hafsql.comments_table USING btree (parent_author, parent_permlink);')
+  await pool.query("CREATE INDEX IF NOT EXISTS hafsql_comments_table_metadata_idx ON hafsql.comments_table USING btree ((metadata->>'content_type'));")
   await pool.query('CREATE INDEX IF NOT EXISTS hafsql_reblogs_table_post_idx ON hafsql.reblogs_table USING btree (post);')
   await pool.query('CREATE INDEX IF NOT EXISTS hafsql_proposal_approvals_voter_idx ON hafsql.proposal_approvals_table USING btree (voter);')
   await pool.query(

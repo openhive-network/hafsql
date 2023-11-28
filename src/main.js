@@ -42,27 +42,27 @@ const main = async () => {
 }
 
 const fillings = async () => {
-  if (process.env.DELEGATIONS !== false) {
+  if (process.env.DELEGATIONS !== 'false') {
     console.log('Syncing delegations...')
     await fillDelegations()
   }
 
-  if (process.env.RCDELEGATIONS !== false) {
+  if (process.env.RCDELEGATIONS !== 'false') {
     console.log('Syncing RC delegations...')
     await fillRCDelegations()
   }
 
-  if (process.env.PROPOSALS !== false) {
+  if (process.env.PROPOSALS !== 'false') {
     console.log('Syncing proposals...')
     await fillProposalApprovals()
   }
 
-  if (process.env.FOLLOWS !== false) {
+  if (process.env.FOLLOWS !== 'false') {
     console.log('Syncing follows, mutes, blacklists, ...')
     await fillFollows()
   }
 
-  if (process.env.COMMENTS !== false) {
+  if (process.env.COMMENTS !== 'false') {
     console.log('Syncing comments...')
     await fillComments()
 
@@ -76,37 +76,37 @@ const fillings = async () => {
     await fillReblogs()
   }
 
-  if (process.env.COMMUNITIES !== false) {
+  if (process.env.COMMUNITIES !== 'false') {
     console.log('Syncing communities...')
     await fillCommunities()
   }
 }
 
 const startSyncing = async () => {
-  if (process.env.DELEGATIONS !== false) {
+  if (process.env.DELEGATIONS !== 'false') {
     syncDelegations()
   }
 
-  if (process.env.RCDELEGATIONS !== false) {
+  if (process.env.RCDELEGATIONS !== 'false') {
     syncRCDelegations()
   }
 
-  if (process.env.PROPOSALS !== false) {
+  if (process.env.PROPOSALS !== 'false') {
     syncProposalApprovals()
   }
 
-  if (process.env.FOLLOWS !== false) {
+  if (process.env.FOLLOWS !== 'false') {
     syncFollows()
   }
 
-  if (process.env.COMMENTS !== false) {
+  if (process.env.COMMENTS !== 'false') {
     syncComments()
     syncDeleteComments()
     syncRewards()
     syncReblogs()
   }
 
-  if (process.env.COMMUNITIES !== false) {
+  if (process.env.COMMUNITIES !== 'false') {
     syncCommunities()
   }
 }

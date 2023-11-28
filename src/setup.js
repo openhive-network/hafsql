@@ -4,6 +4,7 @@ import { setupFunctions } from '../helpers/setups/functions.js'
 import { setupSchema } from '../helpers/setups/schema.js'
 import { setupTables } from '../helpers/setups/tables.js'
 import { removeExtraViews, setupExtraViews } from '../helpers/setups/extraViews.js'
+import { setupPublicUser } from '../helpers/setups/publicUser.js'
 
 // Creating hafsql schema and all the views
 export const setup = async () => {
@@ -17,4 +18,5 @@ export const setup = async () => {
   await setupVirtualOperationViews()
   await setupTables()
   await setupExtraViews()
+  await setupPublicUser()
 }
