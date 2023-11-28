@@ -191,7 +191,7 @@ docker build -t hafsql-v1.0.2 .
 
 Running:
 ```bash
-docker run --rm -it --name hafsql-sync hafsql-v1.0.2
+docker run --rm -itd --restart unless-stopped --name hafsql-sync hafsql-v1.0.2
 ```
   
 It will create the indexes then start syncing after that.
