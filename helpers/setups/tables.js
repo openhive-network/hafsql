@@ -109,11 +109,20 @@ export const setupTables = async () => {
     CONSTRAINT hafsql_community_subs_table_un UNIQUE (account, community)
   );`)
 
-  // Reputations - accounts_table because we might store other account informations later
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.accounts_table (
+  // Reputations
+  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.reputations_table (
     account int4 NOT NULL,
-    reputation int8 NOT NULL DEFAULT 0,
-    CONSTRAINT hafsql_accounts_table_un UNIQUE (account)
+    reputation numeric(19, 3) NOT NULL DEFAULT 0,
+    CONSTRAINT hafsql_reputations_table_un UNIQUE (account)
+  );`)
+
+  // Vote chache - caching 7 days old votes - needed for reputations
+  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.votescache_table (
+    voter int4 NOT NULL,
+    post_id int4 NOT NULL,
+    shares numeric(19, 3) NOT NULL DEFAULT 0,
+    timestamp int8 NOT NULL,
+    CONSTRAINT hafsql_votescache_table_un UNIQUE (voter, post_id)
   );`)
 }
 
