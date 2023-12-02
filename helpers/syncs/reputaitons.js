@@ -22,14 +22,14 @@ export const fillReputations = async (limit = 20000) => {
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['reputations']
   )
-  start = start.rows[0].last_op_id
+  start = Number(start.rows[0].last_op_id)
   let opIdFrom2WeeksAgo
   if (useCache) {
     // get last op id from 2weeks ago if starting sync
     const last2Weeks = await pool.query(`SELECT x.id FROM hive.operations x where timestamp < now() - interval '8days'
       order by timestamp desc
       limit 1`)
-    opIdFrom2WeeksAgo = last2Weeks.rows[0].id
+    opIdFrom2WeeksAgo = Number(last2Weeks.rows[0].id)
     if (start > 0) {
       // better to not use cache
       // start !==0 is only after one successful sync
@@ -40,16 +40,14 @@ export const fillReputations = async (limit = 20000) => {
   if (useCache) {
     // if syncing don't go to recent votes
     while (votes.rowCount > 0 && start < opIdFrom2WeeksAgo) {
-      console.log('syncing here')
-      await processVotes(votes)
-      start = votes.rows[votes.rowCount - 1].op_id
+      await processVotes(votes.rows)
+      start = Number(votes.rows[votes.rowCount - 1].op_id)
       votes = await getVotes(start, limit)
     }
   } else {
     // we come here only after sync
     while (votes.rowCount > 0) {
-      console.log('live now', useCache)
-      await processVotes(votes)
+      await processVotes(votes.rows)
       start = votes.rows[votes.rowCount - 1].op_id
       await updateLastOpId(start)
       votes = await getVotes(start, limit)
@@ -79,8 +77,8 @@ const processVotes = async (votes) => {
     const cacheIndex = voterId + ';' + postStr
     const timestamp = new Date(vote.timestamp).getTime()
     lastVoteTimestamp = timestamp
-    const shares = Math.floor(vote.rshares / 1000000) / 1000
-    const userRep = await getUserRep(authorId)
+    const shares = Math.floor(Number(vote.rshares) / 1000000) / 1000
+    const userRep = Number(await getUserRep(authorId))
 
     // Cache votes in the memory for duration of the sync
     if (useCache) {
@@ -224,7 +222,7 @@ const setVoteCache = async (voterId, postId, shares, timestamp) => {
 
 const getPostId = async (author, permlink) => {
   const getId = await pool.query(
-    'SELECT c.id FROM hive.comments_table c WHERE c.author=$1 AND c.permlink=$2',
+    'SELECT c.id FROM hafsql.comments_table c WHERE c.author=$1 AND c.permlink=$2',
     [author, permlink]
   )
   if (getId.rowCount < 1) {
