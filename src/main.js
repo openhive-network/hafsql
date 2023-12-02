@@ -19,6 +19,7 @@ import { fillCommunities, syncCommunities } from '../helpers/syncs/communities.j
 import { setup } from './setup.js'
 import { createLastIndexes } from '../helpers/setups/tables.js'
 import { fillDeleteComments, syncDeleteComments } from '../helpers/syncs/deleteComments.js'
+import { fillReputations, syncReputations } from '../helpers/syncs/reputaitons.js'
 config()
 
 const main = async () => {
@@ -62,6 +63,11 @@ const fillings = async () => {
     await fillFollows()
   }
 
+  if (process.env.COMMUNITIES !== 'false') {
+    console.log('Syncing communities...')
+    await fillCommunities()
+  }
+
   if (process.env.COMMENTS !== 'false') {
     console.log('Syncing comments...')
     await fillComments()
@@ -74,11 +80,11 @@ const fillings = async () => {
 
     console.log('Syncing reblogs...')
     await fillReblogs()
-  }
 
-  if (process.env.COMMUNITIES !== 'false') {
-    console.log('Syncing communities...')
-    await fillCommunities()
+    if (process.env.REPUTATIONS !== 'false') {
+      console.log('Syncing reputations...')
+      await fillReputations()
+    }
   }
 }
 
@@ -99,15 +105,18 @@ const startSyncing = async () => {
     syncFollows()
   }
 
+  if (process.env.COMMUNITIES !== 'false') {
+    syncCommunities()
+  }
+
   if (process.env.COMMENTS !== 'false') {
     syncComments()
     syncDeleteComments()
     syncRewards()
     syncReblogs()
-  }
-
-  if (process.env.COMMUNITIES !== 'false') {
-    syncCommunities()
+    if (process.env.REPUTATIONS !== 'false') {
+      syncReputations()
+    }
   }
 }
 
