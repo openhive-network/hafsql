@@ -183,6 +183,13 @@ export const setupExtraViews = async () => {
     x.block_num,
     x.hardfork_vop_id
     FROM hive.applied_hardforks x;`)
+
+  // Reputations
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.reputations
+  AS SELECT x.account as account_id,
+    (SELECT name FROM hafsql.accounts WHERE id=x.account) as account_name,
+    x.reputation
+    FROM hafsql.reputations_table x;`)
 }
 
 export const removeExtraViews = async () => {
@@ -205,6 +212,7 @@ export const removeExtraViews = async () => {
     hafsql.operation_types,
     hafsql.applied_hardforks,
     hafsql.community_subs,
-    hafsql.community_roles;`
+    hafsql.community_roles,
+    hafsql.reputations;`
   )
 }
