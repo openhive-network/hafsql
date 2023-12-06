@@ -17,7 +17,7 @@ export const syncReputations = async () => {
   }, intervalTime)
 }
 
-export const fillReputations = async (limit = 40000) => {
+export const fillReputations = async (limit = 200000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['reputations']
@@ -79,8 +79,11 @@ const processVotes = async (votes) => {
     lastVoteTimestamp = timestamp
     const len = vote.rshares.length
     let shares = 0
-    if (len > 9) {
-      shares = Number(vote.rshares.substring(0, len - 9))
+    if (len > 12) {
+      shares = Number(vote.rshares.substring(0, len - 12))
+      if (isNaN(shares)) {
+        continue
+      }
     } else {
       continue
     }
