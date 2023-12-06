@@ -112,7 +112,7 @@ export const setupTables = async () => {
   // Reputations
   await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.reputations_table (
     account int4 NOT NULL,
-    reputation numeric(19, 3) NOT NULL DEFAULT 0,
+    reputation int8 NOT NULL DEFAULT 0,
     CONSTRAINT hafsql_reputations_table_un UNIQUE (account)
   );`)
 
@@ -120,7 +120,7 @@ export const setupTables = async () => {
   await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.votescache_table (
     voter int4 NOT NULL,
     post_id int4 NOT NULL,
-    shares numeric(19, 3) NOT NULL DEFAULT 0,
+    shares int8 NOT NULL DEFAULT 0,
     timestamp int8 NOT NULL,
     CONSTRAINT hafsql_votescache_table_un UNIQUE (voter, post_id)
   );`)
