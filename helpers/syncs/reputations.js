@@ -199,7 +199,8 @@ const updateLastOpId = async (opId) => {
 }
 
 // Clear votes older than 7 days from cache and table
-const intervalTime = 600000 // 10m
+const intervalTime = 1000 // 10m
+console.log('test')
 setInterval(async () => {
   console.log('Last vote: ' + new Date(lastVoteTimestamp))
   if (useCache) {
