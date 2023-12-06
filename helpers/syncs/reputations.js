@@ -78,7 +78,7 @@ const processVotes = async (votes) => {
     const timestamp = new Date(vote.timestamp).getTime()
     lastVoteTimestamp = timestamp
     const len = vote.rshares.length
-    let shares
+    let shares = 0
     if (len > 9) {
       shares = Number(vote.rshares.substring(0, len - 9))
     } else {
