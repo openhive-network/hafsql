@@ -19,7 +19,7 @@ import { fillCommunities, syncCommunities } from '../helpers/syncs/communities.j
 import { setup } from './setup.js'
 import { createLastIndexes } from '../helpers/setups/tables.js'
 import { fillDeleteComments, syncDeleteComments } from '../helpers/syncs/deleteComments.js'
-import { fillReputations, syncReputations } from '../helpers/syncs/reputaitons.js'
+import { fillReputations, syncReputations } from '../helpers/syncs/reputations.js'
 config()
 
 const main = async () => {
