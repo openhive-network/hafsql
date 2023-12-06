@@ -17,7 +17,7 @@ export const syncReputations = async () => {
   }, intervalTime)
 }
 
-export const fillReputations = async (limit = 20000) => {
+export const fillReputations = async (limit = 40000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['reputations']
@@ -199,8 +199,7 @@ const updateLastOpId = async (opId) => {
 }
 
 // Clear votes older than 7 days from cache and table
-const intervalTime = 1000 // 10m
-console.log('test')
+const intervalTime = 60000 // 10m
 setInterval(async () => {
   console.log('Last vote: ' + new Date(lastVoteTimestamp))
   if (useCache) {
