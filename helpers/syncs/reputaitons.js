@@ -77,7 +77,13 @@ const processVotes = async (votes) => {
     const cacheIndex = voterId + ';' + postStr
     const timestamp = new Date(vote.timestamp).getTime()
     lastVoteTimestamp = timestamp
-    const shares = Math.floor(Number(vote.rshares) / 1000000) / 1000
+    const len = vote.rshares.length
+    let shares
+    if (len > 9) {
+      shares = Number(vote.rshares.substring(0, len - 9))
+    } else {
+      continue
+    }
     const userRep = Number(await getUserRep(authorId))
 
     // Cache votes in the memory for duration of the sync
@@ -195,6 +201,7 @@ const updateLastOpId = async (opId) => {
 // Clear votes older than 7 days from cache and table
 const intervalTime = 600000 // 10m
 setInterval(async () => {
+  console.log('Last vote: ' + new Date(lastVoteTimestamp))
   if (useCache) {
     for (const i in voteCache) {
       if (lastVoteTimestamp - voteCache[i][2] > 604800000) {
