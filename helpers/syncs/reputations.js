@@ -26,7 +26,7 @@ export const fillReputations = async (limit = 200000) => {
   let opIdFrom2WeeksAgo
   if (useCache) {
     // get last op id from 2weeks ago if starting sync
-    const last2Weeks = await pool.query(`SELECT x.id FROM hive.operations x where timestamp < now() - interval '8days'
+    const last2Weeks = await pool.query(`SELECT x.id FROM hive.operations x where timestamp < now() - interval '14days'
       order by timestamp desc
       limit 1`)
     opIdFrom2WeeksAgo = Number(last2Weeks.rows[0].id)
@@ -204,7 +204,7 @@ const updateLastOpId = async (opId) => {
 // Clear votes older than 7 days from cache and table
 const intervalTime = 60000 // 10m
 setInterval(async () => {
-  console.log('Last vote: ' + new Date(lastVoteTimestamp))
+  // console.log('Last vote: ' + new Date(lastVoteTimestamp))
   if (useCache) {
     for (const i in voteCache) {
       if (lastVoteTimestamp - voteCache[i][2] > 604800000) {
