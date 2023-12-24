@@ -2,7 +2,7 @@ import { pool } from '../database.js'
 
 export const setupTables = async () => {
   // Sync data
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.sync_data (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.sync_data (
     table_name varchar NOT NULL,
     last_op_id int8 NOT NULL,
     CONSTRAINT hafsql_sync_data_un UNIQUE (table_name)
@@ -10,7 +10,7 @@ export const setupTables = async () => {
   await setupSyncDataTable()
 
   // Delegations
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.delegations_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.delegations_table (
     delegator varchar(16) NOT NULL,
     delegatee varchar(16) NOT NULL,
     vests varchar NOT NULL,
@@ -18,7 +18,7 @@ export const setupTables = async () => {
   );`)
 
   // RC Delegations
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.rc_delegations_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.rc_delegations_table (
     delegator varchar(16) NOT NULL,
     delegatee varchar(16) NOT NULL,
     rc varchar NOT NULL,
@@ -26,56 +26,56 @@ export const setupTables = async () => {
   );`)
 
   // Proposal Approvals
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.proposal_approvals_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.proposal_approvals_table (
     id int4 NOT NULL,
     voter varchar(16) NOT NULL,
     CONSTRAINT hafsql_proposal_approvals_table_un UNIQUE (id, voter)
   );`)
 
   // Blacklists
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.blacklists_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.blacklists_table (
     blacklister int4 NOT NULL,
     blacklisted int4 NOT NULL,
     CONSTRAINT hafsql_blacklists_table_un UNIQUE (blacklister, blacklisted)
   );`)
 
   // Blacklist Follows
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.blacklist_follows_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.blacklist_follows_table (
     account int4 NOT NULL,
     blacklist int4 NOT NULL,
     CONSTRAINT hafsql_blacklist_follows_table_un UNIQUE (account, blacklist)
   );`)
 
   // Mute
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.mutes_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.mutes_table (
     muter int4 NOT NULL,
     muted int4 NOT NULL,
     CONSTRAINT hafsql_mutes_table_un UNIQUE (muter, muted)
   );`)
 
   // Mute Follows
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.mute_follows_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.mute_follows_table (
     account int4 NOT NULL,
     mute_list int4 NOT NULL,
     CONSTRAINT hafsql_mute_follows_table_un UNIQUE (account, mute_list)
   );`)
 
   // Reblogs
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.reblogs_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.reblogs_table (
     account int4 NOT NULL,
     post int8 NOT NULL,
     CONSTRAINT hafsql_reblogs_table_un UNIQUE (account, post)
   );`)
 
   // Follows
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.follows_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.follows_table (
     follower int4 NOT NULL,
     following int4 NOT NULL,
     CONSTRAINT hafsql_follows_table_un UNIQUE (follower, following)
   );`)
 
   // Comments
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.comments_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.comments_table (
     id serial4 NOT NULL,
     body varchar NULL,
     body_edited bool NULL DEFAULT false,
@@ -94,7 +94,7 @@ export const setupTables = async () => {
   );`)
 
   // Community Roles
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.community_roles_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.community_roles_table (
     account int4 NOT NULL,
     community int4 NOT NULL,
     "role" int2 NOT NULL DEFAULT 0,
@@ -103,21 +103,21 @@ export const setupTables = async () => {
   );`)
 
   // Community Subs
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.community_subs_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.community_subs_table (
     account int4 NOT NULL,
     community int4 NOT NULL,
     CONSTRAINT hafsql_community_subs_table_un UNIQUE (account, community)
   );`)
 
   // Reputations
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.reputations_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.reputations_table (
     account int4 NOT NULL,
     reputation int8 NOT NULL DEFAULT 0,
     CONSTRAINT hafsql_reputations_table_un UNIQUE (account)
   );`)
 
   // Vote chache - caching 7 days old votes - needed for reputations
-  await pool.query(`CREATE UNLOGGED TABLE IF NOT EXISTS hafsql.votescache_table (
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.votescache_table (
     voter int4 NOT NULL,
     post_id int4 NOT NULL,
     shares int8 NOT NULL DEFAULT 0,
