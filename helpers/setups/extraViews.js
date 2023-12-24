@@ -29,14 +29,14 @@ export const setupExtraViews = async () => {
   await pool.query(`CREATE OR REPLACE VIEW hafsql.dynamic_global_properties
   AS SELECT b.num AS block_num,
     b.created_at as "timestamp",
-    b.total_vesting_fund_hive as total_vesting_fund_hive,
-    b.total_vesting_shares as total_vesting_shares,
-    b.total_reward_fund_hive as total_reward_fund_hive,
-    b.virtual_supply as virtual_supply,
-    b.current_supply as current_supply,
-    b.current_hbd_supply as current_hbd_supply,
-    b.hbd_interest_rate as hbd_interest_rate,
-    b.dhf_interval_ledger as dhf_interval_ledger
+    b.total_vesting_fund_hive::text as total_vesting_fund_hive,
+    b.total_vesting_shares::text as total_vesting_shares,
+    b.total_reward_fund_hive::text as total_reward_fund_hive,
+    b.virtual_supply::text as virtual_supply,
+    b.current_supply::text as current_supply,
+    b.current_hbd_supply::text as current_hbd_supply,
+    b.hbd_interest_rate::text as hbd_interest_rate,
+    b.dhf_interval_ledger::text as dhf_interval_ledger
     FROM hive.blocks b;`)
 
   // Delegations
