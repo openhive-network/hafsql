@@ -188,7 +188,8 @@ export const setupExtraViews = async () => {
   await pool.query(`CREATE OR REPLACE VIEW hafsql.reputations
   AS SELECT x.account as account_id,
     (SELECT name FROM hafsql.accounts WHERE id=x.account) as account_name,
-    x.reputation
+    x.reputation,
+    x.last_update,
     FROM hafsql.reputations_table x;`)
 }
 
