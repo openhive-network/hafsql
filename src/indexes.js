@@ -272,6 +272,7 @@ const gracefulShutdown = async () => {
   }
   gs = true
   console.info('Shutting down... a moment please.')
+  await pool.cancel(client)
   await pool.end()
   console.log('Postgresql pool drained.')
   process.exit()
