@@ -112,7 +112,8 @@ export const setupTables = async () => {
   // Reputations
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.reputations_table (
     account int4 NOT NULL,
-    reputation int8 NOT NULL DEFAULT 0,
+    reputation varchar NOT NULL DEFAULT '0',
+    last_update int8 NOT NULL,
     CONSTRAINT hafsql_reputations_table_un UNIQUE (account)
   );`)
 
