@@ -3,13 +3,14 @@ import { config } from 'dotenv'
 config()
 
 // Indexes need haf_admin access
+// max = 2 - need an extra connection for gracefulShutdown()
 const pool = new pg.Pool({
   application_name: 'HafSQL-indexes',
   database: process.env.PGDATABASE || 'haf_block_log',
   user: 'haf_admin',
   host: process.env.PGHOST || '172.17.0.2',
   port: process.env.PGPORT || 5432,
-  max: process.env.PGPOOLSIZE || 2,
+  max: 2,
   min: 1
 })
 
@@ -19,6 +20,11 @@ const SKIPINDEXES = process.env.SKIPOPERATIONINDEXES === 'true'
 
 const OPs = 49
 const client = await pool.connect()
+
+// We need clientPID to cancel the statement for gracefulShutdown()
+const pidQuery = await client.query('SELECT pg_backend_pid() as pid')
+const clientPID = pidQuery.rows[0].pid
+
 let i = 0
 
 const setupHafIndexes = async () => {
@@ -245,24 +251,35 @@ export const setupVirtualOperationIndexes = async () => {
 }
 
 const main = async () => {
-  const startTime = Date.now() / 1000
-  console.log(
-    `Creating indexes ${CONCURRENTLY} if not exists. It will take a long time...`
-  )
-  // client = await pool.connect()
-  await client.query(
-    `SET max_parallel_maintenance_workers = ${INDEXMAXTHREADS};`
-  )
-  await client.query('CREATE EXTENSION IF NOT EXISTS btree_gin;')
-  await setupOperationIndexes()
-  await setupVirtualOperationIndexes()
-  await setupHafIndexes()
-  clearInterval(interval1)
-  const timeSpent = (Date.now() / 1000 - startTime) / 60
-  console.log(`Indexes done. Total time spent = ${timeSpent} minutes`)
-  console.log('Draining the pool...')
-  client.release(true)
-  pool.end()
+  try {
+    const startTime = Date.now() / 1000
+    console.log(
+      `Creating indexes ${CONCURRENTLY} if not exists. It will take a long time...`
+    )
+    // client = await pool.connect()
+    await client.query(
+      `SET max_parallel_maintenance_workers = ${INDEXMAXTHREADS};`
+    )
+    await client.query('CREATE EXTENSION IF NOT EXISTS btree_gin;')
+    await setupOperationIndexes()
+    await setupVirtualOperationIndexes()
+    await setupHafIndexes()
+    clearInterval(interval1)
+    const timeSpent = (Date.now() / 1000 - startTime) / 60
+    console.log(`Indexes done. Total time spent = ${timeSpent} minutes`)
+    console.log('Draining the pool...')
+    client.release(true)
+    await pool.end()
+  } catch (e) {
+    // Handling the error after gracefulShutdown()
+    // ERROR: 57014: canceling statement due to user request
+    if (e.code === '57014') {
+      console.log('Canceled the statements.')
+      client.release(true)
+    } else {
+      throw new Error(e)
+    }
+  }
 }
 
 let gs = false
@@ -272,7 +289,7 @@ const gracefulShutdown = async () => {
   }
   gs = true
   console.info('Shutting down... a moment please.')
-  await pool.cancel(client)
+  await pool.query('SELECT pg_cancel_backend($1)', [clientPID])
   await pool.end()
   console.log('Postgresql pool drained.')
   process.exit()
