@@ -121,7 +121,7 @@ export const setupTables = async () => {
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.votescache_table (
     voter int4 NOT NULL,
     post_id int4 NOT NULL,
-    shares int8 NOT NULL DEFAULT 0,
+    shares varchar NOT NULL DEFAULT '0',
     timestamp int8 NOT NULL,
     CONSTRAINT hafsql_votescache_table_un UNIQUE (voter, post_id)
   );`)
