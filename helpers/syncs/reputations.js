@@ -21,7 +21,7 @@ export const syncReputations = async () => {
 
 // syncing reputations from last 365 days
 // reputation decays over 365 days to 0
-export const fillReputations = async (limit = 20000) => {
+export const fillReputations = async (limit = 40000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['reputations']
