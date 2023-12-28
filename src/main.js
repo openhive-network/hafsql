@@ -20,7 +20,7 @@ import { setup } from './setup.js'
 import { createLastIndexes } from '../helpers/setups/tables.js'
 import { fillDeleteComments, syncDeleteComments } from '../helpers/syncs/deleteComments.js'
 import { fillReputations, syncReputations } from '../helpers/syncs/reputations.js'
-import { pool } from '../helpers/database.js'
+// import { pool } from '../helpers/database.js'
 config()
 
 const main = async () => {
@@ -121,18 +121,18 @@ const startSyncing = async () => {
   }
 }
 
-let gs = false
-const gracefulShutdown = async () => {
-  if (gs) {
-    return
-  }
-  gs = true
-  console.info('Shutting down... a moment please.')
-  await pool.end()
-  console.log('Postgresql pool drained.')
-  process.exit()
-}
-process.on('SIGTERM', () => gracefulShutdown())
-process.on('SIGINT', () => gracefulShutdown())
+// let gs = false
+// const gracefulShutdown = async () => {
+//   if (gs) {
+//     return
+//   }
+//   gs = true
+//   console.info('Shutting down... a moment please.')
+//   await pool.end()
+//   console.log('Postgresql pool drained.')
+//   process.exit()
+// }
+// process.on('SIGTERM', () => gracefulShutdown())
+// process.on('SIGINT', () => gracefulShutdown())
 
 main()
