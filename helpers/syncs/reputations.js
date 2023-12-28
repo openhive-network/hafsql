@@ -27,6 +27,10 @@ export const fillReputations = async (limit = 20000) => {
     ['reputations']
   )
   start = Number(start.rows[0].last_op_id)
+  if (start > 0) {
+    // don't use cache if already synced
+    useCache = false
+  }
 
   let opIdFrom1WeekAgo = 0
   if (useCache) {
@@ -37,18 +41,14 @@ export const fillReputations = async (limit = 20000) => {
       limit 1`)
     opIdFrom1WeekAgo = Number(t.rows[0].id)
 
-    if (start >= opIdFrom1WeekAgo) {
-      // don't use cache if already in recent votes
-      useCache = false
-    }
     // get last op id from a year ago
     const t2 = await pool.query(`SELECT x.id FROM hive.operations x where timestamp < now() - interval '1year'
       order by timestamp desc
       limit 1`)
-    if (start === 0) {
+    // if (start === 0) {
     // start = op_id from 365 days ago
-      start = Number(t2.rows[0].id)
-    }
+    start = Number(t2.rows[0].id)
+    // }
   }
   let votes = await getVotes(start, limit)
   if (useCache) {
@@ -56,7 +56,6 @@ export const fillReputations = async (limit = 20000) => {
     while (votes.rowCount > 0 && start < opIdFrom1WeekAgo) {
       await processVotes(votes.rows)
       start = Number(votes.rows[votes.rowCount - 1].op_id)
-      await updateLastOpId(start)
       console.log('processed ' + start + '')
       votes = await getVotes(start, limit)
     }
@@ -70,10 +69,10 @@ export const fillReputations = async (limit = 20000) => {
     }
   }
   // if during sync
-  // if (useCache) {
-  //   await insertReputationsAfterSync()
-  //   await updateLastOpId(start)
-  // }
+  if (useCache) {
+    await insertReputationsAfterSync()
+    await updateLastOpId(start)
+  }
 }
 
 const getVotes = async (start, limit = 10000) => {
@@ -124,7 +123,16 @@ const processVotes = async (votes) => {
 
 // we bulk insert the reputations from cache after sync is done
 // has to be in batches - postgres param limit = 65k
-// const insertReputationsAfterSync = async () => {
+const insertReputationsAfterSync = async () => {
+  console.log('Filling reputations_table...')
+  await client.query('CREATE TABLE hafsql.reputations_table AS TABLE rep_cache')
+  // Reputations view
+  await pool.query(`CREATE OR REPLACE VIEW hafsql.reputations
+    AS SELECT x.account as account_id,
+    (SELECT name FROM hafsql.accounts WHERE id=x.account) as account_name,
+    x.reputation,
+    x.last_update
+    FROM hafsql.reputations_table x;`)
 //   let params = [[], [], []]
 //   let i = 1
 //   for (const userId in repCache) {
@@ -146,21 +154,35 @@ const processVotes = async (votes) => {
 //   await pool.query(`INSERT INTO hafsql.reputations_table (account, reputation, last_update)
 //     SELECT * FROM UNNEST ($1::int4[], $2::text[], $3::numeric[])
 //     ON CONFLICT ON CONSTRAINT hafsql_reputations_table_un DO NOTHING;`, params)
-// }
+}
 
 const setUserRep = async (userId, rep, lastUpdate) => {
   if (typeof rep === 'bigint') {
     rep = rep.toString(10)
   }
-  await pool.query(`INSERT INTO hafsql.reputations_table (account, reputation, last_update) VALUES($1, $2, $3)
-    ON CONFLICT ON CONSTRAINT hafsql_reputations_table_un
-    DO UPDATE SET reputation=$2;`, [userId, rep, lastUpdate])
+  if (!useCache) {
+    await pool.query(`INSERT INTO hafsql.reputations_table (account, reputation, last_update) VALUES($1, $2, $3)
+      ON CONFLICT ON CONSTRAINT hafsql_reputations_table_un
+      DO UPDATE SET reputation=$2, last_update=$3;`, [userId, rep, lastUpdate])
+  } else {
+    await client.query(`INSERT INTO rep_cache (account, reputation, last_update) VALUES($1, $2, $3)
+      ON CONFLICT ON CONSTRAINT rep_cache_un
+      DO UPDATE SET reputation=$2, last_update=$3;`, [userId, rep, lastUpdate])
+  }
 }
 const getUserRep = async (userId) => {
-  const getRep = await pool.query(
-    'SELECT r.reputation, r.last_update FROM hafsql.reputations_table r WHERE r.account=$1',
-    [userId]
-  )
+  let getRep
+  if (!useCache) {
+    getRep = await pool.query(
+      'SELECT r.reputation, r.last_update FROM hafsql.reputations_table r WHERE r.account=$1',
+      [userId]
+    )
+  } else {
+    getRep = await client.query(
+      'SELECT r.reputation, r.last_update FROM rep_cache r WHERE r.account=$1',
+      [userId]
+    )
+  }
   if (getRep.rowCount < 1) {
     return [0, 0]
   }
@@ -253,10 +275,10 @@ const setupTempTables = async () => {
   await client.query('CREATE INDEX IF NOT EXISTS vote_cache_timestamp_idx ON vote_cache USING btree (timestamp);')
 
   // Reputation cache
-  // await client.query(`CREATE TEMP TABLE rep_cache (
-  //   account int4 NOT NULL,
-  //   reputation varchar NOT NULL DEFAULT '0',
-  //   last_update int8 NOT NULL,
-  //   CONSTRAINT rep_cache_un UNIQUE (account)
-  // );`)
+  await client.query(`CREATE TEMP TABLE rep_cache (
+    account int4 NOT NULL,
+    reputation varchar NOT NULL DEFAULT '0',
+    last_update int8 NOT NULL,
+    CONSTRAINT rep_cache_un UNIQUE (account)
+  );`)
 }
