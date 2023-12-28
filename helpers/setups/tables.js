@@ -140,6 +140,7 @@ export const createLastIndexes = async () => {
   await pool.query(
     'CREATE INDEX IF NOT EXISTS hafsql_delegations_table_delegatee_idx ON hafsql.delegations_table USING btree (delegatee);'
   )
+  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_votescache_table_timestamp_idx ON hafsql.votescache_table USING btree (timestamp);')
 }
 
 const setupSyncDataTable = async () => {
