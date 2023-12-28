@@ -1,16 +1,18 @@
 import { pool } from '../database.js'
 
 let accountCache = {}
-let repCache = {}
-let voteCache = {} // [voter, shares, timestamp]
+// let repCache = {}
+// let voteCache = {} // [voter, shares, timestamp]
 let useCache = true
 let lastVoteTimestamp = 0
+let client = null // filled in setupTempTables()
 
 export const syncReputations = async () => {
   useCache = false
   accountCache = {}
-  repCache = {}
-  voteCache = {}
+  // repCache = {}
+  // voteCache = {}
+  await client.release(true)
   const intervalTime = 3000
   setInterval(() => {
     fillReputations(1000)
@@ -25,25 +27,28 @@ export const fillReputations = async (limit = 40000) => {
     ['reputations']
   )
   start = Number(start.rows[0].last_op_id)
-  if (start > 0) {
-    // better to not use cache
-    // start !==0 is only after one successful sync
-    useCache = false
-  }
 
   let opIdFrom1WeekAgo = 0
   if (useCache) {
+    await setupTempTables()
     // get last op id from 1 week ago
     const t = await pool.query(`SELECT x.id FROM hive.operations x where timestamp < now() - interval '1week'
       order by timestamp desc
       limit 1`)
     opIdFrom1WeekAgo = Number(t.rows[0].id)
+
+    if (start >= opIdFrom1WeekAgo) {
+      // don't use cache if already in recent votes
+      useCache = false
+    }
     // get last op id from a year ago
     const t2 = await pool.query(`SELECT x.id FROM hive.operations x where timestamp < now() - interval '1year'
       order by timestamp desc
       limit 1`)
+    if (start === 0) {
     // start = op_id from 365 days ago
-    start = Number(t2.rows[0].id)
+      start = Number(t2.rows[0].id)
+    }
   }
   let votes = await getVotes(start, limit)
   if (useCache) {
@@ -51,6 +56,7 @@ export const fillReputations = async (limit = 40000) => {
     while (votes.rowCount > 0 && start < opIdFrom1WeekAgo) {
       await processVotes(votes.rows)
       start = Number(votes.rows[votes.rowCount - 1].op_id)
+      await updateLastOpId(start)
       votes = await getVotes(start, limit)
     }
   } else {
@@ -63,10 +69,10 @@ export const fillReputations = async (limit = 40000) => {
     }
   }
   // if during sync
-  if (useCache) {
-    await insertReputationsAfterSync()
-    await updateLastOpId(start)
-  }
+  // if (useCache) {
+  //   await insertReputationsAfterSync()
+  //   await updateLastOpId(start)
+  // }
 }
 
 const getVotes = async (start, limit = 10000) => {
@@ -80,10 +86,10 @@ const getVotes = async (start, limit = 10000) => {
 const processVotes = async (votes) => {
   for (let i = 0; i < votes.length; i++) {
     const vote = votes[i]
-    const postStr = vote.author + vote.permlink
+    // const postStr = vote.author + vote.permlink
     const authorId = await getUserId(vote.author)
     const voterId = await getUserId(vote.voter)
-    const cacheIndex = voterId + ';' + postStr
+    // const cacheIndex = voterId + ';' + postStr
     const timestamp = new Date(vote.timestamp + 'Z').getTime()
     const userRep = await getUserRep(authorId)
     const userReputation = userRep[0]
@@ -98,98 +104,67 @@ const processVotes = async (votes) => {
     multiplier = Math.floor(multiplier * 1000)
     lastVoteTimestamp = timestamp
 
-    // Cache votes in the memory for duration of the sync
-    if (useCache) {
-      if (Object.hasOwn(voteCache, cacheIndex)) {
-        const rep = BigInt(userReputation) * BigInt(multiplier) + BigInt(vote.rshares) - BigInt(voteCache[cacheIndex][1])
-        await setUserRep(authorId, rep, timestamp)
-        voteCache[cacheIndex] = [voterId, vote.rshares, timestamp]
-      } else {
-        // [voter, shares, timestamp]
-        voteCache[cacheIndex] = [voterId, vote.rshares, timestamp]
-        const rep = BigInt(userReputation) * BigInt(multiplier) + BigInt(vote.rshares)
-        await setUserRep(authorId, rep, timestamp)
-      }
+    const postId = await getPostId(vote.author, vote.permlink)
+    if (!postId) {
+      continue
+    }
+    const voteCache = await getVoteCache(voterId, postId)
+    if (voteCache === null) {
+      await setVoteCache(voterId, postId, vote.rshares, timestamp)
+      const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(vote.rshares)
+      await setUserRep(authorId, rep, timestamp)
     } else {
-      // After sync use cache table
-      // Need recent votes in the database for shutdown recovery
-      const postId = await getPostId(vote.author, vote.permlink)
-      if (!postId) {
-        continue
-      }
-      const voteCache = await getVoteCache(voterId, postId)
-      if (voteCache === null) {
-        await setVoteCache(voterId, postId, vote.rshares, timestamp)
-        const rep = BigInt(userReputation) * BigInt(multiplier) + BigInt(vote.rshares)
-        await setUserRep(authorId, rep, timestamp)
-      } else {
-        const rep = BigInt(userReputation) * BigInt(multiplier) + BigInt(vote.rshares) - BigInt(voteCache)
-        await setUserRep(authorId, rep, timestamp)
-        await setVoteCache(voterId, postId, vote.rshares, timestamp)
-      }
+      const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(vote.rshares) - BigInt(voteCache)
+      await setUserRep(authorId, rep, timestamp)
+      await setVoteCache(voterId, postId, vote.rshares, timestamp)
     }
   }
 }
 
 // we bulk insert the reputations from cache after sync is done
 // has to be in batches - postgres param limit = 65k
-const insertReputationsAfterSync = async () => {
-  let params = [[], [], []]
-  let i = 1
-  for (const userId in repCache) {
-    params[0].push(userId)
-    params[1].push(repCache[userId][0])
-    params[2].push(repCache[userId][1])
-    i++
-    if (i >= 20000) {
-      await bulkInsert(params)
-      params = [[], [], []]
-      i = 1
-    }
-  }
-  if (params[0].length > 0) {
-    await bulkInsert(params)
-  }
-}
-const bulkInsert = async (params) => {
-  await pool.query(`INSERT INTO hafsql.reputations_table (account, reputation, last_update)
-    SELECT * FROM UNNEST ($1::int4[], $2::text[], $3::numeric[])
-    ON CONFLICT ON CONSTRAINT hafsql_reputations_table_un DO NOTHING;`, params)
-}
+// const insertReputationsAfterSync = async () => {
+//   let params = [[], [], []]
+//   let i = 1
+//   for (const userId in repCache) {
+//     params[0].push(userId)
+//     params[1].push(repCache[userId][0])
+//     params[2].push(repCache[userId][1])
+//     i++
+//     if (i >= 20000) {
+//       await bulkInsert(params)
+//       params = [[], [], []]
+//       i = 1
+//     }
+//   }
+//   if (params[0].length > 0) {
+//     await bulkInsert(params)
+//   }
+// }
+// const bulkInsert = async (params) => {
+//   await pool.query(`INSERT INTO hafsql.reputations_table (account, reputation, last_update)
+//     SELECT * FROM UNNEST ($1::int4[], $2::text[], $3::numeric[])
+//     ON CONFLICT ON CONSTRAINT hafsql_reputations_table_un DO NOTHING;`, params)
+// }
 
-// Insert into cache during sync otherwise database
 const setUserRep = async (userId, rep, lastUpdate) => {
   if (typeof rep === 'bigint') {
     rep = rep.toString(10)
   }
-  if (useCache) {
-    repCache[userId] = [rep, lastUpdate]
-  } else {
-    await pool.query(`INSERT INTO hafsql.reputations_table (account, reputation, last_update) VALUES($1, $2, $3)
-      ON CONFLICT ON CONSTRAINT hafsql_reputations_table_un
-      DO UPDATE SET reputation=$2;`, [userId, rep, lastUpdate])
-  }
+  await pool.query(`INSERT INTO hafsql.reputations_table (account, reputation, last_update) VALUES($1, $2, $3)
+    ON CONFLICT ON CONSTRAINT hafsql_reputations_table_un
+    DO UPDATE SET reputation=$2;`, [userId, rep, lastUpdate])
 }
-
-// Cache reputation during sync
 const getUserRep = async (userId) => {
-  if (useCache) {
-    if (Object.hasOwn(repCache, userId)) {
-      return repCache[userId]
-    } else {
-      return [0, 0]
-    }
-  } else {
-    const getRep = await pool.query(
-      'SELECT r.reputation, r.last_update FROM hafsql.reputations_table r WHERE r.account=$1',
-      [userId]
-    )
-    if (getRep.rowCount < 1) {
-      return [0, 0]
-    }
-    const rep = [getRep.rows[0].reputation, getRep.rows[0].last_update]
-    return rep
+  const getRep = await pool.query(
+    'SELECT r.reputation, r.last_update FROM hafsql.reputations_table r WHERE r.account=$1',
+    [userId]
+  )
+  if (getRep.rowCount < 1) {
+    return [0, 0]
   }
+  const rep = [getRep.rows[0].reputation, getRep.rows[0].last_update]
+  return rep
 }
 
 // Caching ids for duration of the sync
@@ -220,30 +195,37 @@ const updateLastOpId = async (opId) => {
 // Clear votes older than 7 days from cache and table
 const intervalTime = 60000 // 10m
 setInterval(async () => {
-  // console.log('Last vote: ' + new Date(lastVoteTimestamp))
+  console.log('Last vote: ' + new Date(lastVoteTimestamp))
   if (useCache) {
-    for (const i in voteCache) {
-      if (lastVoteTimestamp - voteCache[i][2] > 604800000) {
-        delete voteCache[i]
-      }
-    }
+    await pool.query('DELETE FROM vote_cache WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
   } else {
     await pool.query('DELETE FROM hafsql.votescache_table WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
   }
 }, intervalTime)
 
+// Need recent votes in the database for shutdown recovery
+// TEMP table for duration of the sync till past week
 const getVoteCache = async (voterId, postId) => {
-  const t = await pool.query('SELECT shares FROM hafsql.votescache_table WHERE voter=$1 AND post_id=$2', [voterId, postId])
+  let t
+  if (!useCache) {
+    t = await pool.query('SELECT shares FROM hafsql.votescache_table WHERE voter=$1 AND post_id=$2', [voterId, postId])
+  } else {
+    t = await client.query('SELECT shares FROM vote_cache WHERE voter=$1 AND post_id=$2', [voterId, postId])
+  }
   if (t.rowCount > 0) {
     return t.rows[0].shares
   } else {
     return null
   }
 }
-
 const setVoteCache = async (voterId, postId, shares, timestamp) => {
-  await pool.query(`INSERT INTO hafsql.votescache_table (voter,post_id,shares,timestamp) VALUES ($1,$2,$3,$4)
-    ON CONFLICT ON CONSTRAINT hafsql_votescache_table_un DO NOTHING;`, [voterId, postId, shares, timestamp])
+  if (!useCache) {
+    await pool.query(`INSERT INTO hafsql.votescache_table (voter,post_id,shares,timestamp) VALUES ($1,$2,$3,$4)
+      ON CONFLICT ON CONSTRAINT hafsql_votescache_table_un DO UPDATE SET shares=$3, timestamp=$4;`, [voterId, postId, shares, timestamp])
+  } else {
+    await client.query(`INSERT INTO vote_cache (voter,post_id,shares,timestamp) VALUES ($1,$2,$3,$4)
+      ON CONFLICT ON CONSTRAINT vote_cache_un DO UPDATE SET shares=$3, timestamp=$4;`, [voterId, postId, shares, timestamp])
+  }
 }
 
 const getPostId = async (author, permlink) => {
@@ -255,4 +237,25 @@ const getPostId = async (author, permlink) => {
     return null
   }
   return getId.rows[0].id
+}
+
+const setupTempTables = async () => {
+  client = await pool.connect()
+  // Vote cache
+  await client.query(`CREATE TEMP TABLE vote_cache (
+    voter int4 NOT NULL,
+    post_id int4 NOT NULL,
+    shares varchar NOT NULL DEFAULT '0',
+    timestamp int8 NOT NULL,
+    CONSTRAINT vote_cache_un UNIQUE (voter, post_id)
+  );`)
+  await client.query('CREATE INDEX IF NOT EXISTS vote_cache_timestamp_idx ON vote_cache USING btree (timestamp);')
+
+  // Reputation cache
+  // await client.query(`CREATE TEMP TABLE rep_cache (
+  //   account int4 NOT NULL,
+  //   reputation varchar NOT NULL DEFAULT '0',
+  //   last_update int8 NOT NULL,
+  //   CONSTRAINT rep_cache_un UNIQUE (account)
+  // );`)
 }
