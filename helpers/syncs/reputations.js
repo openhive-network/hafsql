@@ -1,9 +1,9 @@
-// import { Presets, SingleBar } from 'cli-progress'
+import { Presets, SingleBar } from 'cli-progress'
 import { pool } from '../database.js'
 
 let progressBar
-// let progressTotal = 0
-// let progressStart = 0
+let progressTotal = 0
+let progressStart = 0
 
 let accountCache = {}
 // let repCache = {}
@@ -51,7 +51,7 @@ export const fillReputations = async (limit = 20000) => {
       limit 1`)
     // start = op_id from 365 days ago
     start = Number(t2.rows[0].id)
-    // await setupProgressBar(start)
+    await setupProgressBar(start)
   }
 
   let votes = await getVotes(start, limit)
@@ -60,8 +60,8 @@ export const fillReputations = async (limit = 20000) => {
     while (votes.rowCount > 0 && start < opIdFrom1WeekAgo) {
       await processVotes(votes.rows)
       start = Number(votes.rows[votes.rowCount - 1].op_id)
-      console.log('processed ' + start)
-      // progressBar.update(start - progressStart)
+      // console.log('processed ' + start)
+      progressBar.update(start - progressStart)
       votes = await getVotes(start, limit)
     }
   } else {
@@ -264,7 +264,7 @@ const getPostId = async (author, permlink) => {
 
 const setupTempTables = async () => {
   client = await pool.connect()
-  await client.query("SET temp_buffers='5GB'")
+  await client.query("SET temp_buffers='6GB'")
   // Vote cache
   await client.query(`CREATE TEMP TABLE vote_cache (
     voter int4 NOT NULL,
@@ -292,13 +292,15 @@ const setupTempTables = async () => {
   );`)
 }
 
-// const setupProgressBar = async (startValue) => {
-//   const lastId = await pool.query('SELECT x.op_id FROM hafsql.vo_effective_comment_vote x ORDER BY x.op_id DESC LIMIT 1')
-//   const opt = {
-//     format: 'progress [{bar}] {percentage}% | ETA: {eta}s'
-//   }
-//   progressBar = new SingleBar(opt, Presets.shades_classic)
-//   progressTotal = Number(lastId.rows[0].op_id)
-//   progressStart = startValue
-//   progressBar.start(progressTotal - progressStart, 0)
-// }
+const setupProgressBar = async (startValue) => {
+  const lastId = await pool.query('SELECT x.op_id FROM hafsql.vo_effective_comment_vote x ORDER BY x.op_id DESC LIMIT 1')
+  const opt = {
+    format: 'progress [{bar}] {percentage}% | ETA: {eta}s',
+    noTTYOutput: true,
+    notTTYSchedule: 60000
+  }
+  progressBar = new SingleBar(opt, Presets.shades_classic)
+  progressTotal = Number(lastId.rows[0].op_id)
+  progressStart = startValue
+  progressBar.start(progressTotal - progressStart, 0)
+}
