@@ -1,9 +1,4 @@
-import { Presets, SingleBar } from 'cli-progress'
 import { pool } from '../database.js'
-
-let progressBar
-let progressTotal = 0
-let progressStart = 0
 
 let accountCache = {}
 // let repCache = {}
@@ -51,7 +46,6 @@ export const fillReputations = async (limit = 20000) => {
       limit 1`)
     // start = op_id from 365 days ago
     start = Number(t2.rows[0].id)
-    await setupProgressBar(start)
   }
 
   let votes = await getVotes(start, limit)
@@ -61,8 +55,6 @@ export const fillReputations = async (limit = 20000) => {
       await processVotes(votes.rows)
       start = Number(votes.rows[votes.rowCount - 1].op_id)
       // console.log('processed ' + start)
-      progressBar.increment()
-      progressBar.update(start - progressStart)
       votes = await getVotes(start, limit)
     }
   } else {
@@ -77,7 +69,6 @@ export const fillReputations = async (limit = 20000) => {
 
   // if during sync
   if (useCache) {
-    progressBar.stop()
     await insertReputationsAfterSync()
     await updateLastOpId(start)
   }
@@ -291,17 +282,4 @@ const setupTempTables = async () => {
     permlink varchar NOT NULL,
     CONSTRAINT post_cache_un UNIQUE (author, permlink)
   );`)
-}
-
-const setupProgressBar = async (startValue) => {
-  const lastId = await pool.query('SELECT x.op_id FROM hafsql.vo_effective_comment_vote x ORDER BY x.op_id DESC LIMIT 1')
-  const opt = {
-    format: 'progress [{bar}] {percentage}% | ETA: {eta}s',
-    noTTYOutput: true,
-    hideCursor: true
-  }
-  progressBar = new SingleBar(opt, Presets.shades_classic)
-  progressTotal = Number(lastId.rows[0].op_id)
-  progressStart = startValue
-  progressBar.start(progressTotal - progressStart, 0)
 }
