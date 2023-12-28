@@ -3,6 +3,7 @@ import { pool } from '../database.js'
 let accountCache = {}
 // let repCache = {}
 // let voteCache = {} // [voter, shares, timestamp]
+let users = []
 let useCache = true
 let lastVoteTimestamp = 0
 let client = null // filled in setupTempTables()
@@ -12,6 +13,7 @@ export const syncReputations = async () => {
   accountCache = {}
   // repCache = {}
   // voteCache = {}
+  users = []
   await client.release(true)
   const intervalTime = 3000
   setInterval(() => {
@@ -21,7 +23,7 @@ export const syncReputations = async () => {
 
 // syncing reputations from last 365 days
 // reputation decays over 365 days to 0
-export const fillReputations = async (limit = 40000) => {
+export const fillReputations = async (limit = 20000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['reputations']
@@ -165,9 +167,15 @@ const setUserRep = async (userId, rep, lastUpdate) => {
       ON CONFLICT ON CONSTRAINT hafsql_reputations_table_un
       DO UPDATE SET reputation=$2, last_update=$3;`, [userId, rep, lastUpdate])
   } else {
-    await client.query(`INSERT INTO rep_cache (account, reputation, last_update) VALUES($1, $2, $3)
-      ON CONFLICT ON CONSTRAINT rep_cache_un
-      DO UPDATE SET reputation=$2, last_update=$3;`, [userId, rep, lastUpdate])
+    if (users.indexOf(userId) > -1) {
+      await client.query('UPDATE rep_cache SET reputation=$1, last_update=$2 WHERE account=$3', [rep, lastUpdate, userId])
+    } else {
+      await client.query('INSERT INTO rep_cache (account, reputation, last_update) VALUES($1, $2, $3);', [userId, rep, lastUpdate])
+      users.push(userId)
+    }
+    // await client.query(`INSERT INTO rep_cache (account, reputation, last_update) VALUES($1, $2, $3)
+    //   ON CONFLICT ON CONSTRAINT rep_cache_un
+    //   DO UPDATE SET reputation=$2, last_update=$3;`, [userId, rep, lastUpdate])
   }
 }
 const getUserRep = async (userId) => {
