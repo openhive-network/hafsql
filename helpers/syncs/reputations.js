@@ -61,6 +61,7 @@ export const fillReputations = async (limit = 20000) => {
       await processVotes(votes.rows)
       start = Number(votes.rows[votes.rowCount - 1].op_id)
       // console.log('processed ' + start)
+      progressBar.increment()
       progressBar.update(start - progressStart)
       votes = await getVotes(start, limit)
     }
