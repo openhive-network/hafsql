@@ -296,8 +296,7 @@ const setupProgressBar = async (startValue) => {
   const lastId = await pool.query('SELECT x.op_id FROM hafsql.vo_effective_comment_vote x ORDER BY x.op_id DESC LIMIT 1')
   const opt = {
     format: 'progress [{bar}] {percentage}% | ETA: {eta}s',
-    noTTYOutput: true,
-    notTTYSchedule: 60000
+    noTTYOutput: true
   }
   progressBar = new SingleBar(opt, Presets.shades_classic)
   progressTotal = Number(lastId.rows[0].op_id)
