@@ -435,7 +435,9 @@ const getUserId = async (username) => {
       return null
     }
     const id = getId.rows[0].id
-    accountCache[username] = id
+    if (useCache) {
+      accountCache[username] = id
+    }
     return id
   }
 }
