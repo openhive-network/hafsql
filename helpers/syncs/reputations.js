@@ -21,7 +21,7 @@ export const syncReputations = async () => {
 
 // syncing reputations from last 365 days
 // reputation decays over 365 days to 0
-export const fillReputations = async (limit = 40000) => {
+export const fillReputations = async (limit = 20000) => {
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['reputations']
@@ -57,6 +57,7 @@ export const fillReputations = async (limit = 40000) => {
       await processVotes(votes.rows)
       start = Number(votes.rows[votes.rowCount - 1].op_id)
       await updateLastOpId(start)
+      console.log('processed ' + start + '')
       votes = await getVotes(start, limit)
     }
   } else {
@@ -197,7 +198,7 @@ const intervalTime = 60000 // 10m
 setInterval(async () => {
   console.log('Last vote: ' + new Date(lastVoteTimestamp))
   if (useCache) {
-    await pool.query('DELETE FROM vote_cache WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
+    await client.query('DELETE FROM vote_cache WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
   } else {
     await pool.query('DELETE FROM hafsql.votescache_table WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
   }
