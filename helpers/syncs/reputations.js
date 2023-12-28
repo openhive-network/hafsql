@@ -1,9 +1,11 @@
+import { Presets, SingleBar } from 'cli-progress'
 import { pool } from '../database.js'
+
+const progressBar = new SingleBar({}, Presets.legacy)
 
 let accountCache = {}
 // let repCache = {}
 // let voteCache = {} // [voter, shares, timestamp]
-let users = []
 let useCache = true
 let lastVoteTimestamp = 0
 let client = null // filled in setupTempTables()
@@ -13,7 +15,6 @@ export const syncReputations = async () => {
   accountCache = {}
   // repCache = {}
   // voteCache = {}
-  users = []
   await client.release(true)
   const intervalTime = 3000
   setInterval(() => {
@@ -47,10 +48,9 @@ export const fillReputations = async (limit = 20000) => {
     const t2 = await pool.query(`SELECT x.id FROM hive.operations x where timestamp < now() - interval '1year'
       order by timestamp desc
       limit 1`)
-    // if (start === 0) {
     // start = op_id from 365 days ago
     start = Number(t2.rows[0].id)
-    // }
+    await setupProgressBar(start)
   }
   let votes = await getVotes(start, limit)
   if (useCache) {
@@ -58,7 +58,7 @@ export const fillReputations = async (limit = 20000) => {
     while (votes.rowCount > 0 && start < opIdFrom1WeekAgo) {
       await processVotes(votes.rows)
       start = Number(votes.rows[votes.rowCount - 1].op_id)
-      console.log('processed ' + start + '')
+      progressBar.update(start)
       votes = await getVotes(start, limit)
     }
   } else {
@@ -72,6 +72,7 @@ export const fillReputations = async (limit = 20000) => {
   }
   // if during sync
   if (useCache) {
+    progressBar.stop()
     await insertReputationsAfterSync()
     await updateLastOpId(start)
   }
@@ -135,27 +136,6 @@ const insertReputationsAfterSync = async () => {
     x.reputation,
     x.last_update
     FROM hafsql.reputations_table x;`)
-//   let params = [[], [], []]
-//   let i = 1
-//   for (const userId in repCache) {
-//     params[0].push(userId)
-//     params[1].push(repCache[userId][0])
-//     params[2].push(repCache[userId][1])
-//     i++
-//     if (i >= 20000) {
-//       await bulkInsert(params)
-//       params = [[], [], []]
-//       i = 1
-//     }
-//   }
-//   if (params[0].length > 0) {
-//     await bulkInsert(params)
-//   }
-// }
-// const bulkInsert = async (params) => {
-//   await pool.query(`INSERT INTO hafsql.reputations_table (account, reputation, last_update)
-//     SELECT * FROM UNNEST ($1::int4[], $2::text[], $3::numeric[])
-//     ON CONFLICT ON CONSTRAINT hafsql_reputations_table_un DO NOTHING;`, params)
 }
 
 const setUserRep = async (userId, rep, lastUpdate) => {
@@ -167,15 +147,9 @@ const setUserRep = async (userId, rep, lastUpdate) => {
       ON CONFLICT ON CONSTRAINT hafsql_reputations_table_un
       DO UPDATE SET reputation=$2, last_update=$3;`, [userId, rep, lastUpdate])
   } else {
-    if (users.indexOf(userId) > -1) {
-      await client.query('UPDATE rep_cache SET reputation=$1, last_update=$2 WHERE account=$3', [rep, lastUpdate, userId])
-    } else {
-      await client.query('INSERT INTO rep_cache (account, reputation, last_update) VALUES($1, $2, $3);', [userId, rep, lastUpdate])
-      users.push(userId)
-    }
-    // await client.query(`INSERT INTO rep_cache (account, reputation, last_update) VALUES($1, $2, $3)
-    //   ON CONFLICT ON CONSTRAINT rep_cache_un
-    //   DO UPDATE SET reputation=$2, last_update=$3;`, [userId, rep, lastUpdate])
+    await client.query(`INSERT INTO rep_cache (account, reputation, last_update) VALUES($1, $2, $3)
+      ON CONFLICT ON CONSTRAINT rep_cache_un
+      DO UPDATE SET reputation=$2, last_update=$3;`, [userId, rep, lastUpdate])
   }
 }
 const getUserRep = async (userId) => {
@@ -226,7 +200,7 @@ const updateLastOpId = async (opId) => {
 // Clear votes older than 7 days from cache and table
 const intervalTime = 60000 // 10m
 setInterval(async () => {
-  console.log('Last vote: ' + new Date(lastVoteTimestamp))
+  // console.log('Last vote: ' + new Date(lastVoteTimestamp))
   if (useCache) {
     await client.query('DELETE FROM vote_cache WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
   } else {
@@ -311,4 +285,10 @@ const setupTempTables = async () => {
     permlink varchar NOT NULL,
     CONSTRAINT post_cache_un UNIQUE (author, permlink)
   );`)
+}
+
+const setupProgressBar = async (startValue) => {
+  const lastId = await pool.query('SELECT x.op_id FROM hafsql.vo_effective_comment_vote x ORDER BY x.op_id DESC LIMIT 1')
+  const progressTotal = Number(lastId.rows[0].op_id)
+  progressBar.start(progressTotal, startValue)
 }
