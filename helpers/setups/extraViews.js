@@ -189,7 +189,7 @@ export const setupExtraViews = async () => {
   AS SELECT x.account as account_id,
     (SELECT name FROM hafsql.accounts WHERE id=x.account) as account_name,
     x.reputation,
-    x.last_update,
+    x.last_update
     FROM hafsql.reputations_table x;`)
 }
 
