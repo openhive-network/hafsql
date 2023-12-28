@@ -1,7 +1,9 @@
 import { Presets, SingleBar } from 'cli-progress'
 import { pool } from '../database.js'
 
-const progressBar = new SingleBar({}, Presets.legacy)
+let progressBar
+let progressTotal = 0
+let progressStart = 0
 
 let accountCache = {}
 // let repCache = {}
@@ -43,7 +45,6 @@ export const fillReputations = async (limit = 20000) => {
       order by timestamp desc
       limit 1`)
     opIdFrom1WeekAgo = Number(t.rows[0].id)
-
     // get last op id from a year ago
     const t2 = await pool.query(`SELECT x.id FROM hive.operations x where timestamp < now() - interval '1year'
       order by timestamp desc
@@ -52,13 +53,14 @@ export const fillReputations = async (limit = 20000) => {
     start = Number(t2.rows[0].id)
     await setupProgressBar(start)
   }
+
   let votes = await getVotes(start, limit)
   if (useCache) {
     // if syncing don't go to recent votes - instead use the cache table for recent votes
     while (votes.rowCount > 0 && start < opIdFrom1WeekAgo) {
       await processVotes(votes.rows)
       start = Number(votes.rows[votes.rowCount - 1].op_id)
-      progressBar.update(start)
+      progressBar.update(start - progressStart)
       votes = await getVotes(start, limit)
     }
   } else {
@@ -70,6 +72,7 @@ export const fillReputations = async (limit = 20000) => {
       votes = await getVotes(start, limit)
     }
   }
+
   // if during sync
   if (useCache) {
     progressBar.stop()
@@ -289,6 +292,11 @@ const setupTempTables = async () => {
 
 const setupProgressBar = async (startValue) => {
   const lastId = await pool.query('SELECT x.op_id FROM hafsql.vo_effective_comment_vote x ORDER BY x.op_id DESC LIMIT 1')
-  const progressTotal = Number(lastId.rows[0].op_id)
-  progressBar.start(progressTotal, startValue)
+  const opt = {
+    format: 'progress [{bar}] {percentage}% | ETA: {eta}s'
+  }
+  progressBar = new SingleBar(opt, Presets.shades_classic)
+  progressTotal = Number(lastId.rows[0].op_id)
+  progressStart = startValue
+  progressBar.start(progressTotal - progressStart, 0)
 }
