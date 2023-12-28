@@ -263,6 +263,7 @@ const getPostId = async (author, permlink) => {
 
 const setupTempTables = async () => {
   client = await pool.connect()
+  await client.query('SET temp_buffers=$1', ['5GB'])
   // Vote cache
   await client.query(`CREATE TEMP TABLE vote_cache (
     voter int4 NOT NULL,
