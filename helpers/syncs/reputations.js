@@ -194,9 +194,9 @@ const updateLastOpId = async (opId) => {
 }
 
 // Clear votes older than 7 days from cache and table
-const intervalTime = 60000 // 10m
+const intervalTime = 120000 // 10m
 setInterval(async () => {
-  // console.log('Last vote: ' + new Date(lastVoteTimestamp))
+  console.log('Last vote: ' + new Date(lastVoteTimestamp))
   if (useCache) {
     await client.query('DELETE FROM vote_cache WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
   } else {
