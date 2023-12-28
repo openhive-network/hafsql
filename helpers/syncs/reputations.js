@@ -121,15 +121,15 @@ const processVotes = async (votes) => {
     if (voteCache === null) {
       await setVoteCache(voterId, postId, vote.rshares, timestamp)
       if (log) {
-        console.log('vote cache = null ' + Date.now() - now1)
+        console.log('vote cache = null ' + (Date.now() - now1))
       }
       const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(vote.rshares)
       if (log) {
-        console.log('vote cache = null ' + Date.now() - now1)
+        console.log('vote cache = null ' + (Date.now() - now1))
       }
       await setUserRep(authorId, rep, timestamp)
       if (log) {
-        console.log('vote cache != null ' + Date.now() - now1)
+        console.log('vote cache != null ' + (Date.now() - now1))
       }
     } else {
       const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(vote.rshares) - BigInt(voteCache)
