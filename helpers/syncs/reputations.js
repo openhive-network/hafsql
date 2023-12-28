@@ -252,6 +252,15 @@ const setVoteCache = async (voterId, postId, shares, timestamp) => {
 }
 
 const getPostId = async (author, permlink) => {
+  if (useCache) {
+    const getId = await client.query(
+      'SELECT id FROM post_cache WHERE author=$1 AND permlink=$2',
+      [author, permlink]
+    )
+    if (getId.rowCount > 0) {
+      return getId.rows[0].id
+    }
+  }
   const getId = await pool.query(
     'SELECT c.id FROM hafsql.comments_table c WHERE c.author=$1 AND c.permlink=$2',
     [author, permlink]
@@ -259,7 +268,12 @@ const getPostId = async (author, permlink) => {
   if (getId.rowCount < 1) {
     return null
   }
-  return getId.rows[0].id
+  const id = getId.rows[0].id
+  if (useCache) {
+    await client.query(`INSERT INTO post_cache (id, author, permlink) VALUES ($1,$2,$3)
+      ON CONFLICT ON CONSTRAINT post_cache_un DO NOTHING;`, [id, author, permlink])
+  }
+  return id
 }
 
 const setupTempTables = async () => {
@@ -280,5 +294,13 @@ const setupTempTables = async () => {
     reputation varchar NOT NULL DEFAULT '0',
     last_update int8 NOT NULL,
     CONSTRAINT rep_cache_un UNIQUE (account)
+  );`)
+
+  // PostId cache
+  await client.query(`CREATE TEMP TABLE post_cache (
+    id int4 NOT NULL,
+    author varchar NOT NULL,
+    permlink varchar NOT NULL,
+    CONSTRAINT post_cache_un UNIQUE (author, permlink)
   );`)
 }
