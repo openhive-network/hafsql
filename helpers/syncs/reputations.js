@@ -1,6 +1,6 @@
 import { pool } from '../database.js'
 
-let accountCache = {}
+let accountCache = {} // {username: [user_id, [rep, last_update]]}
 // let repCache = {}
 // let voteCache = {} // [voter, shares, timestamp]
 let useCache = true
@@ -54,7 +54,7 @@ export const fillReputations = async (limit = 20000) => {
     while (votes.rowCount > 0 && start < opIdFrom1WeekAgo) {
       await processVotes(votes.rows)
       start = Number(votes.rows[votes.rowCount - 1].op_id)
-      // console.log('processed ' + start)
+      console.log('processed ' + start)
       votes = await getVotes(start, limit)
     }
   } else {
@@ -82,28 +82,17 @@ const getVotes = async (start, limit = 10000) => {
   )
 }
 
-let log = true
 const processVotes = async (votes) => {
-  const now1 = Date.now()
   for (let i = 0; i < votes.length; i++) {
     const vote = votes[i]
     // const postStr = vote.author + vote.permlink
     const authorId = await getUserId(vote.author)
-    if (log) {
-      console.log(Date.now() - now1)
-    }
     const voterId = await getUserId(vote.voter)
-    if (log) {
-      console.log(Date.now() - now1)
-    }
     // const cacheIndex = voterId + ';' + postStr
     const timestamp = new Date(vote.timestamp + 'Z').getTime()
-    const userRep = await getUserRep(authorId)
+    const userRep = await getUserRep(authorId, vote.author)
     const userReputation = userRep[0]
     const lastUpdate = userRep[1]
-    if (log) {
-      console.log(Date.now() - now1)
-    }
     // multiplier is (0,1) including floats and we can't multiplie bigint by a float
     // We *1000 then /1000 to apply multiplier
     let multiplier = 1 - (timestamp - lastUpdate) / 31536000000
@@ -120,23 +109,13 @@ const processVotes = async (votes) => {
     const voteCache = await getVoteCache(voterId, postId)
     if (voteCache === null) {
       await setVoteCache(voterId, postId, vote.rshares, timestamp)
-      if (log) {
-        console.log('vote cache = null ' + (Date.now() - now1))
-      }
       const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(vote.rshares)
-      if (log) {
-        console.log('vote cache = null ' + (Date.now() - now1))
-      }
-      await setUserRep(authorId, rep, timestamp)
-      if (log) {
-        console.log('vote cache != null ' + (Date.now() - now1))
-      }
+      await setUserRep(authorId, vote.author, rep, timestamp)
     } else {
       const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(vote.rshares) - BigInt(voteCache)
-      await setUserRep(authorId, rep, timestamp)
+      await setUserRep(authorId, vote.author, rep, timestamp)
       await setVoteCache(voterId, postId, vote.rshares, timestamp)
     }
-    log = false
   }
 }
 
@@ -144,17 +123,42 @@ const processVotes = async (votes) => {
 // has to be in batches - postgres param limit = 65k
 const insertReputationsAfterSync = async () => {
   console.log('Filling reputations_table...')
-  await client.query('CREATE TABLE hafsql.reputations_table AS TABLE rep_cache')
+  // await client.query('CREATE TABLE hafsql.reputations_table AS TABLE rep_cache')
   // Reputations view
-  await pool.query(`CREATE OR REPLACE VIEW hafsql.reputations
-    AS SELECT x.account as account_id,
-    (SELECT name FROM hafsql.accounts WHERE id=x.account) as account_name,
-    x.reputation,
-    x.last_update
-    FROM hafsql.reputations_table x;`)
+  // await pool.query(`CREATE OR REPLACE VIEW hafsql.reputations
+  //   AS SELECT x.account as account_id,
+  //   (SELECT name FROM hafsql.accounts WHERE id=x.account) as account_name,
+  //   x.reputation,
+  //   x.last_update
+  //   FROM hafsql.reputations_table x;`)
+
+  let params = [[], [], []]
+  let i = 1
+  for (const username in accountCache) {
+    const userId = accountCache[username][0]
+    const rep = accountCache[username][1][0]
+    const lastUpdate = accountCache[username][1][1]
+    params[0].push(userId)
+    params[1].push(rep)
+    params[2].push(lastUpdate)
+    i++
+    if (i >= 20000) {
+      await bulkInsert(params)
+      params = [[], [], []]
+      i = 1
+    }
+  }
+  if (params[0] && params[0].length > 0) {
+    await bulkInsert(params)
+  }
+}
+const bulkInsert = async (params) => {
+  await pool.query(`INSERT INTO hafsql.reputations_table (account, reputation, last_update)
+      SELECT * FROM UNNEST ($1::int4[], $2::text[], $3::numeric[])
+      ON CONFLICT ON CONSTRAINT hafsql_reputations_table_un DO NOTHING;`, params)
 }
 
-const setUserRep = async (userId, rep, lastUpdate) => {
+const setUserRep = async (userId, username, rep, lastUpdate) => {
   if (typeof rep === 'bigint') {
     rep = rep.toString(10)
   }
@@ -163,35 +167,36 @@ const setUserRep = async (userId, rep, lastUpdate) => {
       ON CONFLICT ON CONSTRAINT hafsql_reputations_table_un
       DO UPDATE SET reputation=$2, last_update=$3;`, [userId, rep, lastUpdate])
   } else {
-    await client.query(`INSERT INTO rep_cache (account, reputation, last_update) VALUES($1, $2, $3)
-      ON CONFLICT ON CONSTRAINT rep_cache_un
-      DO UPDATE SET reputation=$2, last_update=$3;`, [userId, rep, lastUpdate])
+    accountCache[username] = [userId, [rep, lastUpdate]]
   }
 }
-const getUserRep = async (userId) => {
-  let getRep
-  if (!useCache) {
-    getRep = await pool.query(
-      'SELECT r.reputation, r.last_update FROM hafsql.reputations_table r WHERE r.account=$1',
-      [userId]
-    )
-  } else {
-    getRep = await client.query(
-      'SELECT r.reputation, r.last_update FROM rep_cache r WHERE r.account=$1',
-      [userId]
-    )
+const getUserRep = async (userId, username) => {
+  if (useCache) {
+    if (Object.hasOwn(accountCache, username)) {
+      return accountCache[username][1]
+    }
   }
+  const getRep = await pool.query(
+    'SELECT r.reputation, r.last_update FROM hafsql.reputations_table r WHERE r.account=$1',
+    [userId]
+  )
   if (getRep.rowCount < 1) {
+    if (useCache) {
+      accountCache[username] = [userId, [0, 0]]
+    }
     return [0, 0]
   }
   const rep = [getRep.rows[0].reputation, getRep.rows[0].last_update]
+  if (useCache) {
+    accountCache[username] = [userId, rep]
+  }
   return rep
 }
 
 // Caching ids for duration of the sync
 const getUserId = async (username) => {
   if (useCache && Object.hasOwn(accountCache, username)) {
-    return accountCache[username]
+    return accountCache[username][0]
   } else {
     const getId = await pool.query(
       'SELECT a.id FROM hive.accounts a WHERE a.name=$1',
@@ -201,7 +206,9 @@ const getUserId = async (username) => {
       return null
     }
     const id = getId.rows[0].id
-    accountCache[username] = id
+    if (useCache) {
+      accountCache[username] = [id, [0, 0]]
+    }
     return id
   }
 }
@@ -276,7 +283,7 @@ const getPostId = async (author, permlink) => {
 
 const setupTempTables = async () => {
   client = await pool.connect()
-  await client.query("SET temp_buffers='6GB'")
+  await client.query("SET temp_buffers='5GB'")
   // Vote cache
   await client.query(`CREATE TEMP TABLE vote_cache (
     voter int4 NOT NULL,
@@ -288,12 +295,12 @@ const setupTempTables = async () => {
   await client.query('CREATE INDEX IF NOT EXISTS vote_cache_timestamp_idx ON vote_cache USING btree (timestamp);')
 
   // Reputation cache
-  await client.query(`CREATE TEMP TABLE rep_cache (
-    account int4 NOT NULL,
-    reputation varchar NOT NULL DEFAULT '0',
-    last_update int8 NOT NULL,
-    CONSTRAINT rep_cache_un UNIQUE (account)
-  );`)
+  // await client.query(`CREATE TEMP TABLE rep_cache (
+  //   account int4 NOT NULL,
+  //   reputation varchar NOT NULL DEFAULT '0',
+  //   last_update int8 NOT NULL,
+  //   CONSTRAINT rep_cache_un UNIQUE (account)
+  // );`)
 
   // PostId cache
   await client.query(`CREATE TEMP TABLE post_cache (
