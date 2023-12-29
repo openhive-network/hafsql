@@ -6,6 +6,16 @@ let accountCache = {} // {username: [user_id, [rep, last_update]]}
 let useCache = true
 let lastVoteTimestamp = 0
 let client = null // filled in setupTempTables()
+const times = {
+  a: 0,
+  b: 0,
+  c: 0,
+  d: 0,
+  e: 0,
+  f: 0,
+  g: 0,
+  h: 0
+}
 
 export const syncReputations = async () => {
   useCache = false
@@ -52,10 +62,14 @@ export const fillReputations = async (limit = 20000) => {
   if (useCache) {
     // if syncing don't go to recent votes - instead use the cache table for recent votes
     while (votes.rowCount > 0 && start < opIdFrom1WeekAgo) {
+      const t1 = Date.now()
       await processVotes(votes.rows)
+      times.a += Date.now() - t1
       start = Number(votes.rows[votes.rowCount - 1].op_id)
-      console.log('processed ' + start)
+      // console.log('processed ' + start)
+      const t2 = Date.now()
       votes = await getVotes(start, limit)
+      times.b += Date.now() - t2
     }
   } else {
     // we come here only after sync
@@ -224,6 +238,7 @@ const updateLastOpId = async (opId) => {
 const intervalTime = 120000 // 10m
 setInterval(async () => {
   console.log('Last vote: ' + new Date(lastVoteTimestamp))
+  console.log(times)
   if (useCache) {
     await client.query('DELETE FROM vote_cache WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
   } else {
