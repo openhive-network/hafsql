@@ -129,27 +129,27 @@ const processVotes = async (votes) => {
     times.e += Date.now() - t5
     const t6 = Date.now()
 
-    const postId = await getPostId(vote.author, vote.permlink)
-    if (!postId) {
-      continue
-    }
+    // const postId = await getPostId(vote.author, vote.permlink)
+    // if (!postId) {
+    //   continue
+    // }
 
     times.f += Date.now() - t6
     const t7 = Date.now()
 
-    const voteCache = await getVoteCache(voterId, postId)
+    const voteCache = await getVoteCache(voterId, vote.author, vote.permlink)
 
     times.g += Date.now() - t7
     const t8 = Date.now()
 
     if (voteCache === null) {
-      await setVoteCache(voterId, postId, vote.rshares, timestamp)
+      await setVoteCache(voterId, vote.author, vote.permlink, vote.rshares, timestamp)
       const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(vote.rshares)
       await setUserRep(authorId, vote.author, rep, timestamp)
     } else {
       const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(vote.rshares) - BigInt(voteCache)
       await setUserRep(authorId, vote.author, rep, timestamp)
-      await setVoteCache(voterId, postId, vote.rshares, timestamp)
+      await setVoteCache(voterId, vote.author, vote.permlink, vote.rshares, timestamp)
     }
 
     times.h += Date.now() - t8
@@ -271,12 +271,12 @@ setInterval(async () => {
 
 // Need recent votes in the database for shutdown recovery
 // TEMP table for duration of the sync till past week
-const getVoteCache = async (voterId, postId) => {
+const getVoteCache = async (voterId, author, permlink) => {
   let t
   if (!useCache) {
-    t = await pool.query('SELECT shares FROM hafsql.votescache_table WHERE voter=$1 AND post_id=$2', [voterId, postId])
+    t = await pool.query('SELECT shares FROM hafsql.votescache_table WHERE voter=$1 AND author=$2 AND permlink=$3', [voterId, author, permlink])
   } else {
-    t = await client.query('SELECT shares FROM vote_cache WHERE voter=$1 AND post_id=$2', [voterId, postId])
+    t = await client.query('SELECT shares FROM vote_cache WHERE voter=$1 AND author=$2 AND permlink=$3', [voterId, author, permlink])
   }
   if (t.rowCount > 0) {
     return t.rows[0].shares
@@ -284,40 +284,40 @@ const getVoteCache = async (voterId, postId) => {
     return null
   }
 }
-const setVoteCache = async (voterId, postId, shares, timestamp) => {
+const setVoteCache = async (voterId, author, permlink, shares, timestamp) => {
   if (!useCache) {
-    await pool.query(`INSERT INTO hafsql.votescache_table (voter,post_id,shares,timestamp) VALUES ($1,$2,$3,$4)
-      ON CONFLICT ON CONSTRAINT hafsql_votescache_table_un DO UPDATE SET shares=$3, timestamp=$4;`, [voterId, postId, shares, timestamp])
+    await pool.query(`INSERT INTO hafsql.votescache_table (voter,author,permlink,shares,timestamp) VALUES ($1,$2,$3,$4,$5)
+      ON CONFLICT ON CONSTRAINT hafsql_votescache_table_un DO UPDATE SET shares=$3, timestamp=$4;`, [voterId, author, permlink, shares, timestamp])
   } else {
-    await client.query(`INSERT INTO vote_cache (voter,post_id,shares,timestamp) VALUES ($1,$2,$3,$4)
-      ON CONFLICT ON CONSTRAINT vote_cache_un DO UPDATE SET shares=$3, timestamp=$4;`, [voterId, postId, shares, timestamp])
+    await client.query(`INSERT INTO vote_cache (voter,post_id,shares,timestamp) VALUES ($1,$2,$3,$4,$5)
+      ON CONFLICT ON CONSTRAINT vote_cache_un DO UPDATE SET shares=$3, timestamp=$4;`, [voterId, author, permlink, shares, timestamp])
   }
 }
 
-const getPostId = async (author, permlink) => {
-  if (useCache) {
-    const getId = await client.query(
-      'SELECT id FROM post_cache WHERE author=$1 AND permlink=$2',
-      [author, permlink]
-    )
-    if (getId.rowCount > 0) {
-      return getId.rows[0].id
-    }
-  }
-  const getId = await pool.query(
-    'SELECT c.id FROM hafsql.comments_table c WHERE c.author=$1 AND c.permlink=$2',
-    [author, permlink]
-  )
-  if (getId.rowCount < 1) {
-    return null
-  }
-  const id = getId.rows[0].id
-  if (useCache) {
-    await client.query(`INSERT INTO post_cache (id, author, permlink) VALUES ($1,$2,$3)
-      ON CONFLICT ON CONSTRAINT post_cache_un DO NOTHING;`, [id, author, permlink])
-  }
-  return id
-}
+// const getPostId = async (author, permlink) => {
+//   if (useCache) {
+//     const getId = await client.query(
+//       'SELECT id FROM post_cache WHERE author=$1 AND permlink=$2',
+//       [author, permlink]
+//     )
+//     if (getId.rowCount > 0) {
+//       return getId.rows[0].id
+//     }
+//   }
+//   const getId = await pool.query(
+//     'SELECT c.id FROM hafsql.comments_table c WHERE c.author=$1 AND c.permlink=$2',
+//     [author, permlink]
+//   )
+//   if (getId.rowCount < 1) {
+//     return null
+//   }
+//   const id = getId.rows[0].id
+//   if (useCache) {
+//     await client.query(`INSERT INTO post_cache (id, author, permlink) VALUES ($1,$2,$3)
+//       ON CONFLICT ON CONSTRAINT post_cache_un DO NOTHING;`, [id, author, permlink])
+//   }
+//   return id
+// }
 
 const setupTempTables = async () => {
   client = await pool.connect()
@@ -325,10 +325,11 @@ const setupTempTables = async () => {
   // Vote cache
   await client.query(`CREATE TEMP TABLE vote_cache (
     voter int4 NOT NULL,
-    post_id int4 NOT NULL,
+    author varchar NOT NULL,
+    permlink varchar NOT NULL,
     shares varchar NOT NULL DEFAULT '0',
     timestamp int8 NOT NULL,
-    CONSTRAINT vote_cache_un UNIQUE (voter, post_id)
+    CONSTRAINT vote_cache_un UNIQUE (voter, author, permlink)
   );`)
   await client.query('CREATE INDEX IF NOT EXISTS vote_cache_timestamp_idx ON vote_cache USING btree (timestamp);')
 
