@@ -98,13 +98,23 @@ const getVotes = async (start, limit = 10000) => {
 
 const processVotes = async (votes) => {
   for (let i = 0; i < votes.length; i++) {
+    const t3 = Date.now()
+
     const vote = votes[i]
     // const postStr = vote.author + vote.permlink
     const authorId = await getUserId(vote.author)
     const voterId = await getUserId(vote.voter)
+
+    times.c += Date.now() - t3
+    const t4 = Date.now()
+
     // const cacheIndex = voterId + ';' + postStr
     const timestamp = new Date(vote.timestamp + 'Z').getTime()
     const userRep = await getUserRep(authorId, vote.author)
+
+    times.d += Date.now() - t4
+    const t5 = Date.now()
+
     const userReputation = userRep[0]
     const lastUpdate = userRep[1]
     // multiplier is (0,1) including floats and we can't multiplie bigint by a float
@@ -116,11 +126,22 @@ const processVotes = async (votes) => {
     multiplier = Math.floor(multiplier * 1000)
     lastVoteTimestamp = timestamp
 
+    times.e += Date.now() - t5
+    const t6 = Date.now()
+
     const postId = await getPostId(vote.author, vote.permlink)
     if (!postId) {
       continue
     }
+
+    times.f += Date.now() - t6
+    const t7 = Date.now()
+
     const voteCache = await getVoteCache(voterId, postId)
+
+    times.g += Date.now() - t7
+    const t8 = Date.now()
+
     if (voteCache === null) {
       await setVoteCache(voterId, postId, vote.rshares, timestamp)
       const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(vote.rshares)
@@ -130,6 +151,8 @@ const processVotes = async (votes) => {
       await setUserRep(authorId, vote.author, rep, timestamp)
       await setVoteCache(voterId, postId, vote.rshares, timestamp)
     }
+
+    times.h += Date.now() - t8
   }
 }
 
