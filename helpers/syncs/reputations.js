@@ -225,7 +225,7 @@ const updateLastOpId = async (opId) => {
 // Clear votes older than 7 days from cache and table
 const intervalTime = 300000 // 5m
 setInterval(async () => {
-  console.log('Last vote: ' + new Date(lastVoteTimestamp))
+  // console.log('Last vote: ' + new Date(lastVoteTimestamp))
   if (useCache) {
     await client.query('DELETE FROM vote_cache WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
   } else {
@@ -306,16 +306,16 @@ const setupTempTables = async () => {
   // );`)
 
   // PostId cache
-  await client.query(`CREATE TEMP TABLE post_cache (
-    id int4 NOT NULL,
-    author varchar NOT NULL,
-    permlink varchar NOT NULL,
-    CONSTRAINT post_cache_un UNIQUE (author, permlink)
-  );`)
+  // await client.query(`CREATE TEMP TABLE post_cache (
+  //   id int4 NOT NULL,
+  //   author varchar NOT NULL,
+  //   permlink varchar NOT NULL,
+  //   CONSTRAINT post_cache_un UNIQUE (author, permlink)
+  // );`)
 }
 const dropTempTables = async () => {
   await client.query('DROP TABLE IF EXISTS vote_cache')
-  await client.query('DROP TABLE IF EXISTS post_cache')
+  // await client.query('DROP TABLE IF EXISTS post_cache')
   await client.query("SET temp_buffers='8MB'")
   await client.release(true)
 }
