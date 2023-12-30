@@ -109,13 +109,13 @@ export const setupTables = async () => {
     CONSTRAINT hafsql_community_subs_table_un UNIQUE (account, community)
   );`)
 
-  // Reputations - Create this in reputations.js
-  // await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.reputations_table (
-  //   account int4 NOT NULL,
-  //   reputation varchar NOT NULL DEFAULT '0',
-  //   last_update int8 NOT NULL,
-  //   CONSTRAINT hafsql_reputations_table_un UNIQUE (account)
-  // );`)
+  // Reputations
+  await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.reputations_table (
+    account int4 NOT NULL,
+    reputation varchar NOT NULL DEFAULT '0',
+    last_update int8 NOT NULL,
+    CONSTRAINT hafsql_reputations_table_un UNIQUE (account)
+  );`)
 
   // Vote chache - caching 7 days old votes - needed for reputations
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.votescache_table (
