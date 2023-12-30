@@ -120,10 +120,11 @@ export const setupTables = async () => {
   // Vote chache - caching 7 days old votes - needed for reputations
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.votescache_table (
     voter int4 NOT NULL,
-    post_id int4 NOT NULL,
+    author varchar NOT NULL,
+    permlink varchar NOT NULL,
     shares varchar NOT NULL DEFAULT '0',
     timestamp int8 NOT NULL,
-    CONSTRAINT hafsql_votescache_table_un UNIQUE (voter, post_id)
+    CONSTRAINT hafsql_votescache_table_un UNIQUE (voter, author, permlink)
   );`)
 }
 
