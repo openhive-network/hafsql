@@ -72,6 +72,7 @@ export const fillReputations = async (limit = 20000) => {
       start = Number(votes.rows[votes.rowCount - 1].op_id)
       // console.log('processed ' + start)
       const t2 = Date.now()
+      await updateLastOpId(start)
       votes = await getVotes(start, limit)
       times.b += Date.now() - t2
     }
@@ -86,10 +87,10 @@ export const fillReputations = async (limit = 20000) => {
   }
 
   // if during sync
-  if (useCache) {
-    await insertReputationsAfterSync()
-    await updateLastOpId(start)
-  }
+  // if (useCache) {
+  //   await insertReputationsAfterSync()
+  //   await updateLastOpId(start)
+  // }
 }
 
 const getVotes = async (start, limit = 10000) => {
@@ -203,7 +204,7 @@ const setUserRep = async (userId, username, rep, lastUpdate) => {
   if (typeof rep === 'bigint') {
     rep = rep.toString(10)
   }
-  if (!useCache) {
+  if (!useCache || 1) {
     await pool.query(`INSERT INTO hafsql.reputations_table (account, reputation, last_update) VALUES($1, $2, $3)
       ON CONFLICT ON CONSTRAINT hafsql_reputations_table_un
       DO UPDATE SET reputation=$2, last_update=$3;`, [userId, rep, lastUpdate])
@@ -212,7 +213,7 @@ const setUserRep = async (userId, username, rep, lastUpdate) => {
   }
 }
 const getUserRep = async (userId, username) => {
-  if (useCache) {
+  if (useCache && 0) {
     if (Object.hasOwn(accountCache, username)) {
       return accountCache[username][1]
     }
@@ -222,13 +223,13 @@ const getUserRep = async (userId, username) => {
     [userId]
   )
   if (getRep.rowCount < 1) {
-    if (useCache) {
+    if (useCache && 0) {
       accountCache[username] = [userId, [0, 0]]
     }
     return [0, 0]
   }
   const rep = [getRep.rows[0].reputation, getRep.rows[0].last_update]
-  if (useCache) {
+  if (useCache && 0) {
     accountCache[username] = [userId, rep]
   }
   return rep
