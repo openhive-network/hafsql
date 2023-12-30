@@ -6,23 +6,13 @@ let accountCache = {} // {username: [user_id, [rep, last_update]]}
 let useCache = true
 let lastVoteTimestamp = 0
 let client = null // filled in setupTempTables()
-const times = {
-  a: 0,
-  b: 0,
-  c: 0,
-  d: 0,
-  e: 0,
-  f: 0,
-  g: 0,
-  h: 0
-}
 
 export const syncReputations = async () => {
   useCache = false
   accountCache = {}
   // repCache = {}
   // voteCache = {}
-  await client.release(true)
+  await dropTempTables()
   const intervalTime = 3000
   setInterval(() => {
     fillReputations(1000)
@@ -58,22 +48,14 @@ export const fillReputations = async (limit = 20000) => {
     start = Number(t2.rows[0].id)
   }
 
-  let i = 0
-
   let votes = await getVotes(start, limit)
   if (useCache) {
     // if syncing don't go to recent votes - instead use the cache table for recent votes
     while (votes.rowCount > 0 && start < opIdFrom1WeekAgo) {
-      const t1 = Date.now()
       await processVotes(votes.rows)
-      i++
-      times.a += Date.now() - t1
-      console.log('processed ' + i + ' times in ' + times.a + ' - Time/process ' + Math.floor(times.a / i))
       start = Number(votes.rows[votes.rowCount - 1].op_id)
       // console.log('processed ' + start)
-      const t2 = Date.now()
       votes = await getVotes(start, limit)
-      times.b += Date.now() - t2
     }
   } else {
     // we come here only after sync
@@ -102,23 +84,13 @@ const getVotes = async (start, limit = 10000) => {
 
 const processVotes = async (votes) => {
   for (let i = 0; i < votes.length; i++) {
-    const t3 = Date.now()
-
     const vote = votes[i]
     // const postStr = vote.author + vote.permlink
     const authorId = await getUserId(vote.author)
     const voterId = await getUserId(vote.voter)
-
-    times.c += Date.now() - t3
-    const t4 = Date.now()
-
     // const cacheIndex = voterId + ';' + postStr
     const timestamp = new Date(vote.timestamp + 'Z').getTime()
     const userRep = await getUserRep(authorId, vote.author)
-
-    times.d += Date.now() - t4
-    const t5 = Date.now()
-
     const userReputation = userRep[0]
     const lastUpdate = userRep[1]
     // multiplier is (0,1) including floats and we can't multiplie bigint by a float
@@ -130,22 +102,13 @@ const processVotes = async (votes) => {
     multiplier = Math.floor(multiplier * 1000)
     lastVoteTimestamp = timestamp
 
-    times.e += Date.now() - t5
-    const t6 = Date.now()
-
+    // We use author + permlink for caching instead = +2x speed
     // const postId = await getPostId(vote.author, vote.permlink)
     // if (!postId) {
     //   continue
     // }
 
-    times.f += Date.now() - t6
-    const t7 = Date.now()
-
     const voteCache = await getVoteCache(voterId, vote.author, vote.permlink)
-
-    times.g += Date.now() - t7
-    const t8 = Date.now()
-
     if (voteCache === null) {
       await setVoteCache(voterId, vote.author, vote.permlink, vote.rshares, timestamp)
       const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(vote.rshares)
@@ -155,8 +118,6 @@ const processVotes = async (votes) => {
       await setUserRep(authorId, vote.author, rep, timestamp)
       await setVoteCache(voterId, vote.author, vote.permlink, vote.rshares, timestamp)
     }
-
-    times.h += Date.now() - t8
   }
 }
 
@@ -262,10 +223,9 @@ const updateLastOpId = async (opId) => {
 }
 
 // Clear votes older than 7 days from cache and table
-const intervalTime = 120000 // 10m
+const intervalTime = 300000 // 5m
 setInterval(async () => {
   console.log('Last vote: ' + new Date(lastVoteTimestamp))
-  console.log(times)
   if (useCache) {
     await client.query('DELETE FROM vote_cache WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
   } else {
@@ -352,4 +312,10 @@ const setupTempTables = async () => {
     permlink varchar NOT NULL,
     CONSTRAINT post_cache_un UNIQUE (author, permlink)
   );`)
+}
+const dropTempTables = async () => {
+  await client.query('DROP TABLE IF EXISTS vote_cache')
+  await client.query('DROP TABLE IF EXISTS post_cache')
+  await client.query("SET temp_buffers='8MB'")
+  await client.release(true)
 }
