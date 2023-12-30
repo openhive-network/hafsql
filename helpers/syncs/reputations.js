@@ -58,13 +58,17 @@ export const fillReputations = async (limit = 20000) => {
     start = Number(t2.rows[0].id)
   }
 
+  let i = 0
+
   let votes = await getVotes(start, limit)
   if (useCache) {
     // if syncing don't go to recent votes - instead use the cache table for recent votes
     while (votes.rowCount > 0 && start < opIdFrom1WeekAgo) {
       const t1 = Date.now()
       await processVotes(votes.rows)
+      i++
       times.a += Date.now() - t1
+      console.log('processed ' + i + ' times in ' + times.a + ' - Time/process ' + Math.floor(times.a / i))
       start = Number(votes.rows[votes.rowCount - 1].op_id)
       // console.log('processed ' + start)
       const t2 = Date.now()
