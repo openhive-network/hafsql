@@ -287,10 +287,10 @@ const getVoteCache = async (voterId, author, permlink) => {
 const setVoteCache = async (voterId, author, permlink, shares, timestamp) => {
   if (!useCache) {
     await pool.query(`INSERT INTO hafsql.votescache_table (voter,author,permlink,shares,timestamp) VALUES ($1,$2,$3,$4,$5)
-      ON CONFLICT ON CONSTRAINT hafsql_votescache_table_un DO UPDATE SET shares=$3, timestamp=$4;`, [voterId, author, permlink, shares, timestamp])
+      ON CONFLICT ON CONSTRAINT hafsql_votescache_table_un DO UPDATE SET shares=$4, timestamp=$5;`, [voterId, author, permlink, shares, timestamp])
   } else {
     await client.query(`INSERT INTO vote_cache (voter,author,permlink,shares,timestamp) VALUES ($1,$2,$3,$4,$5)
-      ON CONFLICT ON CONSTRAINT vote_cache_un DO UPDATE SET shares=$3, timestamp=$4;`, [voterId, author, permlink, shares, timestamp])
+      ON CONFLICT ON CONSTRAINT vote_cache_un DO UPDATE SET shares=$4, timestamp=$5;`, [voterId, author, permlink, shares, timestamp])
   }
 }
 
