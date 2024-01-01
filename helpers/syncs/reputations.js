@@ -314,6 +314,9 @@ const setupTempTables = async () => {
   // );`)
 }
 const dropTempTables = async () => {
+  if (!client) {
+    return
+  }
   await client.query('DROP TABLE IF EXISTS vote_cache')
   // await client.query('DROP TABLE IF EXISTS post_cache')
   await client.query("SET temp_buffers='8MB'")
