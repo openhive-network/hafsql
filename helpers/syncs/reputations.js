@@ -102,6 +102,14 @@ const processVotes = async (votes) => {
     multiplier = Math.floor(multiplier * 1000)
     lastVoteTimestamp = timestamp
 
+    let rshares = vote.rshares
+    const len = rshares.length
+    if (len > 3) {
+      rshares = rshares.substring(0, len - 3)
+    } else {
+      rshares = '0'
+    }
+
     // We use author + permlink for caching instead = +2x speed
     // const postId = await getPostId(vote.author, vote.permlink)
     // if (!postId) {
@@ -110,13 +118,13 @@ const processVotes = async (votes) => {
 
     const voteCache = await getVoteCache(voterId, vote.author, vote.permlink)
     if (voteCache === null) {
-      await setVoteCache(voterId, vote.author, vote.permlink, vote.rshares, timestamp)
-      const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(vote.rshares)
+      await setVoteCache(voterId, vote.author, vote.permlink, rshares, timestamp)
+      const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(rshares)
       await setUserRep(authorId, vote.author, rep, timestamp)
     } else {
-      const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(vote.rshares) - BigInt(voteCache)
+      const rep = BigInt(userReputation) * BigInt(multiplier) / 1000n + BigInt(rshares) - BigInt(voteCache)
       await setUserRep(authorId, vote.author, rep, timestamp)
-      await setVoteCache(voterId, vote.author, vote.permlink, vote.rshares, timestamp)
+      await setVoteCache(voterId, vote.author, vote.permlink, rshares, timestamp)
     }
   }
 }
