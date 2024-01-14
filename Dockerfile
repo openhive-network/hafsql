@@ -5,4 +5,4 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 COPY . .
 
-CMD ["docker_entrypoint.sh"]
+ENTRYPOINT ["./docker_entrypoint.sh"]
