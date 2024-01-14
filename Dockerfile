@@ -5,4 +5,4 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 COPY . .
 
-CMD node src/indexes.js && node src/main.js
+CMD ["docker_entrypoint.sh"]
