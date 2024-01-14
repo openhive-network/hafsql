@@ -22,6 +22,7 @@ export const syncReputations = async () => {
 // syncing reputations from last 365 days
 // reputation decays over 365 days to 0
 export const fillReputations = async (limit = 20000) => {
+  setupInterval()
   let start = await pool.query(
     'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
     ['reputations']
@@ -230,16 +231,23 @@ const updateLastOpId = async (opId) => {
   )
 }
 
+let intervalSetupDone = false
 // Clear votes older than 7 days from cache and table
-const intervalTime = 300000 // 5m
-setInterval(async () => {
-  // console.log('Last vote: ' + new Date(lastVoteTimestamp))
-  if (useCache) {
-    await client.query('DELETE FROM vote_cache WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
-  } else {
-    await pool.query('DELETE FROM hafsql.votescache_table WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
+const setupInterval = () => {
+  if (intervalSetupDone) {
+    return
   }
-}, intervalTime)
+  intervalSetupDone = true
+  const intervalTime = 300000 // 5m
+  setInterval(async () => {
+  // console.log('Last vote: ' + new Date(lastVoteTimestamp))
+    if (useCache) {
+      await client.query('DELETE FROM vote_cache WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
+    } else {
+      await pool.query('DELETE FROM hafsql.votescache_table WHERE timestamp < $1', [lastVoteTimestamp - 604800000])
+    }
+  }, intervalTime)
+}
 
 // Need recent votes in the database for shutdown recovery
 // TEMP table for duration of the sync till past week
