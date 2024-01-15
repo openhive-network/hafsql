@@ -149,13 +149,13 @@ export const setupOperationIndexes = async () => {
     // from_account
     await pool.query(
       `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_from_account_idx ON hive.operations ((body_binary::jsonb->'value'->>'from_account'), op_type_id, id DESC)
-        WHERE op_type_id IN (20, ${OPs + 7});`
+        WHERE op_type_id IN (20, ${OPs + 7}, ${OPs + 28});`
     )
     i++
     // to_account
     await pool.query(
       `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_to_account_idx ON hive.operations ((body_binary::jsonb->'value'->>'to_account'), op_type_id, id DESC)
-        WHERE op_type_id IN (20, ${OPs + 7});`
+        WHERE op_type_id IN (20, ${OPs + 7}, ${OPs + 28});`
     )
     i++
     // account_to_recover
