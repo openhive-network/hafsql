@@ -90,6 +90,13 @@ export const setupOperationIndexes = async () => {
       });`
     )
     i++
+    // TODO: remove this after locale C on HAF
+    // memo - for queries with LIKE 'test%'
+    await pool.query(
+      `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_memo_pattern_idx ON hive.operations ((body_binary::jsonb->'value'->>'memo') text_pattern_ops, op_type_id, id DESC)
+        WHERE op_type_id IN (2);`
+    )
+    i++
     // account
     await pool.query(
       `CREATE INDEX ${CONCURRENTLY} IF NOT EXISTS hafsql_account_idx ON hive.operations ((body_binary::jsonb->'value'->>'account'), op_type_id, id DESC)
