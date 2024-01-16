@@ -335,6 +335,6 @@ const dropTempTables = async () => {
   }
   await client.query('DROP TABLE IF EXISTS vote_cache')
   // await client.query('DROP TABLE IF EXISTS post_cache')
-  await client.query("SET temp_buffers='8MB'")
+  // await client.query("SET temp_buffers='8MB'")
   await client.release(true)
 }
