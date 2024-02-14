@@ -36,7 +36,8 @@ export const setupExtraViews = async () => {
     b.current_supply::text as current_supply,
     b.current_hbd_supply::text as current_hbd_supply,
     b.hbd_interest_rate::text as hbd_interest_rate,
-    b.dhf_interval_ledger::text as dhf_interval_ledger
+    b.dhf_interval_ledger::text as dhf_interval_ledger,
+    (b.total_vesting_shares::numeric / b.total_vesting_fund_hive::numeric)/1000 as vests_per_hive
     FROM hive.blocks b;`)
 
   // Delegations
