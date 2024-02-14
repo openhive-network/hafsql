@@ -22,7 +22,7 @@ export const setupPublicUser = async () => {
     await pool.query('GRANT SELECT ON ALL TABLES IN SCHEMA hafsql TO hafsql_public;')
     await pool.query('GRANT ALL ON FUNCTION hive._operation_to_jsonb TO hafsql_public;')
     await pool.query("ALTER USER hafsql_public SET statement_timeout='45s';")
-    await pool.query("ALTER USER hafsql_public SET search_path TO hafsql, public;")
+    await pool.query('ALTER USER hafsql_public SET search_path TO hafsql, public;')
     console.log('hafsql_public user setup done')
     pool.end()
   }
