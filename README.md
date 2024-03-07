@@ -38,6 +38,27 @@ HAF 1.27.5 (not compatible with 1.27.4 or below)
 ```bash
 git clone https://gitlab.com/mahdiyari/hafsql
 ```
+
+***
+## Dockerized setup
+Make sure you have pg_hba entry for `haf_admin` [#Preperations](https://gitlab.com/mahdiyari/hafsql#preperations) and configure your `.env` [#Configs](https://gitlab.com/mahdiyari/hafsql#configs)  
+  
+Building:
+```bash
+docker build -t hafsql-v1.2.0 .
+```
+
+You might need to start HAF with `--skip-hived` flag depending on your `.env` read [#Configs](https://gitlab.com/mahdiyari/hafsql#configs)  
+Running:
+```bash
+docker run -itd --restart unless-stopped --name hafsql-sync hafsql-v1.2.0
+```
+  
+It will create the indexes then start syncing after that.  
+
+
+## Manual setup
+
   
 To install node.js v18 on Ubuntu 22:
 ```bash
@@ -50,7 +71,7 @@ npm install
 ```
 
 #### Preperations
-You need to have a line for `haf_admin` in you pg_hba.conf to create the indexes. Assuming you are using dockerized haf, the following is the easiest way of doing so.
+You need to have a line for `haf_admin` in you pg_hba.conf. Assuming you are using dockerized haf, the following is the easiest way of doing so.
 ```bash
 cd haf-datadir
 mkdir -p haf_postgresql_conf.d
@@ -111,14 +132,14 @@ Depending on your situation, you can create indexes in two ways.
 
 1. CONCURRENTLY=true  
 Creating indexes will not interrupt the live sync of the HAF/hived node. Your node will be running just fine.  
-It is slower compared to the second option and will take longer. At least 24hours.  
+It is slower compared to the second option and will take longer. At least 24 hours.  
 This is the default option to not break the operation of a live node.  
   
   
 2. CONCURRENTLY=false  
-The live sync of the HAF/hived will be paused. Other than that, there shouldn't be any other interruptions.  
-hived will continue syncing just fine after the index creation.  
-It is faster in creating the indexes. Around 4 hours.  
+You need to stop the live sync of the HAF/hived. Start HAF with --skip-hived node before starting HafSQL with this config.  
+It is faster in creating the indexes. Around 6 hours.  
+
   
 
 
@@ -180,21 +201,6 @@ To restart:
 ```bash
 npm run restart
 ```
-
-## Dockerized setup
-First you need to follow [#Preperations](https://gitlab.com/mahdiyari/hafsql#preperations) and [#Configs](https://gitlab.com/mahdiyari/hafsql#configs)  
-  
-Building:
-```bash
-docker build -t hafsql-v1.2.0 .
-```
-
-Running:
-```bash
-docker run -itd --restart unless-stopped --name hafsql-sync hafsql-v1.2.0
-```
-  
-It will create the indexes then start syncing after that.
 
 ***
 #### Options
