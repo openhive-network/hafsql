@@ -190,6 +190,7 @@ export const setupOperationIndexes = async () => {
     i++
   }
 
+  // TODO: actually can skip in certain situations
   /** Can't skip */
   // author, permlink -* used in comments
   await pool.query(
@@ -276,7 +277,7 @@ const main = async () => {
     console.log(`Indexes done. Total time spent = ${timeSpent} minutes`)
     console.log('Draining the pool...')
     client.release(true)
-    await pool.end()
+    // await pool.end() - handled in beforeExit
   } catch (e) {
     // Handling the error after gracefulShutdown()
     // ERROR: 57014: canceling statement due to user request
@@ -290,7 +291,7 @@ const main = async () => {
 }
 
 let gs = false
-const gracefulShutdown = async () => {
+const gracefulShutdown = async (code = 0) => {
   if (gs) {
     return
   }
@@ -299,10 +300,11 @@ const gracefulShutdown = async () => {
   await pool.query('SELECT pg_cancel_backend($1)', [clientPID])
   await pool.end()
   console.log('Postgresql pool drained.')
-  process.exit()
+  process.exit(code)
 }
-process.on('SIGTERM', () => gracefulShutdown())
-process.on('SIGINT', () => gracefulShutdown())
+process.on('SIGTERM', () => gracefulShutdown(0))
+process.on('SIGINT', () => gracefulShutdown(0))
+process.on('beforeExit', gracefulShutdown)
 
 main()
 
