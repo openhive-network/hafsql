@@ -54,7 +54,7 @@ const getReblogs = async (start, limit = 10000) => {
       let parsedJson = JSON.parse(customJson.json)
       const postingAuths = customJson.required_posting_auths
       if (!Array.isArray(parsedJson)) {
-        if (typeof parsedJson !== 'object' || customJson.op_id > 27630458) { // block 5999998
+        if (typeof parsedJson !== 'object' || customJson.op_id > BigInt('25769795186065408')) { // block 5999998
           continue
         }
         parsedJson = [customJson.id, parsedJson]

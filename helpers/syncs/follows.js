@@ -51,7 +51,7 @@ const getFollows = async (start, limit = 10000) => {
       let parsedJson = JSON.parse(customJson.json)
       const postingAuths = customJson.required_posting_auths
       if (!Array.isArray(parsedJson)) {
-        if (typeof parsedJson !== 'object' || customJson.op_id > 27630458) {
+        if (typeof parsedJson !== 'object' || customJson.op_id > BigInt('25769795186065408')) {
           continue
         }
         parsedJson = ['follow', parsedJson]
