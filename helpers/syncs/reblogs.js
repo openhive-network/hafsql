@@ -33,10 +33,10 @@ export const fillReblogs = async (limit = 40000) => {
 }
 
 const getReblogs = async (start, limit = 10000) => {
-  if (start < 16724280) {
-    start = 16724280
+  if (start < BigInt('19622047718047744')) { // block 4568614
+    start = BigInt('19622047718047744')
   }
-  if (start < 27000000) {
+  if (start < BigInt('25422748943646720')) { // block 5919195
     limit = 80000
   }
   const result = await pool.query(
@@ -54,7 +54,7 @@ const getReblogs = async (start, limit = 10000) => {
       let parsedJson = JSON.parse(customJson.json)
       const postingAuths = customJson.required_posting_auths
       if (!Array.isArray(parsedJson)) {
-        if (typeof parsedJson !== 'object' || customJson.op_id > 27630458) {
+        if (typeof parsedJson !== 'object' || customJson.op_id > 27630458) { // block 5999998
           continue
         }
         parsedJson = [customJson.id, parsedJson]
