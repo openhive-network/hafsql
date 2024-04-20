@@ -10,5 +10,6 @@
   "javascript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
   "javascript.format.insertSpaceBeforeFunctionParenthesis": true,
   "editor.useTabStops": true,
-  "standard.autoFixOnSave": true
+  "standard.autoFixOnSave": true,
+  "editor.formatOnSave": true
 }
