@@ -1,6 +1,6 @@
 import pg from 'pg'
 import { config } from 'dotenv'
-import { opIds } from '../helpers/operationIds'
+import { opIds } from '../helpers/operationIds.js'
 config()
 
 // Indexes need haf_admin access
