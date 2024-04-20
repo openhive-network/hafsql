@@ -11,7 +11,7 @@ const pool = new pg.Pool({
   user: 'haf_admin',
   host: process.env.PGHOST || '172.17.0.2',
   port: process.env.PGPORT || 5432,
-  max: 10,
+  max: 4,
   min: 1
 })
 
