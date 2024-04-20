@@ -18,7 +18,7 @@ const pool = new pg.Pool({
 let finishedIndexes = 0
 
 // const CONCURRENTLY = process.env.CONCURRENTLY === 'false' ? '' : 'CONCURRENTLY'
-// const INDEXMAXTHREADS = process.env.INDEXMAXTHREADS || 4
+const INDEXMAXTHREADS = process.env.INDEXMAXTHREADS || 4
 // const SKIPINDEXES = process.env.SKIPOPERATIONINDEXES === 'true'
 
 const indexesArray = [
@@ -129,6 +129,7 @@ const indexesArray = [
 
 const makeIndexes = async () => {
   console.log('Creating indexes... Will take a long time...', new Date())
+  await pool.query(`SET max_parallel_maintenance_workers = ${INDEXMAXTHREADS};`)
   for (let i = 0; i < indexesArray.length; i++) {
     const query = new pg.Query(indexesArray[i])
     query.on('end', () => {
