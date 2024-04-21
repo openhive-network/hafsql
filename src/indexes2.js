@@ -129,9 +129,6 @@ const indexesArray = [
 
 const makeIndexes = async () => {
   console.log('Creating indexes... Will take a long time...', new Date())
-  await pool.query(
-    `SET max_worker_processes = ${INDEXMAXTHREADS < 8 ? 8 : INDEXMAXTHREADS};`
-  )
   await pool.query(`SET max_parallel_maintenance_workers = ${INDEXMAXTHREADS};`)
   for (let i = 0; i < indexesArray.length; i++) {
     await pool.query(indexesArray[i])
