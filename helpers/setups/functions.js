@@ -14,4 +14,17 @@ export const setupFunctions = async () => {
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;`
   await pool.query(AssetSymbol)
+
+  const IsJsonb = `CREATE OR REPLACE FUNCTION hafsql.is_jsonb(_txt text)
+      RETURNS bool
+      LANGUAGE plpgsql IMMUTABLE STRICT AS
+    $func$
+    BEGIN
+      RETURN _txt::jsonb IS NOT NULL;
+    EXCEPTION
+      WHEN SQLSTATE '22P02' THEN  -- invalid_text_representation
+          RETURN false;
+    END
+    $func$;`
+  await pool.query(IsJsonb)
 }
