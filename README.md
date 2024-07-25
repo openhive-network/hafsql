@@ -1,77 +1,93 @@
 # HafSQL
 
-Space used by indexes +400GB (non-compressed)
-Space used by tables 56GB
+Space used by indexes +400GB (non-compressed) Space used by tables 56GB
 
 ## What is HafSQL
-HafSQL is a HAF application that runs inside the HAF database. It will run on the `hafsql` schema inside the HAF database.  
-  
-HafSQL provides the following using the data already present in the HAF database:
+
+HafSQL is a HAF application that runs inside the HAF database. It will run on
+the `hafsql` schema inside the HAF database.
+
+HafSQL provides the following using the data already present in the HAF
+database:
+
 - All the operations (50 in total)
-- - Votes, Comments, Transfers, ...
+-
+  - Votes, Comments, Transfers, ...
 - All the virtual operations (43 in total)
-- Ability to search all the operations by their parameters  
-  
+- Ability to search all the operations by their parameters
 
 HafSQL also provides the following additional parsed data:
+
 - Posts and comments
-- - Search by `author` and `permlink` or `parent_author` and `parent_permlink`
-- - Search by tags
-- - Sort by pending payout
+-
+  - Search by `author` and `permlink` or `parent_author` and `parent_permlink`
+-
+  - Search by tags
+-
+  - Sort by pending payout
 - Reblogs
 - HP and RC delegations
 - Community subs and roles
 - Followers
 - Mutes + Mute followers
 - Blacklists + Blacklist followers
-- Proposal voters  
-
+- Proposal voters
 
 ## How to run:
 
 #### Requirements
-Ubuntu 22  
-Nodejs v18  (for manual installation)  
-HAF 1.27.5 (not compatible with 1.27.4 or below)  
-  
+
+Ubuntu 22\
+Nodejs v18 (for manual installation)\
+HAF 1.27.5 (not compatible with 1.27.4 or below)
 
 ```bash
 git clone https://gitlab.com/mahdiyari/hafsql
 ```
 
-***
+---
+
 ## Dockerized setup
-Make sure you have pg_hba entry for `haf_admin` [#Preperations](https://gitlab.com/mahdiyari/hafsql#preperations) and configure your `.env` [#Configs](https://gitlab.com/mahdiyari/hafsql#configs)  
-  
+
+Make sure you have pg_hba entry for `haf_admin`
+[#Preperations](https://gitlab.com/mahdiyari/hafsql#preperations) and configure
+your `.env` [#Configs](https://gitlab.com/mahdiyari/hafsql#configs)
+
 Building:
+
 ```bash
 docker build -t hafsql-v1.2.0 .
 ```
 
-You might need to start HAF with `--skip-hived` flag depending on your `.env` read [#Configs](https://gitlab.com/mahdiyari/hafsql#configs)  
+You might need to start HAF with `--skip-hived` flag depending on your `.env`
+read [#Configs](https://gitlab.com/mahdiyari/hafsql#configs)\
 Running:
+
 ```bash
 docker run -itd --restart unless-stopped --name hafsql-sync hafsql-v1.2.0
 ```
-  
-It will create the indexes then start syncing after that.  
 
+It will create the indexes then start syncing after that.
 
 ## Manual setup
 
-  
 To install node.js v18 on Ubuntu 22:
+
 ```bash
 ./run.sh install_node
 ```
 
 Install dependencies:
+
 ```bash
 npm install
 ```
 
 #### Preperations
-You need to have a line for `haf_admin` in you pg_hba.conf. Assuming you are using dockerized haf, the following is the easiest way of doing so.
+
+You need to have a line for `haf_admin` in you pg_hba.conf. Assuming you are
+using dockerized haf, the following is the easiest way of doing so.
+
 ```bash
 cd haf-datadir
 mkdir -p haf_postgresql_conf.d
@@ -80,15 +96,16 @@ touch custom_postgres.conf
 touch custom_pg_hba.conf
 ```
 
-`custom_postgres.conf`:  
+`custom_postgres.conf`:
+
 ```conf
 hba_file = '/home/hived/datadir/haf_postgresql_conf.d/custom_pg_hba.conf' # Don't change
 ```
-**^^ Don't change the path in the above line ^^**  
-  
-  
+
+**^^ Don't change the path in the above line ^^**
 
 `custom_pg_hba.conf`:
+
 ```conf
 # Necessary for HafSQL index creation - can be removed afterwards
 host    haf_block_log     haf_admin    172.0.0.0/8    trust
@@ -124,87 +141,101 @@ Restart the container and you should be good to go.
 ##### Configs
 
 Create `.env` file from `example.env` and edit if necessary.
+
 ```bash
 cp example.env .env
 ```
 
 Depending on your situation, you can create indexes in two ways.
 
-1. CONCURRENTLY=true  
-Creating indexes will not interrupt the live sync of the HAF/hived node. Your node will be running just fine.  
-It is slower compared to the second option and will take longer. At least 24 hours.  
-This is the default option to not break the operation of a live node.  
-  
-  
-2. CONCURRENTLY=false  
-You need to stop the live sync of the HAF/hived. Start HAF with --skip-hived node before starting HafSQL with this config.  
-It is faster in creating the indexes. Around 6 hours.  
+1. CONCURRENTLY=true\
+   Creating indexes will not interrupt the live sync of the HAF/hived node. Your
+   node will be running just fine.\
+   It is slower compared to the second option and will take longer. At least 24
+   hours.\
+   This is the default option to not break the operation of a live node.
 
-  
-
+2. CONCURRENTLY=false\
+   You need to stop the live sync of the HAF/hived. Start HAF with --skip-hived
+   node before starting HafSQL with this config.\
+   It is faster in creating the indexes. Around 6 hours.
 
 ##### STEP 1
 
-After deciding your method in .env file, you can create the indexes.  
-  
-Note: It is recommended to run the following command inside a `tmux` or `screen` session because it will take a long time.  
+After deciding your method in .env file, you can create the indexes.
+
+Note: It is recommended to run the following command inside a `tmux` or `screen`
+session because it will take a long time.
+
 ```bash
 npm run create-indexes
 ```
-  
-**How to make index creation faster:**  
-If you have a fast storage like NVMe, you can edit `INDEXMAXTHREADS` in the `.env` file according to the thread count of your CPU and make index creation faster.  
-I would recommend 8-12 for NVMe and 2-4 for slower storage. Postgresql will use extra CPU threads only if needed.  
-This is only for the index creation and will not affect the other parts.  
-Make sure `INDEXMAXTHREADS` <= CPU threads - 1  
-Default value is 4  
-  
-My tests:  
-|Test case|Finish time|
-|---------|--------|
-|0 threads - 1 index|24m - 100%|
-|4 threads - 1 index|9m - 38%|
-|8 threads - 1 index|7m - 28%|
-|12 threads - 1 index|6m - 25%|
-  
-|Test case|CONCURRENTLY|Finish time|
-|---------|--------|--------|
-|0 threads - All indexes|true|23h|
-|8 threads - All indexes|true|31h|
-|0 threads - All indexes|false|16h|
-|8 threads - All indexes|false|4h|
-  
+
+**How to make index creation faster:**\
+If you have a fast storage like NVMe, you can edit `INDEXMAXTHREADS` in the
+`.env` file according to the thread count of your CPU and make index creation
+faster.\
+I would recommend 8-12 for NVMe and 2-4 for slower storage. Postgresql will use
+extra CPU threads only if needed.\
+This is only for the index creation and will not affect the other parts.\
+Make sure `INDEXMAXTHREADS` <= CPU threads - 1\
+Default value is 4
+
+My tests:\
+|Test case|Finish time| |---------|--------| |0 threads - 1 index|24m - 100%| |4
+threads - 1 index|9m - 38%| |8 threads - 1 index|7m - 28%| |12 threads - 1
+index|6m - 25%|
+
+| Test case               | CONCURRENTLY | Finish time |
+| ----------------------- | ------------ | ----------- |
+| 0 threads - All indexes | true         | 23h         |
+| 8 threads - All indexes | true         | 31h         |
+| 0 threads - All indexes | false        | 16h         |
+| 8 threads - All indexes | false        | 4h          |
+
 ##### STEP 2
 
 Start HafSQL:
+
 ```bash
 npm run start
 ```
-HafSQL will finish syncing in couple of hours. You can check the logs for its progress.  
+
+HafSQL will finish syncing in couple of hours. You can check the logs for its
+progress.
 
 See logs:
+
 ```bash
 npm run logs
 ```
 
 Monitor:
+
 ```bash
 npm run list
 ```
 
 To stop:
+
 ```bash
 npm run stop
 ```
 
 To restart:
+
 ```bash
 npm run restart
 ```
 
-***
+---
+
 #### Options
-HafSQL makes it possible to run only what you need. For a public API you probably want all of them to be enabled. Configurable in `.env`. Below are the default values included in example.env.
+
+HafSQL makes it possible to run only what you need. For a public API you
+probably want all of them to be enabled. Configurable in `.env`. Below are the
+default values included in example.env.
+
 ```conf
 # modular syncing
 COMMENTS=true # comments, rewards, reblogs
@@ -218,4 +249,3 @@ PROPOSALS=true
 # useful if you don't intend to provide a public API and/or search the ops/vops views
 SKIPOPERATIONINDEXES=false
 ```
-
