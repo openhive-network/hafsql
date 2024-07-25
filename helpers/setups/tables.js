@@ -1,4 +1,4 @@
-import { pool } from '../database.js'
+import { pool } from "../database.js";
 
 export const setupTables = async () => {
   // Sync data
@@ -6,8 +6,8 @@ export const setupTables = async () => {
     table_name varchar NOT NULL,
     last_op_id int8 NOT NULL,
     CONSTRAINT hafsql_sync_data_un UNIQUE (table_name)
-  );`)
-  await setupSyncDataTable()
+  );`);
+  await setupSyncDataTable();
 
   // Delegations
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.delegations_table (
@@ -15,7 +15,7 @@ export const setupTables = async () => {
     delegatee varchar(16) NOT NULL,
     vests varchar NOT NULL,
     CONSTRAINT hafsql_delegations_table_un UNIQUE (delegator, delegatee)
-  );`)
+  );`);
 
   // RC Delegations
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.rc_delegations_table (
@@ -23,56 +23,56 @@ export const setupTables = async () => {
     delegatee varchar(16) NOT NULL,
     rc varchar NOT NULL,
     CONSTRAINT hafsql_rc_delegations_table_un UNIQUE (delegator, delegatee)
-  );`)
+  );`);
 
   // Proposal Approvals
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.proposal_approvals_table (
     id int4 NOT NULL,
     voter varchar(16) NOT NULL,
     CONSTRAINT hafsql_proposal_approvals_table_un UNIQUE (id, voter)
-  );`)
+  );`);
 
   // Blacklists
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.blacklists_table (
     blacklister int4 NOT NULL,
     blacklisted int4 NOT NULL,
     CONSTRAINT hafsql_blacklists_table_un UNIQUE (blacklister, blacklisted)
-  );`)
+  );`);
 
   // Blacklist Follows
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.blacklist_follows_table (
     account int4 NOT NULL,
     blacklist int4 NOT NULL,
     CONSTRAINT hafsql_blacklist_follows_table_un UNIQUE (account, blacklist)
-  );`)
+  );`);
 
   // Mute
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.mutes_table (
     muter int4 NOT NULL,
     muted int4 NOT NULL,
     CONSTRAINT hafsql_mutes_table_un UNIQUE (muter, muted)
-  );`)
+  );`);
 
   // Mute Follows
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.mute_follows_table (
     account int4 NOT NULL,
     mute_list int4 NOT NULL,
     CONSTRAINT hafsql_mute_follows_table_un UNIQUE (account, mute_list)
-  );`)
+  );`);
 
   // Reblogs
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.reblogs_table (
     account int4 NOT NULL,
     post int8 NOT NULL,
     CONSTRAINT hafsql_reblogs_table_un UNIQUE (account, post)
-  );`)
+  );`);
 
   // Follows
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.follows_table (
     follower int4 NOT NULL,
     following int4 NOT NULL,
     CONSTRAINT hafsql_follows_table_un UNIQUE (follower, following)
-  );`)
+  );`);
 
   // Comments
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.comments_table (
@@ -91,7 +91,7 @@ export const setupTables = async () => {
     deleted bool NULL DEFAULT false,
     CONSTRAINT hafsql_comments_table_pk PRIMARY KEY (id),
     CONSTRAINT hafsql_comments_table_un UNIQUE (author, permlink)
-  );`)
+  );`);
 
   // Community Roles
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.community_roles_table (
@@ -100,14 +100,14 @@ export const setupTables = async () => {
     "role" int2 NOT NULL DEFAULT 0,
     title varchar NULL,
     CONSTRAINT hafsql_community_roles_table_un UNIQUE (account, community)
-  );`)
+  );`);
 
   // Community Subs
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.community_subs_table (
     account int4 NOT NULL,
     community int4 NOT NULL,
     CONSTRAINT hafsql_community_subs_table_un UNIQUE (account, community)
-  );`)
+  );`);
 
   // Reputations
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.reputations_table (
@@ -115,7 +115,7 @@ export const setupTables = async () => {
     reputation varchar NOT NULL DEFAULT '0',
     last_update int8 NOT NULL,
     CONSTRAINT hafsql_reputations_table_un UNIQUE (account)
-  );`)
+  );`);
 
   // Vote chache - caching 7 days old votes - needed for reputations
   await pool.query(`CREATE TABLE IF NOT EXISTS hafsql.votescache_table (
@@ -125,51 +125,69 @@ export const setupTables = async () => {
     shares varchar NOT NULL DEFAULT '0',
     timestamp int8 NOT NULL,
     CONSTRAINT hafsql_votescache_table_un UNIQUE (voter, author, permlink)
-  );`)
-}
+  );`);
+};
 
 export const createLastIndexes = async () => {
-  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_pending_payout_value_idx ON hafsql.comments_table USING btree (pending_payout_value);')
-  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_tags_idx ON hafsql.comments_table USING gin (tags);')
-  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_parent_author_parent_permlink_idx ON hafsql.comments_table USING btree (parent_author, parent_permlink);')
-  await pool.query("CREATE INDEX IF NOT EXISTS hafsql_comments_table_metadata_idx ON hafsql.comments_table USING btree ((metadata->>'content_type'));")
-  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_created_idx ON hafsql.comments_table USING btree (created);')
-  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_comments_table_author_created_idx ON hafsql.comments_table USING btree (author, created);')
-  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_reblogs_table_post_idx ON hafsql.reblogs_table USING btree (post);')
-  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_proposal_approvals_voter_idx ON hafsql.proposal_approvals_table USING btree (voter);')
   await pool.query(
-    'CREATE INDEX IF NOT EXISTS hafsql_rc_delegations_table_delegatee_idx ON hafsql.rc_delegations_table USING btree (delegatee);'
-  )
+    "CREATE INDEX IF NOT EXISTS hafsql_comments_table_pending_payout_value_idx ON hafsql.comments_table USING btree (pending_payout_value);",
+  );
   await pool.query(
-    'CREATE INDEX IF NOT EXISTS hafsql_delegations_table_delegatee_idx ON hafsql.delegations_table USING btree (delegatee);'
-  )
-  await pool.query('CREATE INDEX IF NOT EXISTS hafsql_votescache_table_timestamp_idx ON hafsql.votescache_table USING btree (timestamp);')
-}
+    "CREATE INDEX IF NOT EXISTS hafsql_comments_table_tags_idx ON hafsql.comments_table USING gin (tags);",
+  );
+  await pool.query(
+    "CREATE INDEX IF NOT EXISTS hafsql_comments_table_parent_author_parent_permlink_idx ON hafsql.comments_table USING btree (parent_author, parent_permlink);",
+  );
+  await pool.query(
+    "CREATE INDEX IF NOT EXISTS hafsql_comments_table_metadata_idx ON hafsql.comments_table USING btree ((metadata->>'content_type'));",
+  );
+  await pool.query(
+    "CREATE INDEX IF NOT EXISTS hafsql_comments_table_created_idx ON hafsql.comments_table USING btree (created);",
+  );
+  await pool.query(
+    "CREATE INDEX IF NOT EXISTS hafsql_comments_table_author_created_idx ON hafsql.comments_table USING btree (author, created);",
+  );
+  await pool.query(
+    "CREATE INDEX IF NOT EXISTS hafsql_reblogs_table_post_idx ON hafsql.reblogs_table USING btree (post);",
+  );
+  await pool.query(
+    "CREATE INDEX IF NOT EXISTS hafsql_proposal_approvals_voter_idx ON hafsql.proposal_approvals_table USING btree (voter);",
+  );
+  await pool.query(
+    "CREATE INDEX IF NOT EXISTS hafsql_rc_delegations_table_delegatee_idx ON hafsql.rc_delegations_table USING btree (delegatee);",
+  );
+  await pool.query(
+    "CREATE INDEX IF NOT EXISTS hafsql_delegations_table_delegatee_idx ON hafsql.delegations_table USING btree (delegatee);",
+  );
+  await pool.query(
+    "CREATE INDEX IF NOT EXISTS hafsql_votescache_table_timestamp_idx ON hafsql.votescache_table USING btree (timestamp);",
+  );
+};
 
 const setupSyncDataTable = async () => {
   const tableNames = [
-    'delegations',
-    'rc_delegations',
-    'proposal_approvals',
-    'follows',
-    'comments',
-    'rewards',
-    'reblogs',
-    'communities',
-    'delete_comments',
-    'reputations'
-  ]
+    "delegations",
+    "rc_delegations",
+    "proposal_approvals",
+    "follows",
+    "comments",
+    "rewards",
+    "reblogs",
+    "communities",
+    "delete_comments",
+    "reputations",
+  ];
   for (let i = 0; i < tableNames.length; i++) {
-    const name = tableNames[i]
+    const name = tableNames[i];
     const data = await pool.query(
-      'SELECT last_op_id FROM hafsql.sync_data WHERE table_name = $1',
-      [name]
-    )
+      "SELECT last_op_id FROM hafsql.sync_data WHERE table_name = $1",
+      [name],
+    );
     if (!data.rowCount) {
       await pool.query(
-        'INSERT INTO hafsql.sync_data(table_name, last_op_id) VALUES($1, $2)',
-        [name, 0]
-      )
+        "INSERT INTO hafsql.sync_data(table_name, last_op_id) VALUES($1, $2)",
+        [name, 0],
+      );
     }
   }
-}
+};

@@ -1,7 +1,7 @@
 /**
  * Retrun null on valid username string
  */
-export const validateAccountName = value => {
+export const validateAccountName = (value) => {
   let i, label, len, suffix
   suffix = 'Account name should '
   if (!value) {

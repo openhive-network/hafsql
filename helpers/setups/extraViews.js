@@ -1,4 +1,4 @@
-import { pool } from '../database.js'
+import { pool } from "../database.js";
 
 export const setupExtraViews = async () => {
   // Blocks
@@ -12,7 +12,7 @@ export const setupExtraViews = async () => {
     encode(b.prev, 'hex'::text) as prev,
     encode(b.witness_signature, 'hex'::text) as signature,
     encode(b.transaction_merkle_root, 'hex'::text) as transaction_merkle_root
-    FROM hive.blocks b;`)
+    FROM hive.blocks b;`);
 
   // Transactions
   await pool.query(`CREATE OR REPLACE VIEW hafsql.transactions
@@ -23,7 +23,7 @@ export const setupExtraViews = async () => {
     x.ref_block_prefix,
     x.expiration,
     array_fill(encode(x.signature, 'hex'), array[1]) || array(select encode(tm.signature, 'hex') from hive.transactions_multisig tm where tm.trx_hash=x.trx_hash) as signatures
-    FROM hive.transactions x;`)
+    FROM hive.transactions x;`);
 
   // DynamicGlobalProperties
   await pool.query(`CREATE OR REPLACE VIEW hafsql.dynamic_global_properties
@@ -38,21 +38,21 @@ export const setupExtraViews = async () => {
     b.hbd_interest_rate::text as hbd_interest_rate,
     b.dhf_interval_ledger::text as dhf_interval_ledger,
     (b.total_vesting_shares::numeric / b.total_vesting_fund_hive::numeric)/1000 as vests_per_hive
-    FROM hive.blocks b;`)
+    FROM hive.blocks b;`);
 
   // Delegations
   await pool.query(`CREATE OR REPLACE VIEW hafsql.delegations
   AS SELECT x.delegator,
     x.delegatee,
     x.vests
-    FROM hafsql.delegations_table x;`)
+    FROM hafsql.delegations_table x;`);
 
   // RC Delegations
   await pool.query(`CREATE OR REPLACE VIEW hafsql.rc_delegations
   AS SELECT x.delegator,
     x.delegatee,
     x.rc
-    FROM hafsql.rc_delegations_table x;`)
+    FROM hafsql.rc_delegations_table x;`);
 
   // Comments
   await pool.query(`CREATE OR REPLACE VIEW hafsql.comments
@@ -81,7 +81,7 @@ export const setupExtraViews = async () => {
     COALESCE((SELECT allow_votes FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), 'true') AS allow_votes,
     COALESCE((SELECT allow_curation_rewards FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), 'true') AS allow_curation_rewards,
     x.deleted
-    FROM hafsql.comments_table x;`)
+    FROM hafsql.comments_table x;`);
 
   // Community Subs
   await pool.query(`CREATE OR REPLACE VIEW hafsql.community_subs
@@ -89,7 +89,7 @@ export const setupExtraViews = async () => {
     c.community AS community_id,
     (SELECT a.name FROM hive.accounts a WHERE id=c.account) AS account_name,
     (SELECT a.name FROM hive.accounts a WHERE id=c.community) AS community_name
-    FROM hafsql.community_subs_table c;`)
+    FROM hafsql.community_subs_table c;`);
 
   // Community Roles
   await pool.query(`CREATE OR REPLACE VIEW hafsql.community_roles
@@ -99,7 +99,7 @@ export const setupExtraViews = async () => {
     (SELECT a.name FROM hive.accounts a WHERE id=c.community) AS community_name,
     CASE WHEN c.role=-2 THEN 'muted' WHEN c.role=8 THEN 'owner' WHEN c.role=2 THEN 'member' WHEN c.role=4 THEN 'mod' WHEN c.role=6 THEN 'admin' ELSE 'guest' END AS role,
     c.title
-    FROM hafsql.community_roles_table c;`)
+    FROM hafsql.community_roles_table c;`);
 
   // Blacklists
   await pool.query(`CREATE OR REPLACE VIEW hafsql.blacklists
@@ -107,7 +107,7 @@ export const setupExtraViews = async () => {
     x.blacklisted AS blacklisted_id,
     (SELECT a.name FROM hive.accounts a WHERE id=x.blacklister) AS blacklister_name,
     (SELECT a.name FROM hive.accounts a WHERE id=x.blacklisted) AS blacklisted_name
-    FROM hafsql.blacklists_table x;`)
+    FROM hafsql.blacklists_table x;`);
 
   // Mutes
   await pool.query(`CREATE OR REPLACE VIEW hafsql.mutes
@@ -115,7 +115,7 @@ export const setupExtraViews = async () => {
     x.muted AS muted_id,
     (SELECT a.name FROM hive.accounts a WHERE id=x.muter) AS muter_name,
     (SELECT a.name FROM hive.accounts a WHERE id=x.muted) AS muted_name
-    FROM hafsql.mutes_table x;`)
+    FROM hafsql.mutes_table x;`);
 
   // Blacklist Follows
   await pool.query(`CREATE OR REPLACE VIEW hafsql.blacklist_follows
@@ -123,7 +123,7 @@ export const setupExtraViews = async () => {
     x.blacklist AS blacklist_id,
     (SELECT a.name FROM hive.accounts a WHERE id=x.account) AS account_name,
     (SELECT a.name FROM hive.accounts a WHERE id=x.blacklist) AS blacklist_name
-    FROM hafsql.blacklist_follows_table x;`)
+    FROM hafsql.blacklist_follows_table x;`);
 
   // Mute Follows
   await pool.query(`CREATE OR REPLACE VIEW hafsql.mute_follows
@@ -131,7 +131,7 @@ export const setupExtraViews = async () => {
     x.mute_list AS mute_list_id,
     (SELECT a.name FROM hive.accounts a WHERE id=x.account) AS account_name,
     (SELECT a.name FROM hive.accounts a WHERE id=x.mute_list) AS mute_list_name
-    FROM hafsql.mute_follows_table x;`)
+    FROM hafsql.mute_follows_table x;`);
 
   // Follows
   await pool.query(`CREATE OR REPLACE VIEW hafsql.follows
@@ -139,26 +139,26 @@ export const setupExtraViews = async () => {
     x.following AS following_id,
     (SELECT a.name FROM hive.accounts a WHERE id=x.follower) AS follower_name,
     (SELECT a.name FROM hive.accounts a WHERE id=x.following) AS following_name
-    FROM hafsql.follows_table x;`)
+    FROM hafsql.follows_table x;`);
 
   // Reblogs
   await pool.query(`CREATE OR REPLACE VIEW hafsql.reblogs
   AS SELECT x.account AS account_id,
     x.post AS post_id,
     (SELECT a.name FROM hive.accounts a WHERE id=x.account) AS account_name
-    FROM hafsql.reblogs_table x;`)
+    FROM hafsql.reblogs_table x;`);
 
   // Proposal Approvlas
   await pool.query(`CREATE OR REPLACE VIEW hafsql.proposal_approvals
   AS SELECT x.id AS proposal_id,
     x.voter
-    FROM hafsql.proposal_approvals_table x;`)
+    FROM hafsql.proposal_approvals_table x;`);
 
   // Accounts
   await pool.query(`CREATE OR REPLACE VIEW hafsql.accounts
   AS SELECT x.id,
     x.name
-    FROM hive.accounts x;`)
+    FROM hive.accounts x;`);
 
   // Operations
   await pool.query(`CREATE OR REPLACE VIEW hafsql.operations
@@ -169,21 +169,21 @@ export const setupExtraViews = async () => {
     x.op_type_id,
     x.timestamp,
     x.body_binary::jsonb
-    FROM hive.operations x;`)
+    FROM hive.operations x;`);
 
   // Operation Types
   await pool.query(`CREATE OR REPLACE VIEW hafsql.operation_types
   AS SELECT x.id,
     x.name,
     x.is_virtual 
-    FROM hive.operation_types x;`)
+    FROM hive.operation_types x;`);
 
   // Applied Hardforks
   await pool.query(`CREATE OR REPLACE VIEW hafsql.applied_hardforks
   AS SELECT x.hardfork_num,
     x.block_num,
     x.hardfork_vop_id
-    FROM hive.applied_hardforks x;`)
+    FROM hive.applied_hardforks x;`);
 
   // Reputations
   await pool.query(`CREATE OR REPLACE VIEW hafsql.reputations
@@ -191,8 +191,8 @@ export const setupExtraViews = async () => {
     (SELECT name FROM hafsql.accounts WHERE id=x.account) as account_name,
     x.reputation,
     x.last_update
-    FROM hafsql.reputations_table x;`)
-}
+    FROM hafsql.reputations_table x;`);
+};
 
 export const removeExtraViews = async () => {
   await pool.query(`DROP VIEW IF EXISTS
@@ -215,6 +215,5 @@ export const removeExtraViews = async () => {
     hafsql.applied_hardforks,
     hafsql.community_subs,
     hafsql.community_roles,
-    hafsql.reputations;`
-  )
-}
+    hafsql.reputations;`);
+};
