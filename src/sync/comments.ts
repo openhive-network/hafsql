@@ -32,7 +32,6 @@ self.onmessage = (e: MessageEvent) => {
 
 // TODO: This dies somehow?????
 // Probably fixed, probably
-// TODO: add last edited time
 let firstRun = true
 const syncComments = async () => {
 	const intervalTime = 250
@@ -168,6 +167,8 @@ const updateEditedComment = async (
 	if (params.length < 1) {
 		return
 	}
+	params.push({ name: 'last_edited', value: comment.timestamp })
+
 	let addedQuery = ''
 	const queryParams: Array<string | object> = []
 	params.forEach((value, index) => {
