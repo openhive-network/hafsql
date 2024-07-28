@@ -23,7 +23,7 @@ const isSyncing = {
 
 // Start workers for each indexer
 const main = () => {
-	// comments_table
+	// op_type_id id
 	if (
 		isHiveIndexCreated('hafsql_hive_operations_op_type_id_id') &&
 		isSyncing.comments === false
@@ -45,7 +45,7 @@ const main = () => {
 		proposalWorker.postMessage('start')
 	}
 
-	// reblogs_table
+	// custom_json id
 	if (
 		isHiveIndexCreated('hafsql_id_opid_idx') && isSyncing.reblogs === false
 	) {
@@ -59,9 +59,19 @@ const main = () => {
 		const followsWorker = createWorker('./sync/follows.ts')
 		print('[Main] Starting follows worker 👷')
 		followsWorker.postMessage('start')
+
+		// sync rc delegations
+		const rcDelegationsWorker = createWorker('./sync/rc_delegations.ts')
+		print('[Main] Starting RC delegations worker 👷')
+		rcDelegationsWorker.postMessage('start')
+
+		// sync community roles
+		const communitiesWorker = createWorker('./sync/communities.ts')
+		print('[Main] Starting community roles worker 👷')
+		communitiesWorker.postMessage('start')
 	}
 
-	// rewards
+	// author permlink
 	if (
 		isHiveIndexCreated('hafsql_author_permlink_idx') &&
 		isSyncing.rewards === false
