@@ -1,4 +1,8 @@
-export { Pool, Transaction } from 'https://deno.land/x/postgres@v0.19.3/mod.ts'
+export {
+  Pool,
+  PoolClient,
+  Transaction,
+} from 'https://deno.land/x/postgres@v0.19.3/mod.ts'
 export { load as loadDotEnv } from 'https://deno.land/std@0.224.0/dotenv/mod.ts'
 
 // @deno-types="npm:@types/diff-match-patch@1.0.36"
