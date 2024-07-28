@@ -10,6 +10,7 @@ await loadDotEnv({ export: true })
 await setup()
 
 // Start indexing
+print('[Main] Start creating indexes... 🚀')
 createHiveIndexes()
 
 // index and sync at the same time
