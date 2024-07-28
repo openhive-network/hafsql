@@ -24,7 +24,7 @@ export interface CommentObj {
 export interface CustomJson {
 	op_id: bigint
 	json: string
-	required_posting_auths: string
+	required_posting_auths: string[]
 	id: string
 }
 
@@ -90,7 +90,7 @@ export interface RcDelegationAppended {
 export interface CustomJsonFollow {
 	op_id: bigint
 	json: string
-	required_posting_auths: string
+	required_posting_auths: string[]
 }
 
 export interface Follows {
@@ -117,7 +117,7 @@ export interface ExpiredAccount {
 	account: string
 }
 
-export type ApprovalsAndExpired = {
+export interface ApprovalsAndExpired {
 	type: string
 	op_id: bigint
 	voter?: string
@@ -125,3 +125,25 @@ export type ApprovalsAndExpired = {
 	approve?: string
 	account?: string
 }
+
+export interface CommunityJson {
+	community: string
+	account?: string
+	role?: string
+	title?: string
+}
+
+export interface Communities {
+	type: string
+	json: CommunityJson
+	postingAuths: string[]
+	op_id: bigint
+}
+
+export type CommunityRoles =
+	| 'muted'
+	| 'guest'
+	| 'member'
+	| 'mod'
+	| 'admin'
+	| 'owner'
