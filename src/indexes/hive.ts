@@ -20,12 +20,33 @@ export const createHiveIndexes = async () => {
 				condition = `WHERE hive.operation_id_to_type_id(id) = ${ids[0]}`
 			}
 		}
+		const exists = await doesIndexExist(name)
+		if (exists) {
+			continue
+		}
 		await client.queryObject(
 			`CREATE INDEX CONCURRENTLY IF NOT EXISTS ${name} ON hive.operations ${params} ${condition};`,
 		)
+		print(`[Indexes] Index ${name} done! ✅`)
 		hiveCreatedIndexes.push(name)
 	}
 	print('[Indexes] All indexes have been created! ✅')
+}
+
+const doesIndexExist = async (name: string) => {
+	using client = await pool.connect()
+	const result = await client.queryObject<{ indisready: boolean }>(
+		`SELECT ix.indisready
+			FROM pg_class t, pg_class i, pg_index ix, pg_attribute a
+			WHERE t.oid = ix.indrelid AND i.oid = ix.indexrelid AND a.attrelid = t.oid
+			AND a.attnum = ANY(ix.indkey) AND t.relkind = 'r' AND ix.indisready = true
+			AND i.relname = $1`,
+		[name],
+	)
+	if (result.rows.length < 1) {
+		return false
+	}
+	return result.rows[0].indisready
 }
 
 // push name of the created indexes into this array
@@ -90,14 +111,6 @@ const hiveIndexes: {
 		],
 		skip: false,
 	},
-	// timestamp might get removed in the future HAF versions
-	// update: it did
-	// {
-	// 	name: 'hafsql_hive_operations_timestamp',
-	// 	params: '("timestamp")',
-	// 	ids: [],
-	// 	skip: false,
-	// },
 	// voter - op_
 	{
 		name: 'hafsql_voter_idx',
