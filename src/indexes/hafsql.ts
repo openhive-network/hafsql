@@ -36,13 +36,17 @@ export const createRCDelegationsIndexes = async () => {
 	)
 }
 
+export const createCommunitiesIndexes = async () => {
+	using client = await pool.connect()
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_proposal_approvals_voter_idx ON hafsql.proposal_approvals_table USING btree (voter);',
+	)
+}
+
 export const createHafsqlIndexes = async () => {
 	using client = await pool.connect()
 	await client.queryObject(
 		'CREATE INDEX IF NOT EXISTS hafsql_reblogs_table_post_idx ON hafsql.reblogs_table USING btree (post);',
-	)
-	await client.queryObject(
-		'CREATE INDEX IF NOT EXISTS hafsql_proposal_approvals_voter_idx ON hafsql.proposal_approvals_table USING btree (voter);',
 	)
 
 	await client.queryObject(
