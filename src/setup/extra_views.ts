@@ -60,83 +60,95 @@ export const setupExtraViews = async () => {
     FROM hafsql.rc_delegations_table x;`)
 
   // Comments
-  // await client.queryObject(`CREATE OR REPLACE VIEW hafsql.comments
-  // AS SELECT x.id,
-  //   x.author,
-  //   x.permlink,
-  //   x.parent_author,
-  //   x.parent_permlink,
-  //   x.title,
-  //   x.body,
-  //   x.created,
-  //   x.edited,
-  //   CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) < '7 days' THEN (x.created + INTERVAL '7 days') ELSE '1969-12-31 23:59:59' END AS cashout_time,
-  //   CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) < '7 days' THEN (x.created + INTERVAL '7 days') - NOW() AT TIME ZONE 'UTC' ELSE '00:00:00.000' END AS remaining_till_cashout,
-  //   CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) >= '7 days' THEN (x.created + INTERVAL '7 days') ELSE '1969-12-31 23:59:59' END AS last_payout,
-  //   x.tags,
-  //   x.metadata AS json_metadata,
-  //   x.pending_payout_value,
-  //   COALESCE((SELECT SUM(author_rewards::int8) FROM hafsql.vo_comment_reward WHERE author=x.author and permlink=x.permlink), '0') AS author_rewards,
-  //   COALESCE((SELECT MAX(total_payout_value) FROM hafsql.vo_comment_reward WHERE author=x.author and permlink=x.permlink), 0) AS total_payout_value,
-  //   COALESCE((SELECT MAX(curator_payout_value) FROM hafsql.vo_comment_reward WHERE author=x.author and permlink=x.permlink), 0) AS curator_payout_value,
-  //   COALESCE((SELECT MAX(beneficiary_payout_value) FROM hafsql.vo_comment_reward WHERE author=x.author and permlink=x.permlink), 0) AS beneficiary_payout_value,
-  //   COALESCE((SELECT extensions::jsonb->0->'value'->>'beneficiaries' FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), '[]') AS beneficiaries,
-  //   COALESCE((SELECT max_accepted_payout FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), 1000000.0) AS max_accepted_payout,
-  //   COALESCE((SELECT percent_hbd FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), '10000') AS percent_hbd,
-  //   COALESCE((SELECT allow_votes FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), 'true') AS allow_votes,
-  //   COALESCE((SELECT allow_curation_rewards FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), 'true') AS allow_curation_rewards,
-  //   x.deleted
-  //   FROM hafsql.comments_table x;`)
+  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.comments
+  AS SELECT x.id,
+	  x.title,
+	  x.body,
+    x.author,
+    x.permlink,
+    x.parent_author,
+    x.parent_permlink,
+    x.created,
+    CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) < '7 days' THEN (x.created + INTERVAL '7 days') ELSE '1969-12-31 23:59:59' END AS cashout_time,
+    CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) < '7 days' THEN (x.created + INTERVAL '7 days') - NOW() AT TIME ZONE 'UTC' ELSE '00:00:00.000' END AS remaining_till_cashout,
+    CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) >= '7 days' THEN (x.created + INTERVAL '7 days') ELSE '1969-12-31 23:59:59' END AS last_payout,
+    x.tags,
+    x.metadata AS json_metadata,
+    x.pending_payout_value,
+    x.author_rewards_hbd AS author_rewards,
+    x.author_rewards_hive AS author_rewards_in_hive,
+    x.payout AS total_payout_value,
+    x.curation_rewards AS curator_payout_value,
+    x.beneficiary_rewards AS beneficiary_payout_value,
+    COALESCE((SELECT extensions::jsonb->0->'value'->>'beneficiaries' FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), '[]') AS beneficiaries,
+    COALESCE((SELECT max_accepted_payout FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), 1000000.0) AS max_accepted_payout,
+    COALESCE((SELECT percent_hbd FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), '10000') AS percent_hbd,
+    COALESCE((SELECT allow_votes FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), 'true') AS allow_votes,
+    COALESCE((SELECT allow_curation_rewards FROM hafsql.op_comment_options WHERE author=x.author and permlink=x.permlink ORDER BY op_id DESC LIMIT 1), 'true') AS allow_curation_rewards,
+    x.deleted
+    FROM hafsql.comments_table x;`)
 
   // Community Subs
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.community_subs
   AS SELECT c.account AS account_id,
     c.community AS community_id,
-    (SELECT a.name FROM hive.accounts a WHERE id=c.account) AS account_name,
-    (SELECT a.name FROM hive.accounts a WHERE id=c.community) AS community_name
-    FROM hafsql.community_subs_table c;`)
+    a.name AS account_name,
+    b.name AS community_name
+    FROM hafsql.community_subs_table c
+    JOIN hive.accounts a ON c.account=a.id
+    JOIN hive.accounts b ON c.community=b.id;`)
 
   // Community Roles
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.community_roles
   AS SELECT c.account AS account_id,
     c.community AS community_id,
-    (SELECT a.name FROM hive.accounts a WHERE id=c.account) AS account_name,
-    (SELECT a.name FROM hive.accounts a WHERE id=c.community) AS community_name,
+    a.name AS account_name,
+    b.name AS community_name,
     CASE WHEN c.role=-2 THEN 'muted' WHEN c.role=8 THEN 'owner' WHEN c.role=2 THEN 'member' WHEN c.role=4 THEN 'mod' WHEN c.role=6 THEN 'admin' ELSE 'guest' END AS role,
     c.title
-    FROM hafsql.community_roles_table c;`)
+    FROM hafsql.community_roles_table c
+    JOIN hive.accounts a ON c.account=a.id
+    JOIN hive.accounts b ON c.community=b.id;`)
 
   // Blacklists
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.blacklists
   AS SELECT x.blacklister AS blacklister_id,
     x.blacklisted AS blacklisted_id,
-    (SELECT a.name FROM hive.accounts a WHERE id=x.blacklister) AS blacklister_name,
-    (SELECT a.name FROM hive.accounts a WHERE id=x.blacklisted) AS blacklisted_name
-    FROM hafsql.blacklists_table x;`)
+    a.name AS blacklister_name,
+    b.name AS blacklisted_name
+    FROM hafsql.blacklists_table x
+    JOIN hive.accounts a ON x.blacklister=a.id
+    JOIN hive.accounts b ON x.blacklisted=b.id;`)
 
   // Mutes
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.mutes
   AS SELECT x.muter AS muter_id,
     x.muted AS muted_id,
-    (SELECT a.name FROM hive.accounts a WHERE id=x.muter) AS muter_name,
-    (SELECT a.name FROM hive.accounts a WHERE id=x.muted) AS muted_name
-    FROM hafsql.mutes_table x;`)
+    a.name AS muter_name,
+    b.name AS muted_name
+    FROM hafsql.mutes_table x
+    JOIN hive.accounts a ON x.muter=a.id
+    JOIN hive.accounts b ON x.muted=b.id;`)
 
   // Blacklist Follows
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.blacklist_follows
   AS SELECT x.account AS account_id,
     x.blacklist AS blacklist_id,
-    (SELECT a.name FROM hive.accounts a WHERE id=x.account) AS account_name,
-    (SELECT a.name FROM hive.accounts a WHERE id=x.blacklist) AS blacklist_name
-    FROM hafsql.blacklist_follows_table x;`)
+    a.name AS account_name,
+    b.name AS blacklist_name
+    FROM hafsql.blacklist_follows_table x
+    JOIN hive.accounts a ON x.account=a.id
+    JOIN hive.accounts b ON x.blacklist=b.id;`)
 
   // Mute Follows
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.mute_follows
   AS SELECT x.account AS account_id,
     x.mute_list AS mute_list_id,
-    (SELECT a.name FROM hive.accounts a WHERE id=x.account) AS account_name,
-    (SELECT a.name FROM hive.accounts a WHERE id=x.mute_list) AS mute_list_name
-    FROM hafsql.mute_follows_table x;`)
+    a.name AS account_name,
+    b.name AS mute_list_name
+    FROM hafsql.mute_follows_table x
+    JOIN hive.accounts a ON x.account=a.id
+    JOIN hive.accounts b ON x.mute_list=b.id;`)
 
   // Follows
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.follows
@@ -149,15 +161,15 @@ export const setupExtraViews = async () => {
   JOIN hive.accounts ab ON x.following = ab.id;`)
 
   // Reblogs
-  // await client.queryObject(`CREATE OR REPLACE VIEW hafsql.reblogs
-  // AS SELECT x.account AS account_id,
-  //   x.post AS post_id,
-  //   a.name AS account_name,
-  //   c.author,
-  //   c.permlink
-  //   FROM hafsql.reblogs_table x
-  //   JOIN hive.accounts a ON x.account = a.id
-  //   JOIN hafsql.comments c ON c.id = x.post;`)
+  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.reblogs
+  AS SELECT x.account AS account_id,
+    x.post AS post_id,
+    a.name AS account_name,
+    c.author,
+    c.permlink
+    FROM hafsql.reblogs_table x
+    JOIN hive.accounts a ON x.account = a.id
+    JOIN hafsql.comments c ON c.id = x.post;`)
 
   // Proposal Approvlas
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.proposal_approvals
@@ -200,10 +212,11 @@ export const setupExtraViews = async () => {
   // Reputations
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.reputations
   AS SELECT x.account as account_id,
-    (SELECT name FROM hafsql.accounts WHERE id=x.account) as account_name,
+    a.name as account_name,
     x.reputation,
     x.last_update
-    FROM hafsql.reputations_table x;`)
+    FROM hafsql.reputations_table x
+    JOIN hive.accounts a ON x.account=a.id;`)
 }
 
 export const removeExtraViews = async () => {
