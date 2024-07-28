@@ -20,6 +20,12 @@ export const setupPublicUser = async () => {
 		'GRANT ALL ON FUNCTION hive._operation_to_jsonb TO hafsql_public;',
 	)
 	await client.queryObject(
+		'GRANT ALL ON FUNCTION hive.operation_id_to_block_num TO hafsql_public;',
+	)
+	await client.queryObject(
+		'GRANT ALL ON FUNCTION hive.operation_id_to_type_id TO hafsql_public;',
+	)
+	await client.queryObject(
 		"ALTER USER hafsql_public SET statement_timeout='45s';",
 	)
 	await client.queryObject(
