@@ -96,6 +96,7 @@ export const setupTables = async () => {
     parent_permlink varchar(255) NOT NULL,
     metadata jsonb NULL,
     created timestamp NOT NULL,
+    last_edited timestamp NULL,
     pending_payout_value numeric(12, 3) NULL DEFAULT 0,
     payout numeric(12, 3) NULL DEFAULT 0,
     author_rewards_hive numeric(12, 3) NULL DEFAULT 0,
