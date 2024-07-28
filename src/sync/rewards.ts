@@ -113,6 +113,9 @@ const insertPaidRewards = async (rewards: PaidComments[]) => {
     if (retry1 > 5) {
       throw new Error(e)
     }
+    if (client.session.current_transaction) {
+      await trx.rollback()
+    }
     retry1++
     await sleep(2000)
     await insertPaidRewards(rewards)
@@ -205,6 +208,9 @@ const insertPendingRewards = async (rewards: EffectiveCommentVote[]) => {
     // Because we are syncing concurrently we need to catch deadlocks and retry
     if (retry2 > 5) {
       throw new Error(e)
+    }
+    if (client.session.current_transaction) {
+      await trx.rollback()
     }
     retry2++
     await sleep(2000)
