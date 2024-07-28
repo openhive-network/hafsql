@@ -108,4 +108,55 @@ export const setupFunctions = async () => {
     `COMMENT ON FUNCTION hafsql.vests_to_hive (text, int4) IS
     'Return HIVE equivalent of the VESTS or RC at certain block_num';`,
   )
+
+  // Duplicate functions of vests_to_hive with the type numeric
+  // VESTS to HIVE equivalent - numeric
+  const vestsToHiveNumeric =
+    `CREATE OR REPLACE FUNCTION hafsql.vests_to_hive(numeric)
+    RETURNS numeric(12, 3)
+    AS $$
+    DECLARE
+      hive_amount numeric;
+    BEGIN
+      SELECT $1::numeric / power(10, 6) / vests_per_hive FROM hafsql.dynamic_global_properties ORDER BY block_num DESC LIMIT 1
+      INTO STRICT hive_amount;
+      RETURN hive_amount::numeric(12, 3);
+    EXCEPTION WHEN OTHERS THEN
+      RETURN 0;
+    END
+    $$
+    LANGUAGE plpgsql
+    IMMUTABLE
+    RETURNS NULL ON NULL INPUT;`
+  await client.queryObject(vestsToHiveNumeric)
+  await client.queryObject(
+    `COMMENT ON FUNCTION hafsql.vests_to_hive (numeric) IS
+    'Return HIVE equivalent of the VESTS or RC';`,
+  )
+
+  // VESTS to HIVE at certain block - numeric
+  const vestsToHiveAtBlockNumeric =
+    `CREATE OR REPLACE FUNCTION hafsql.vests_to_hive(numeric, int4)
+    RETURNS numeric(12, 3)
+    AS $$
+    DECLARE
+      hive_amount numeric;
+    BEGIN
+      SELECT $1::numeric / power(10, 6) / vests_per_hive FROM hafsql.dynamic_global_properties WHERE block_num = $2 LIMIT 1
+      INTO STRICT hive_amount;
+      RETURN hive_amount::numeric(12, 3);
+    EXCEPTION WHEN OTHERS THEN
+      RETURN 0;
+    END
+    $$
+    LANGUAGE plpgsql
+    IMMUTABLE
+    RETURNS NULL ON NULL INPUT;`
+  await client.queryObject(vestsToHiveAtBlockNumeric)
+  await client.queryObject(
+    `COMMENT ON FUNCTION hafsql.vests_to_hive (numeric, int4) IS
+    'Return HIVE equivalent of the VESTS or RC at certain block_num';`,
+  )
+
+  // TODO: fix this mess - get rid of all nai assets
 }
