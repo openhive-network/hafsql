@@ -9,7 +9,11 @@ import {
 	LastOpId,
 } from '../helpers/types.ts'
 import { sleep } from '../helpers/sleep.ts'
-import { createCommentsIndexes } from '../indexes/hafsql.ts'
+import {
+	createCommentsIndexes,
+	createHafsqlIndexes,
+} from '../indexes/hafsql.ts'
+import { cleanString } from '../helpers/clean_string.ts'
 
 let started = false
 // Run this file in a separate worker thread than the main application
@@ -28,6 +32,7 @@ self.onmessage = (e: MessageEvent) => {
 
 // TODO: This dies somehow?????
 // Probably fixed, probably
+// TODO: add last edited time
 let firstRun = true
 const syncComments = async () => {
 	const intervalTime = 250
@@ -37,6 +42,8 @@ const syncComments = async () => {
 		print('[Comments] Massive sync done ✅')
 		print('[Comments] Creating indexes... 🚀')
 		await createCommentsIndexes()
+		// At this point other syncs should be done/near end as well
+		await createHafsqlIndexes()
 		print('[Comments] Indexes have been created ✅')
 		print('[Comments] Switched to live sync 🟢')
 		await sleep(intervalTime)
@@ -91,9 +98,9 @@ const insertComments = async (comments: CommentOp[]) => {
 		if (retry > 5) {
 			throw new Error(e)
 		}
-		// if (client.session.current_transaction) {
-		// 	await trx.rollback()
-		// }
+		if (client.session.current_transaction) {
+			await trx.rollback()
+		}
 		retry++
 		await sleep(1000)
 		await insertComments(comments)
@@ -123,7 +130,7 @@ const insertComment = async (comment: CommentOp, trx: Transaction) => {
 			comment.permlink,
 			comment.parent_author,
 			comment.parent_permlink,
-			JSON.stringify(metadata),
+			metadata,
 			comment.timestamp,
 		],
 	)
@@ -226,17 +233,6 @@ const isJsonString = (str: string) => {
 		return false
 	}
 	return true
-}
-
-// Charcode 0 is invalid for Postgres
-const cleanString = (input: string) => {
-	let output = ''
-	for (let i = 0; i < input.length; i++) {
-		if (input.charCodeAt(i) !== 0) {
-			output += input.charAt(i)
-		}
-	}
-	return output
 }
 
 // Apply edits to the body of the post/comment
@@ -352,6 +348,9 @@ const insertDeletedComments = async (deletedCms: DeletedComment[]) => {
 		// probably a deadlock - retry
 		if (retry1 > 5) {
 			throw new Error(e)
+		}
+		if (client.session.current_transaction) {
+			await trx.rollback()
 		}
 		retry1++
 		await sleep(2000)
