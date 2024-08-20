@@ -59,12 +59,14 @@ const getPaidComments = async (blockRange: number[]) => {
     return []
   }
   if (blockRange[1] > lastComment) {
+    blockRange[0] = lastComment
+    blockRange[1] = lastComment
     blockRange[1] = lastComment
   }
   using client = await pool.connect()
   const result = await client.queryObject<PaidComments>(
     `SELECT op_id, author, permlink, payout, author_rewards, total_payout_value, curator_payout_value, beneficiary_payout_value FROM hafsql.vo_comment_reward
-      WHERE op_id >= hafsql.last_op_id_from_block_num($1)
+      WHERE op_id >= hafsql.first_op_id_from_block_num($1)
       AND op_id <= hafsql.last_op_id_from_block_num($2)
       ORDER BY op_id ASC`,
     [blockRange[0], blockRange[1]],
@@ -72,7 +74,6 @@ const getPaidComments = async (blockRange: number[]) => {
   return result.rows
 }
 
-let retry1 = 0
 const insertPaidRewards = async (
   rewards: PaidComments[],
   blockRange: number[],
@@ -108,15 +109,15 @@ const insertPaidRewards = async (
     }
     await updateLastBlockNum('paid_rewards', blockRange[1], trx)
     await trx.commit()
-    retry1 = 0
   } catch (e) {
     // Because we are syncing concurrently we need to catch deadlocks and retry
-    if (retry1 > 5) {
+    if (e.stack?.indexOf('deadlock') > -1) {
+      await sleep(2000)
+      return insertPaidRewards(rewards, blockRange)
+    } else {
+      print(e)
       throw new Error(e)
     }
-    retry1++
-    await sleep(2000)
-    return insertPaidRewards(rewards, blockRange)
   }
 }
 
@@ -176,6 +177,8 @@ const getEffectiveVotes = async (blockRange: number[]) => {
   // Always lag behind the comments_table indexing
   const end = await getLastBlockNum('comments')
   if (blockRange[0] > end) {
+    blockRange[0] = end
+    blockRange[1] = end
     return []
   }
   if (blockRange[1] > end) {
@@ -183,7 +186,7 @@ const getEffectiveVotes = async (blockRange: number[]) => {
   }
   const result = await client.queryObject<EffectiveCommentVote>(
     `SELECT op_id, author, permlink, pending_payout FROM hafsql.vo_effective_comment_vote
-      WHERE op_id >= hafsql.last_op_id_from_block_num($1)
+      WHERE op_id >= hafsql.first_op_id_from_block_num($1)
       AND op_id <= hafsql.last_op_id_from_block_num($2)
       ORDER BY op_id ASC`,
     [blockRange[0], blockRange[1]],
@@ -191,7 +194,6 @@ const getEffectiveVotes = async (blockRange: number[]) => {
   return result.rows
 }
 
-let retry2 = 0
 const insertPendingRewards = async (
   rewards: EffectiveCommentVote[],
   blockRange: number[],
@@ -209,15 +211,15 @@ const insertPendingRewards = async (
     }
     await updateLastBlockNum('pending_rewards', blockRange[1], trx)
     await trx.commit()
-    retry2 = 0
   } catch (e) {
     // Because we are syncing concurrently we need to catch deadlocks and retry
-    if (retry2 > 5) {
+    if (e.stack?.indexOf('deadlock') > -1) {
+      await sleep(2000)
+      return insertPendingRewards(rewards, blockRange)
+    } else {
+      print(e)
       throw new Error(e)
     }
-    retry2++
-    await sleep(2000)
-    return insertPendingRewards(rewards, blockRange)
   }
 }
 
