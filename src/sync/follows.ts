@@ -55,7 +55,7 @@ const getFollows = async (blockRange: number[]) => {
   // block 5999998 - op_id 25769795186065408
   const result = await client.queryObject<CustomJsonFollow>(
     `SELECT op_id, json, required_posting_auths FROM hafsql.op_custom_json
-      WHERE id=$1 AND op_id >= hafsql.last_op_id_from_block_num($2)
+      WHERE id=$1 AND op_id >= hafsql.first_op_id_from_block_num($2)
       AND op_id <= hafsql.last_op_id_from_block_num($3)
       AND CASE WHEN op_id > 25769795186065408 THEN hafsql.to_json("json")->>0 = 'follow' ELSE TRUE END
       ORDER BY op_id ASC LIMIT $3`,
