@@ -5,7 +5,6 @@ export const setupTables = async () => {
   // Sync data
   await client.queryObject(`CREATE TABLE IF NOT EXISTS hafsql.sync_data (
     table_name varchar NOT NULL,
-    last_op_id int8 NOT NULL DEFAULT 0,
     last_block_num int4 NOT NULL DEFAULT 0,
     CONSTRAINT hafsql_sync_data_un UNIQUE (table_name)
   );`)
