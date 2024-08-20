@@ -94,7 +94,7 @@ const param = (param: string, jsonb = false): string => {
 
 // Indexes on hive.operations
 // The first ones are needed to sync so we create them first
-const hiveIndexes: {
+export const hiveIndexes: {
 	name: string
 	params: string
 	ids: number[] | null[]
