@@ -1,10 +1,19 @@
 import { pool } from '../helpers/database.ts'
 import { opId } from '../helpers/operation_id.ts'
-import { print } from '../helpers/print.ts'
+import { print } from '../helpers/functions/print.ts'
 
 export const createHiveIndexes = async () => {
 	using client = await pool.connect()
-	for (let i = 0; i < hiveIndexes.length - 1; i++) {
+	// Kill all running queries by hafsql
+	await client.queryObject(
+		`SELECT pg_cancel_backend(sa.pid) FROM pg_catalog.pg_stat_activity sa WHERE sa.application_name=$1 AND sa.query LIKE $2`,
+		['hafsql', 'CREATE%'],
+	)
+	const invalidIndexes = await getInvalidIndexes()
+	invalidIndexes.forEach(async (index) => {
+		await client.queryObject(`DROP INDEX hive.${index};`)
+	})
+	for (let i = 0; i < hiveIndexes.length; i++) {
 		const name = hiveIndexes[i].name
 		const params = hiveIndexes[i].params
 		const ids = hiveIndexes[i].ids
@@ -19,24 +28,32 @@ export const createHiveIndexes = async () => {
 			} else {
 				condition = `WHERE hive.operation_id_to_type_id(id) = ${ids[0]}`
 			}
+			// for now only used by one index so should be fine
+			if (hiveIndexes[i].condition) {
+				condition += ` AND ${hiveIndexes[i].condition}`
+			}
 		}
+
 		const exists = await doesIndexExist(name)
 		if (exists) {
 			continue
 		}
+		const table = hiveIndexes[i].table || 'hive.operations'
 		await client.queryObject(
-			`CREATE INDEX CONCURRENTLY IF NOT EXISTS ${name} ON hive.operations ${params} ${condition};`,
+			`CREATE INDEX CONCURRENTLY IF NOT EXISTS ${name} ON ${table} ${params} ${condition};`,
 		)
 		print(`[Indexes] Index ${name} done! ✅`)
-		hiveCreatedIndexes.push(name)
 	}
 	print('[Indexes] All indexes have been created! ✅')
 }
 
-const doesIndexExist = async (name: string) => {
+/**
+ * Return true if the index was created
+ */
+export const doesIndexExist = async (name: string) => {
 	using client = await pool.connect()
-	const result = await client.queryObject<{ indisready: boolean }>(
-		`SELECT ix.indisready
+	const result = await client.queryObject<{ indisvalid: boolean }>(
+		`SELECT ix.indisvalid
 			FROM pg_class t, pg_class i, pg_index ix, pg_attribute a
 			WHERE t.oid = ix.indrelid AND i.oid = ix.indexrelid AND a.attrelid = t.oid
 			AND a.attnum = ANY(ix.indkey) AND t.relkind = 'r' AND ix.indisready = true
@@ -46,20 +63,23 @@ const doesIndexExist = async (name: string) => {
 	if (result.rows.length < 1) {
 		return false
 	}
-	return result.rows[0].indisready
+	return result.rows[0].indisvalid
 }
 
-// push name of the created indexes into this array
-const hiveCreatedIndexes: string[] = []
-
-/**
- * Return true if the index was created
- */
-export const isHiveIndexCreated = (name: string): boolean => {
-	if (hiveCreatedIndexes.indexOf(name) === -1) {
-		return false
+const getInvalidIndexes = async () => {
+	using client = await pool.connect()
+	const result = await client.queryObject<{ relname: string }>(`SELECT c.relname
+		FROM pg_catalog.pg_class c, pg_catalog.pg_namespace n, pg_catalog.pg_index i
+		WHERE  (i.indisvalid = false OR i.indisready = false) AND
+			i.indexrelid = c.oid AND c.relnamespace = n.oid AND
+			n.nspname != 'pg_catalog' AND
+			n.nspname != 'information_schema' AND
+			n.nspname != 'pg_toast'`)
+	const temp = []
+	for (let i = 0; i < result.rows.length; i++) {
+		temp.push(result.rows[i].relname)
 	}
-	return true
+	return temp
 }
 
 /**
@@ -79,22 +99,17 @@ const hiveIndexes: {
 	params: string
 	ids: number[] | null[]
 	skip: boolean
+	table?: string
+	condition?: string
 }[] = [
-	// sorting by ID (op_id) on op_* & vo_* views
+	// sorting by ID (op_id) on op_* & vo_* views - needed for sync
 	{
 		name: 'hafsql_hive_operations_op_type_id_id',
 		params: '(hive.operation_id_to_type_id(id), id)',
 		ids: [],
 		skip: false,
 	},
-	// id - used in follows, reblogs, & communities sync
-	{
-		name: 'hafsql_id_opid_idx',
-		params: `(${param('id')}, hive.operation_id_to_type_id(id), id DESC)`,
-		ids: [opId.custom, opId.custom_json],
-		skip: false,
-	},
-	// author, permlink - used in rewards
+	// author, permlink - used in rewards and reputations
 	{
 		name: 'hafsql_author_permlink_idx',
 		params: `(${param('author')}, ${
@@ -108,14 +123,29 @@ const hiveIndexes: {
 			opId.author_reward,
 			opId.comment_reward,
 			opId.effective_comment_vote,
+			opId.comment_payout_update,
+			opId.comment_benefactor_reward,
+			opId.ineffective_delete_comment,
 		],
+		skip: false,
+	},
+	// id - used in follows, reblogs, communities & rc_delegations sync
+	{
+		name: 'hafsql_id_opid_idx',
+		params: `(${param('id')}, hive.operation_id_to_type_id(id), id DESC)`,
+		ids: [opId.custom, opId.custom_json],
 		skip: false,
 	},
 	// voter - op_
 	{
 		name: 'hafsql_voter_idx',
 		params: `(${param('voter')}, hive.operation_id_to_type_id(id), id DESC)`,
-		ids: [opId.vote, opId.update_proposal_votes],
+		ids: [
+			opId.vote,
+			opId.update_proposal_votes,
+			opId.effective_comment_vote,
+			opId.delayed_voting,
+		],
 		skip: false,
 	},
 	// author - op_
@@ -130,6 +160,9 @@ const hiveIndexes: {
 			opId.author_reward,
 			opId.comment_reward,
 			opId.effective_comment_vote,
+			opId.comment_payout_update,
+			opId.comment_benefactor_reward,
+			opId.ineffective_delete_comment,
 		],
 		skip: false,
 	},
@@ -157,7 +190,16 @@ const hiveIndexes: {
 			opId.transfer_to_savings,
 			opId.transfer_from_savings,
 			opId.cancel_transfer_from_savings,
+			opId.escrow_transfer,
+			opId.escrow_dispute,
+			opId.escrow_release,
+			opId.escrow_approve,
+			opId.recurrent_transfer,
 			opId.fill_transfer_from_savings,
+			opId.fill_recurrent_transfer,
+			opId.failed_recurrent_transfer,
+			opId.escrow_approved,
+			opId.escrow_rejected,
 		],
 		skip: false,
 	},
@@ -170,7 +212,16 @@ const hiveIndexes: {
 			opId.transfer_to_vesting,
 			opId.transfer_to_savings,
 			opId.transfer_from_savings,
+			opId.escrow_transfer,
+			opId.escrow_dispute,
+			opId.escrow_release,
+			opId.escrow_approve,
+			opId.recurrent_transfer,
 			opId.fill_transfer_from_savings,
+			opId.fill_recurrent_transfer,
+			opId.failed_recurrent_transfer,
+			opId.escrow_approved,
+			opId.escrow_rejected,
 		],
 		skip: false,
 	},
@@ -190,13 +241,14 @@ const hiveIndexes: {
 		skip: false,
 	},
 	// TODO: remove this after locale C on HAF
+	// Update: we might not need this anymore - develop is locale c
 	// memo - for queries with LIKE 'test%'
-	{
-		name: 'hafsql_memo_pattern_idx',
-		params: `(${param('memo')} text_pattern_ops, id DESC)`,
-		ids: [opId.transfer],
-		skip: false,
-	},
+	// {
+	// 	name: 'hafsql_memo_pattern_idx',
+	// 	params: `(${param('memo')} text_pattern_ops, id DESC)`,
+	// 	ids: [opId.transfer],
+	// 	skip: false,
+	// },
 	// account
 	{
 		name: 'hafsql_account_idx',
@@ -208,8 +260,13 @@ const hiveIndexes: {
 			opId.account_witness_proxy,
 			opId.claim_reward_balance,
 			opId.account_update2,
+			opId.decline_voting_rights,
 			opId.return_vesting_delegation,
 			opId.changed_recovery_account,
+			opId.hardfork_hive,
+			opId.hardfork_hive_restore,
+			opId.expired_account_notification,
+			opId.proxy_cleared,
 		],
 		skip: false,
 	},
@@ -221,12 +278,19 @@ const hiveIndexes: {
 			opId.limit_order_create,
 			opId.limit_order_cancel,
 			opId.convert,
+			opId.account_create,
+			opId.account_update,
 			opId.witness_update,
 			opId.limit_order_create2,
+			opId.create_claimed_account,
+			opId.account_create_with_delegation,
 			opId.witness_set_properties,
 			opId.collateralized_convert,
 			opId.fill_convert_request,
-			opId.expired_account_notification,
+			opId.liquidity_reward,
+			opId.interest,
+			opId.shutdown_witness,
+			opId.vesting_shares_split,
 			opId.fill_collateralized_convert_request,
 			opId.collateralized_convert_immediate_conversion,
 		],
@@ -240,6 +304,7 @@ const hiveIndexes: {
 			opId.limit_order_create,
 			opId.limit_order_cancel,
 			opId.limit_order_create2,
+			opId.limit_order_cancelled,
 		],
 		skip: false,
 	},
@@ -259,7 +324,10 @@ const hiveIndexes: {
 			opId.claim_account,
 			opId.create_claimed_account,
 			opId.account_create_with_delegation,
-			opId.escrow_approve,
+			opId.create_proposal,
+			opId.update_proposal,
+			opId.account_created,
+			opId.proposal_fee,
 		],
 		skip: false,
 	},
@@ -288,7 +356,7 @@ const hiveIndexes: {
 	{
 		name: 'hafsql_proxy_idx',
 		params: `(${param('proxy')}, id DESC)`,
-		ids: [opId.account_witness_proxy],
+		ids: [opId.account_witness_proxy, opId.proxy_cleared],
 		skip: false,
 	},
 	// from_account
@@ -328,7 +396,11 @@ const hiveIndexes: {
 	{
 		name: 'hafsql_new_recovery_account_idx',
 		params: `(${param('new_recovery_account')}, id DESC)`,
-		ids: [opId.change_recovery_account],
+		ids: [
+			opId.request_account_recovery,
+			opId.recover_account,
+			opId.change_recovery_account,
+		],
 		skip: false,
 	},
 	// delegator
@@ -391,14 +463,41 @@ const hiveIndexes: {
 	{
 		name: 'hafsql_producer_idx',
 		params: `(${param('producer')}, id DESC)`,
-		ids: [opId.producer_reward],
+		ids: [opId.producer_reward, opId.producer_missed],
 		skip: false,
 	},
 	// receiver
 	{
 		name: 'hafsql_receiver_idx',
 		params: `(${param('receiver')}, id DESC)`,
-		ids: [opId.proposal_pay],
+		ids: [opId.escrow_release, opId.create_proposal, opId.proposal_pay],
 		skip: false,
 	},
+	// json_metadata ->> content_type - for peakd polls
+	// to_json() because there are invalid jsons
+	{
+		name: 'hafsql_json_metadata_idx',
+		params: `((hafsql.to_json(${
+			param('json_metadata')
+		})->>'content_type'), id DESC)`,
+		ids: [opId.comment],
+		skip: false,
+	},
+	// from, to - only transfers - no id
+	{
+		name: 'hafsql_from_to_idx',
+		params: `(${param('from')}, ${param('to')})`,
+		ids: [
+			opId.transfer,
+		],
+		skip: false,
+	},
+	// hive.transactions trx_id
+	// {
+	// 	name: 'hafsql_trx_id_idx',
+	// 	params: `(encode(trx_hash, 'hex'::text))`,
+	// 	ids: [],
+	// 	skip: false,
+	// 	table: 'hive.transactions',
+	// },
 ]
