@@ -70,7 +70,7 @@ const getComments = async (blockRange: number[]) => {
 	using client = await pool.connect()
 	const result = await client.queryObject<CommentOp>(
 		`SELECT op_id, "timestamp", author, permlink, parent_author, parent_permlink, title, body, json_metadata
-      FROM hafsql.op_comment WHERE op_id >= hafsql.last_op_id_from_block_num($1)
+      FROM hafsql.op_comment WHERE op_id >= hafsql.first_op_id_from_block_num($1)
 			AND op_id <= hafsql.last_op_id_from_block_num($2)
 			ORDER BY op_id ASC`,
 		[blockRange[0], blockRange[1]],
@@ -78,7 +78,6 @@ const getComments = async (blockRange: number[]) => {
 	return result.rows
 }
 
-let retry = 0
 // Create a transaction then insert or update comments
 const insertComments = async (comments: CommentOp[], blockRange: number[]) => {
 	using client = await pool.connect()
@@ -91,14 +90,14 @@ const insertComments = async (comments: CommentOp[], blockRange: number[]) => {
 		}
 		await updateLastBlockNum('comments', blockRange[1], trx)
 		await trx.commit()
-		retry = 0
 	} catch (e) {
-		if (retry > 5) {
+		if (e.stack?.indexOf('deadlock') > -1) {
+			await sleep(1000)
+			return insertComments(comments, blockRange)
+		} else {
+			print(e)
 			throw new Error(e)
 		}
-		retry++
-		await sleep(1000)
-		return insertComments(comments, blockRange)
 	}
 }
 
@@ -307,6 +306,8 @@ const getDeletedComments = async (blockRange: number[]) => {
 	const end = await getLastBlockNum('comments')
 	// Always lag behind the comments_table indexing
 	if (blockRange[0] > end) {
+		blockRange[0] = end
+		blockRange[1] = end
 		return []
 	}
 	if (blockRange[1] > end) {
@@ -314,7 +315,7 @@ const getDeletedComments = async (blockRange: number[]) => {
 	}
 	const result = await client.queryObject<DeletedComment>(
 		`SELECT op_id, author, permlink FROM hafsql.op_delete_comment
-      WHERE op_id >= hafsql.last_op_id_from_block_num($1)
+      WHERE op_id >= hafsql.first_op_id_from_block_num($1)
 			AND op_id <= hafsql.last_op_id_from_block_num($2)
 			ORDER BY op_id ASC`,
 		[blockRange[0], blockRange[1]],
@@ -322,7 +323,6 @@ const getDeletedComments = async (blockRange: number[]) => {
 	return result.rows
 }
 
-let retry1 = 0
 const insertDeletedComments = async (
 	deletedCms: DeletedComment[],
 	blockRange: number[],
@@ -352,14 +352,14 @@ const insertDeletedComments = async (
 		}
 		await updateLastBlockNum('delete_comments', blockRange[1], trx)
 		await trx.commit()
-		retry1 = 0
 	} catch (e) {
 		// probably a deadlock - retry
-		if (retry1 > 5) {
+		if (e.stack?.indexOf('deadlock') > -1) {
+			await sleep(2000)
+			return insertDeletedComments(deletedCms, blockRange)
+		} else {
+			print(e)
 			throw new Error(e)
 		}
-		retry1++
-		await sleep(2000)
-		return insertDeletedComments(deletedCms, blockRange)
 	}
 }
