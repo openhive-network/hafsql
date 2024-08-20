@@ -5,7 +5,8 @@ export const setupTables = async () => {
   // Sync data
   await client.queryObject(`CREATE TABLE IF NOT EXISTS hafsql.sync_data (
     table_name varchar NOT NULL,
-    last_op_id int8 NOT NULL,
+    last_op_id int8 NOT NULL DEFAULT 0,
+    last_block_num int4 NOT NULL DEFAULT 0,
     CONSTRAINT hafsql_sync_data_un UNIQUE (table_name)
   );`)
 
@@ -97,6 +98,8 @@ export const setupTables = async () => {
     metadata jsonb NULL,
     created timestamp NOT NULL,
     last_edited timestamp NULL,
+    root_author varchar(16) NULL,
+    root_permlink varchar(255) NULL,
     pending_payout_value numeric(12, 3) NULL DEFAULT 0,
     payout numeric(12, 3) NULL DEFAULT 0,
     author_rewards_hive numeric(12, 3) NULL DEFAULT 0,
@@ -132,8 +135,8 @@ export const setupTables = async () => {
   await client.queryObject(
     `CREATE TABLE IF NOT EXISTS hafsql.reputations_table (
     account int4 NOT NULL,
-    reputation varchar NOT NULL DEFAULT '0',
-    last_update int8 NOT NULL,
+    reputation int8 NOT NULL DEFAULT 0,
+    is_implicit bool NOT NULL DEFAULT TRUE,
     CONSTRAINT hafsql_reputations_table_un UNIQUE (account)
   );`,
   )
@@ -171,13 +174,17 @@ const setupSyncDataTable = async () => {
   for (let i = 0; i < tableNames.length; i++) {
     const name = tableNames[i]
     const data = await client.queryObject(
-      'SELECT last_op_id FROM hafsql.sync_data WHERE table_name = $1',
+      'SELECT name FROM hafsql.sync_data WHERE table_name = $1',
       [name],
     )
-    if (!data.rowCount) {
+    if (data.rows.length < 1) {
+      let lastNum = 0
+      if (name === 'reblogs') {
+        lastNum = 4568614
+      }
       await client.queryObject(
-        'INSERT INTO hafsql.sync_data(table_name, last_op_id) VALUES($1, $2)',
-        [name, 0],
+        'INSERT INTO hafsql.sync_data(table_name, last_block_num) VALUES($1, $2)',
+        [name, lastNum],
       )
     }
   }
