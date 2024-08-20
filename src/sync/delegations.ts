@@ -51,7 +51,7 @@ const getDelegations = async (blockRange: number[]) => {
   using client = await pool.connect()
   const result = await client.queryObject<Delegations>(
     `SELECT op_id, delegator, delegatee, vesting_shares FROM hafsql.op_delegate_vesting_shares
-      WHERE op_id >= hafsql.last_op_id_from_block_num($1)
+      WHERE op_id >= hafsql.first_op_id_from_block_num($1)
       AND op_id <= hafsql.last_op_id_from_block_num($2)
       ORDER BY op_id ASC`,
     [blockRange[0], blockRange[1]],
@@ -77,7 +77,7 @@ const insertDelegations = async (
     } else {
       await trx.queryObject(
         `INSERT INTO hafsql.delegations_table (delegator, delegatee, vests)
-          VALUES ($1, $2, $3) ON CONFLICT ON CONSTRAINT hafsql_delegations_table_un
+          VALUES ($1, $2, $3::numeric/1000000::numeric) ON CONFLICT ON CONSTRAINT hafsql_delegations_table_un
           DO UPDATE SET vests=($3::numeric/1000000::numeric);`,
         [delegator, delegatee, vesting_shares],
       )
