@@ -1,7 +1,7 @@
 import { pool } from '../helpers/database.ts'
 
 export const setupPublicUser = async () => {
-	const client = await pool.connect()
+	using client = await pool.connect()
 
 	const role = await client.queryObject(
 		'SELECT rolname FROM pg_catalog.pg_roles WHERE rolname = $1',
