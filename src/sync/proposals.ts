@@ -52,15 +52,15 @@ const getData = async (blockRange: number[]) => {
   using client = await pool.connect()
   const approvalResult = await client.queryObject<ProposalApprovals>(
     `SELECT op_id, voter, proposal_ids, approve FROM hafsql.op_update_proposal_votes
-      WHERE op_id >= hafsql.last_op_id_from_block_num($1)
+      WHERE op_id >= hafsql.first_op_id_from_block_num($1)
       AND op_id <= hafsql.last_op_id_from_block_num($2)
       ORDER BY op_id ASC;`,
     [blockRange[0], blockRange[1]],
   )
   const expiredResult = await client.queryObject<ExpiredAccount>(
     `SELECT op_id, account FROM hafsql.vo_expired_account_notification
-      WHERE op_id <= hafsql.last_op_id_from_block_num($1)
-      AND op_id >= hafsql.last_op_id_from_block_num($2)
+      WHERE op_id >= hafsql.first_op_id_from_block_num($1)
+      AND op_id <= hafsql.last_op_id_from_block_num($2)
       ORDER BY op_id ASC;`,
     [blockRange[0], blockRange[1]],
   )
