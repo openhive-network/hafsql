@@ -14,7 +14,7 @@ export const setupTables = async () => {
     `CREATE TABLE IF NOT EXISTS hafsql.delegations_table (
     delegator varchar(16) NOT NULL,
     delegatee varchar(16) NOT NULL,
-    vests varchar NOT NULL,
+    vests numeric NOT NULL,
     CONSTRAINT hafsql_delegations_table_un UNIQUE (delegator, delegatee)
   );`,
   )
@@ -140,15 +140,15 @@ export const setupTables = async () => {
   );`,
   )
 
-  // Vote chache - caching 7 days old votes - needed for reputations
-  await client.queryObject(`CREATE TABLE IF NOT EXISTS hafsql.votescache_table (
-    voter int4 NOT NULL,
-    author varchar NOT NULL,
-    permlink varchar NOT NULL,
-    shares varchar NOT NULL DEFAULT '0',
-    timestamp int8 NOT NULL,
-    CONSTRAINT hafsql_votescache_table_un UNIQUE (voter, author, permlink)
-  );`)
+  // // Vote chache - caching 7 days old votes - needed for reputations
+  // await client.queryObject(`CREATE TABLE IF NOT EXISTS hafsql.votescache_table (
+  //   voter int4 NOT NULL,
+  //   author varchar NOT NULL,
+  //   permlink varchar NOT NULL,
+  //   shares varchar NOT NULL DEFAULT '0',
+  //   timestamp int8 NOT NULL,
+  //   CONSTRAINT hafsql_votescache_table_un UNIQUE (voter, author, permlink)
+  // );`)
 
   client.release()
 
@@ -173,14 +173,14 @@ const setupSyncDataTable = async () => {
   for (let i = 0; i < tableNames.length; i++) {
     const name = tableNames[i]
     const data = await client.queryObject(
-      'SELECT name FROM hafsql.sync_data WHERE table_name = $1',
+      'SELECT table_name FROM hafsql.sync_data WHERE table_name = $1',
       [name],
     )
     if (data.rows.length < 1) {
-      let lastNum = 0
-      if (name === 'reblogs') {
-        lastNum = 4568614
-      }
+      const lastNum = 0
+      // if (name === 'reblogs') {
+      //   lastNum = 4568614
+      // }
       await client.queryObject(
         'INSERT INTO hafsql.sync_data(table_name, last_block_num) VALUES($1, $2)',
         [name, lastNum],
