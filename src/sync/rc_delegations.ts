@@ -60,7 +60,7 @@ const getRCDelegations = async (blockRange: number[]) => {
   const client = await pool.connect()
   const result = await client.queryObject<RcCustomJson>(
     `SELECT op_id, json FROM hafsql.op_custom_json
-    WHERE id=$1 AND op_id >= hafsql.last_op_id_from_block_num($2)
+    WHERE id=$1 AND op_id >= hafsql.first_op_id_from_block_num($2)
     AND op_id <= hafsql.last_op_id_from_block_num($3)
     ORDER BY op_id ASC`,
     ['rc', blockRange[0], blockRange[1]],
