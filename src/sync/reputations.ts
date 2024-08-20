@@ -99,7 +99,7 @@ const getVotes = async (blockRange: number[]) => {
   using client = await pool.connect()
   const result = await client.queryObject<EffectiveCommentVoteREP>(
     `SELECT op_id, voter, author, permlink, rshares FROM hafsql.vo_effective_comment_vote
-      WHERE op_id >= hafsql.last_op_id_from_block_num($1)
+      WHERE op_id >= hafsql.first_op_id_from_block_num($1)
       AND op_id <= hafsql.last_op_id_from_block_num($2)
       ORDER BY op_id ASC`,
     [blockRange[0], blockRange[1]],
