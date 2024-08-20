@@ -1,6 +1,9 @@
 export interface LastOpId {
 	last_op_id: bigint
 }
+export interface BlockRange {
+	block_range: [number, number] | null
+}
 
 export interface CommentOp {
 	op_id: bigint
@@ -56,6 +59,11 @@ export interface PaidComments extends DeletedComment {
 	beneficiary_payout_value: number
 }
 
+export interface RootAuthorPermlink {
+	root_author: string
+	root_permlink: string
+}
+
 export interface Delegations {
 	op_id: bigint
 	delegator: string
@@ -84,7 +92,6 @@ export interface RcDelegationAppended {
 	from: string
 	delegatees: string[]
 	max_rc: string | number
-	op_id: bigint
 }
 
 export interface CustomJsonFollow {
@@ -147,3 +154,16 @@ export type CommunityRoles =
 	| 'mod'
 	| 'admin'
 	| 'owner'
+
+export interface EffectiveCommentVoteREP {
+	op_id: bigint
+	voter: string
+	author: string
+	permlink: string
+	rshares: string
+}
+
+export interface Reputation {
+	reputation: string
+	is_implicit: boolean
+}
