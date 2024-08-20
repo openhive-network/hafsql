@@ -1,19 +1,22 @@
 import { pool } from '../helpers/database.ts'
 import { DiffMatchPatch, Transaction } from '../deps.ts'
-import { print } from '../helpers/print.ts'
+import { print } from '../helpers/functions/print.ts'
 import {
 	AuthorPermlink,
 	CommentObj,
 	CommentOp,
 	DeletedComment,
-	LastOpId,
+	RootAuthorPermlink,
 } from '../helpers/types.ts'
-import { sleep } from '../helpers/sleep.ts'
+import { sleep } from '../helpers/functions/sleep.ts'
 import {
 	createCommentsIndexes,
 	createHafsqlIndexes,
 } from '../indexes/hafsql.ts'
-import { cleanString } from '../helpers/clean_string.ts'
+import { cleanString } from '../helpers/functions/clean_string.ts'
+import { getBlockRange } from '../helpers/functions/get_block_range.ts'
+import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
+import { getLastBlockNum } from '../helpers/functions/get_last_block_num.ts'
 
 let started = false
 // Run this file in a separate worker thread than the main application
@@ -23,7 +26,7 @@ self.onmessage = (e: MessageEvent) => {
 	if (e.data === 'start') {
 		if (!started) {
 			started = true
-			print('[Comments] Start massive sync... 🚀')
+			print('[Comments] Start massive sync... ⏳')
 			syncComments()
 			syncDeletedComments()
 		}
@@ -32,14 +35,15 @@ self.onmessage = (e: MessageEvent) => {
 
 // TODO: This dies somehow?????
 // Probably fixed, probably
+// Nope not fixed
 let firstRun = true
 const syncComments = async () => {
 	const intervalTime = 250
 	if (firstRun) {
 		firstRun = false
-		await fillComments(20000)
+		await fillComments()
 		print('[Comments] Massive sync done ✅')
-		print('[Comments] Creating indexes... 🚀')
+		print('[Comments] Creating indexes... ⏳')
 		await createCommentsIndexes()
 		// At this point other syncs should be done/near end as well
 		await createHafsqlIndexes()
@@ -47,42 +51,36 @@ const syncComments = async () => {
 		print('[Comments] Switched to live sync 🟢')
 		await sleep(intervalTime)
 	}
-	await fillComments(20000)
+	await fillComments()
 	await sleep(intervalTime)
 	syncComments()
 }
 
-const fillComments = async (limit: number) => {
-	const client = await pool.connect()
-	const startQ = await client.queryObject<LastOpId>(
-		'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
-		['comments'],
-	)
-	client.release()
-	let start = startQ.rows[0].last_op_id
-	let comments = await getComments(start, limit)
-	while (comments.length > 0) {
-		await insertComments(comments)
-		start = comments[comments.length - 1].op_id
-		comments = await getComments(start, limit)
-		await updateLastOpId(start)
+const fillComments = async () => {
+	let blockRange = await getBlockRange('comments')
+	while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+		const comments = await getComments(blockRange)
+		await insertComments(comments, blockRange)
+		blockRange = await getBlockRange('comments')
 	}
 }
 
 // Get comment operations from hive.operations
-const getComments = async (start: bigint, limit: number) => {
+const getComments = async (blockRange: number[]) => {
 	using client = await pool.connect()
 	const result = await client.queryObject<CommentOp>(
 		`SELECT op_id, "timestamp", author, permlink, parent_author, parent_permlink, title, body, json_metadata
-      FROM hafsql.op_comment WHERE op_id > $1 ORDER BY op_id ASC LIMIT $2`,
-		[start, limit],
+      FROM hafsql.op_comment WHERE op_id >= hafsql.last_op_id_from_block_num($1)
+			AND op_id <= hafsql.last_op_id_from_block_num($2)
+			ORDER BY op_id ASC`,
+		[blockRange[0], blockRange[1]],
 	)
 	return result.rows
 }
 
 let retry = 0
 // Create a transaction then insert or update comments
-const insertComments = async (comments: CommentOp[]) => {
+const insertComments = async (comments: CommentOp[], blockRange: number[]) => {
 	using client = await pool.connect()
 	// use transaction to speed up inserts
 	const trx = client.createTransaction('hafsql_comments_sync')
@@ -91,18 +89,16 @@ const insertComments = async (comments: CommentOp[]) => {
 		for (let i = 0; i < comments.length; i++) {
 			await insertComment(comments[i], trx)
 		}
+		await updateLastBlockNum('comments', blockRange[1], trx)
 		await trx.commit()
 		retry = 0
 	} catch (e) {
 		if (retry > 5) {
 			throw new Error(e)
 		}
-		if (client.session.current_transaction) {
-			await trx.rollback()
-		}
 		retry++
 		await sleep(1000)
-		await insertComments(comments)
+		return insertComments(comments, blockRange)
 	}
 }
 
@@ -110,17 +106,35 @@ const insertComment = async (comment: CommentOp, trx: Transaction) => {
 	const oldComment = await getComment(comment.author, comment.permlink, trx)
 	if (oldComment !== null) {
 		// edited comments
-		return updateEditedComment(comment, oldComment, trx)
+		await updateEditedComment(comment, oldComment, trx)
+		return
 	}
 	// new comments
 	const tags = extractTags(comment.json_metadata)
 	const metadata = isJsonString(comment.json_metadata)
 		? comment.json_metadata
 		: {}
+
+	// Root of a post is itself
+	let rootAuthor = comment.author
+	let rootPermlink = comment.permlink
+	if (
+		typeof comment.parent_author === 'string' &&
+		comment.parent_author.length > 0
+	) {
+		// if there is a parent, grab its roots
+		const result = await trx.queryObject<RootAuthorPermlink>(
+			`SELECT root_author, root_permlink
+				FROM hafsql.comments_table WHERE author=$1 and permlink=$2`,
+			[comment.parent_author, comment.parent_permlink],
+		)
+		rootAuthor = result.rows[0].root_author
+		rootPermlink = result.rows[0].root_permlink
+	}
 	await trx.queryObject(
 		`INSERT INTO hafsql.comments_table
-      (title, body, tags, author, permlink, parent_author, parent_permlink, metadata, created)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      (title, body, tags, author, permlink, parent_author, parent_permlink, metadata, created, root_author, root_permlink)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
 		[
 			comment.title,
 			comment.body,
@@ -131,6 +145,8 @@ const insertComment = async (comment: CommentOp, trx: Transaction) => {
 			comment.parent_permlink,
 			metadata,
 			comment.timestamp,
+			rootAuthor,
+			rootPermlink,
 		],
 	)
 }
@@ -248,14 +264,6 @@ const patchBody = (oldBody: string, newBody: string) => {
 	}
 }
 
-const updateLastOpId = async (opId: bigint) => {
-	using client = await pool.connect()
-	await client.queryObject(
-		'UPDATE hafsql.sync_data SET last_op_id=$1 WHERE table_name=$2;',
-		[opId, 'comments'],
-	)
-}
-
 /**
  ********** Delted comments handling ***********
  * This won't go past the synced comments
@@ -267,26 +275,18 @@ const syncDeletedComments = async () => {
 	// 3s might be better to also feel better during live sync
 	// TODO: test and adjust
 	const intervalTime = 3000
-	await fillDeleted(100000)
+	await fillDeleted()
 	await sleep(intervalTime)
 	syncDeletedComments()
 }
 
-const fillDeleted = async (limit: number) => {
+const fillDeleted = async () => {
 	await getIneffectiveDeleteComments()
-	const client = await pool.connect()
-	const startQ = await client.queryObject<{ last_op_id: bigint }>(
-		'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
-		['delete_comments'],
-	)
-	client.release()
-	let start = startQ.rows[0].last_op_id
-	let deletedCms = await getDeletedComments(start, limit)
-	while (deletedCms.length > 0) {
-		await insertDeletedComments(deletedCms)
-		start = deletedCms[deletedCms.length - 1].op_id
-		await updateLastOpIdDeleted(start)
-		deletedCms = await getDeletedComments(start, limit)
+	let blockRange = await getBlockRange('delete_comments')
+	while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+		const deletedCms = await getDeletedComments(blockRange)
+		await insertDeletedComments(deletedCms, blockRange)
+		blockRange = await getBlockRange('delete_comments')
 	}
 }
 
@@ -302,24 +302,31 @@ const getIneffectiveDeleteComments = async () => {
 	}
 }
 
-const getDeletedComments = async (start: bigint, limit: number) => {
+const getDeletedComments = async (blockRange: number[]) => {
 	using client = await pool.connect()
-	const endQ = await client.queryObject<LastOpId>(
-		'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
-		['comments'],
-	)
-	const end = endQ.rows[0].last_op_id
+	const end = await getLastBlockNum('comments')
 	// Always lag behind the comments_table indexing
+	if (blockRange[0] > end) {
+		return []
+	}
+	if (blockRange[1] > end) {
+		blockRange[1] = end
+	}
 	const result = await client.queryObject<DeletedComment>(
 		`SELECT op_id, author, permlink FROM hafsql.op_delete_comment
-      WHERE op_id > $1 AND op_id <= $2 ORDER BY op_id ASC LIMIT $3`,
-		[start, end, limit],
+      WHERE op_id >= hafsql.last_op_id_from_block_num($1)
+			AND op_id <= hafsql.last_op_id_from_block_num($2)
+			ORDER BY op_id ASC`,
+		[blockRange[0], blockRange[1]],
 	)
 	return result.rows
 }
 
 let retry1 = 0
-const insertDeletedComments = async (deletedCms: DeletedComment[]) => {
+const insertDeletedComments = async (
+	deletedCms: DeletedComment[],
+	blockRange: number[],
+) => {
 	using client = await pool.connect()
 	const trx = client.createTransaction('deleted_comments_sync')
 	try {
@@ -343,6 +350,7 @@ const insertDeletedComments = async (deletedCms: DeletedComment[]) => {
 				[author, permlink],
 			)
 		}
+		await updateLastBlockNum('delete_comments', blockRange[1], trx)
 		await trx.commit()
 		retry1 = 0
 	} catch (e) {
@@ -350,19 +358,8 @@ const insertDeletedComments = async (deletedCms: DeletedComment[]) => {
 		if (retry1 > 5) {
 			throw new Error(e)
 		}
-		if (client.session.current_transaction) {
-			await trx.rollback()
-		}
 		retry1++
 		await sleep(2000)
-		await insertDeletedComments(deletedCms)
+		return insertDeletedComments(deletedCms, blockRange)
 	}
-}
-
-const updateLastOpIdDeleted = async (opId: bigint) => {
-	using client = await pool.connect()
-	await client.queryObject(
-		'UPDATE hafsql.sync_data SET last_op_id=$1 WHERE table_name=$2;',
-		[opId, 'delete_comments'],
-	)
 }
