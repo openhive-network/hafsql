@@ -58,7 +58,7 @@ const syncComments = async () => {
 
 const fillComments = async () => {
 	let blockRange = await getBlockRange('comments')
-	while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+	while (blockRange) {
 		const comments = await getComments(blockRange)
 		await insertComments(comments, blockRange)
 		blockRange = await getBlockRange('comments')
@@ -91,7 +91,7 @@ const insertComments = async (comments: CommentOp[], blockRange: number[]) => {
 		await updateLastBlockNum('comments', blockRange[1], trx)
 		await trx.commit()
 	} catch (e) {
-		if (e.stack?.indexOf('deadlock') > -1) {
+		if (e.cause?.message === 'deadlock detected') {
 			await sleep(1000)
 			return insertComments(comments, blockRange)
 		} else {
@@ -282,7 +282,7 @@ const syncDeletedComments = async () => {
 const fillDeleted = async () => {
 	await getIneffectiveDeleteComments()
 	let blockRange = await getBlockRange('delete_comments')
-	while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+	while (blockRange) {
 		const deletedCms = await getDeletedComments(blockRange)
 		await insertDeletedComments(deletedCms, blockRange)
 		blockRange = await getBlockRange('delete_comments')
@@ -354,7 +354,7 @@ const insertDeletedComments = async (
 		await trx.commit()
 	} catch (e) {
 		// probably a deadlock - retry
-		if (e.stack?.indexOf('deadlock') > -1) {
+		if (e.cause?.message === 'deadlock detected') {
 			await sleep(2000)
 			return insertDeletedComments(deletedCms, blockRange)
 		} else {
