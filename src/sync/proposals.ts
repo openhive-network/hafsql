@@ -1,10 +1,11 @@
 import { pool } from '../helpers/database.ts'
-import { print } from '../helpers/print.ts'
-import { sleep } from '../helpers/sleep.ts'
+import { getBlockRange } from '../helpers/functions/get_block_range.ts'
+import { print } from '../helpers/functions/print.ts'
+import { sleep } from '../helpers/functions/sleep.ts'
+import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
 import {
   ApprovalsAndExpired,
   ExpiredAccount,
-  LastOpId,
   ProposalApprovals,
 } from '../helpers/types.ts'
 
@@ -16,7 +17,7 @@ self.onmessage = (e: MessageEvent) => {
   if (e.data === 'start') {
     if (!started) {
       started = true
-      print('[Proposals] Start massive sync... 🚀')
+      print('[Proposals] Start massive sync... ⏳')
       syncProposalApprovals()
     }
   }
@@ -27,63 +28,42 @@ const syncProposalApprovals = async () => {
   const intervalTime = 250
   if (firstRun) {
     firstRun = false
-    await fillProposalApprovals(50000)
+    await fillProposalApprovals()
     print('[Proposals] Massive sync done ✅')
     print('[Proposals] Switched to live sync 🟢')
     await sleep(intervalTime)
   }
-  await fillProposalApprovals(20000)
+  await fillProposalApprovals()
   await sleep(intervalTime)
   syncProposalApprovals()
 }
 
-const fillProposalApprovals = async (limit: number) => {
-  const client = await pool.connect()
-  const startQ = await client.queryObject<LastOpId>(
-    'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
-    ['proposal_approvals'],
-  )
-  client.release()
-  let start = startQ.rows[0].last_op_id
-  let data = await getData(start, limit)
-  while (data.length > 0) {
-    await insertData(data)
-    start = data[data.length - 1].op_id
-    await updateLastOpId(start)
-    data = await getData(start, limit)
+const fillProposalApprovals = async () => {
+  let blockRange = await getBlockRange('proposal_approvals')
+  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+    const data = await getData(blockRange)
+    await insertData(data, blockRange)
+    blockRange = await getBlockRange('proposal_approvals')
   }
 }
 
 // Merge approvals and expirations together and return them sorted by op_id
-const getData = async (start: bigint, limit: number) => {
+const getData = async (blockRange: number[]) => {
   using client = await pool.connect()
   const approvalResult = await client.queryObject<ProposalApprovals>(
     `SELECT op_id, voter, proposal_ids, approve FROM hafsql.op_update_proposal_votes
-      WHERE op_id > $1 ORDER BY op_id ASC LIMIT $2;`,
-    [
-      start,
-      limit,
-    ],
+      WHERE op_id >= hafsql.last_op_id_from_block_num($1)
+      AND op_id <= hafsql.last_op_id_from_block_num($2)
+      ORDER BY op_id ASC;`,
+    [blockRange[0], blockRange[1]],
   )
-  const upperLimit = approvalResult.rows[approvalResult.rows.length - 1]?.op_id
-
-  let query = `SELECT op_id, account FROM hafsql.vo_expired_account_notification
-    WHERE op_id <= $1 AND op_id > $2 ORDER BY op_id ASC LIMIT $3;`
-  let params = [
-    upperLimit,
-    start,
-    limit,
-  ]
-  // if no approvals, don't need the upper limit
-  if (!upperLimit) {
-    query = `SELECT op_id, account FROM hafsql.vo_expired_account_notification
-      WHERE op_id > $1 ORDER BY op_id ASC LIMIT $2;`
-    params = [
-      start,
-      limit,
-    ]
-  }
-  const expiredResult = await client.queryObject<ExpiredAccount>(query, params)
+  const expiredResult = await client.queryObject<ExpiredAccount>(
+    `SELECT op_id, account FROM hafsql.vo_expired_account_notification
+      WHERE op_id <= hafsql.last_op_id_from_block_num($1)
+      AND op_id >= hafsql.last_op_id_from_block_num($2)
+      ORDER BY op_id ASC;`,
+    [blockRange[0], blockRange[1]],
+  )
   // Hold results in tempArray for sorting later
   const tempArray: ApprovalsAndExpired[] = []
   for (let i = 0; i < approvalResult.rows.length; i++) {
@@ -104,7 +84,10 @@ const getData = async (start: bigint, limit: number) => {
   return tempArray
 }
 
-const insertData = async (data: ApprovalsAndExpired[]) => {
+const insertData = async (
+  data: ApprovalsAndExpired[],
+  blockRange: number[],
+) => {
   using client = await pool.connect()
   const trx = client.createTransaction('hafsql_proposal_approvals_sync')
   await trx.begin()
@@ -137,13 +120,6 @@ const insertData = async (data: ApprovalsAndExpired[]) => {
       )
     }
   }
+  await updateLastBlockNum('proposal_approvals', blockRange[1], trx)
   await trx.commit()
-}
-
-const updateLastOpId = async (opId: bigint) => {
-  using client = await pool.connect()
-  return client.queryObject(
-    'UPDATE hafsql.sync_data SET last_op_id=$1 WHERE table_name=$2;',
-    [opId, 'proposal_approvals'],
-  )
 }
