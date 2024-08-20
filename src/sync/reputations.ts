@@ -76,7 +76,7 @@ const fillAccounts = async () => {
 
 const fillReputations = async () => {
   let blockRange = await getBlockRange()
-  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+  while (blockRange) {
     const votes = await getVotes(blockRange)
     await processVotes(votes, blockRange)
     blockRange = await getBlockRange()
