@@ -1,6 +1,6 @@
 import { loadDotEnv } from './deps.ts'
-import { print } from './helpers/print.ts'
-import { createHiveIndexes, isHiveIndexCreated } from './indexes/hive.ts'
+import { print } from './helpers/functions/print.ts'
+import { createHiveIndexes, doesIndexExist } from './indexes/hive.ts'
 import { setup } from './setup/setup.ts'
 
 // Load .env and .env.defaults
@@ -10,78 +10,74 @@ await loadDotEnv({ export: true })
 await setup()
 
 // Start indexing
-print('[Main] Start creating indexes... 🚀')
+print('[Main] Start creating indexes... ⏳')
 createHiveIndexes()
 
 // index and sync at the same time
 const isSyncing = {
-	comments: false,
-	reblogs: false,
-	follows: false,
-	delegations: false,
-	rewards: false,
+	one: false,
+	two: false,
+	three: false,
+	four: false,
 }
 
 // Start workers for each indexer
-const main = () => {
+const main = async () => {
 	// op_type_id id
 	if (
-		isHiveIndexCreated('hafsql_hive_operations_op_type_id_id') &&
-		isSyncing.comments === false
+		isSyncing.one === false &&
+		await doesIndexExist('hafsql_hive_operations_op_type_id_id')
 	) {
-		// sync comments
-		isSyncing.comments = true
-		const commentWorker = createWorker('./sync/comments.ts')
+		isSyncing.one = true
+		// comments
+		createWorker('./sync/comments.ts').postMessage('start')
 		print('[Main] Starting comments worker 👷‍')
-		commentWorker.postMessage('start')
 
-		// sync delegations
-		const delegationWorker = createWorker('./sync/delegations.ts')
+		// delegations
+		createWorker('./sync/delegations.ts').postMessage('start')
 		print('[Main] Starting HP delegations worker 👷')
-		delegationWorker.postMessage('start')
 
-		// sync proposals
-		const proposalWorker = createWorker('./sync/proposals.ts')
+		// proposals
+		createWorker('./sync/proposals.ts').postMessage('start')
 		print('[Main] Starting proposal worker 👷')
-		proposalWorker.postMessage('start')
 	}
 
 	// custom_json id
 	if (
-		isHiveIndexCreated('hafsql_id_opid_idx') && isSyncing.reblogs === false
+		isSyncing.two === false &&
+		await doesIndexExist('hafsql_id_opid_idx')
 	) {
-		// sync reblogs
-		isSyncing.reblogs = true
-		const reblogsWorker = createWorker('./sync/reblogs.ts')
+		isSyncing.two = true
+		// reblogs
+		createWorker('./sync/reblogs.ts').postMessage('start')
 		print('[Main] Starting reblogs worker 👷')
-		reblogsWorker.postMessage('start')
 
-		// sync follows
-		const followsWorker = createWorker('./sync/follows.ts')
+		// follows
+		createWorker('./sync/follows.ts').postMessage('start')
 		print('[Main] Starting follows worker 👷')
-		followsWorker.postMessage('start')
 
-		// sync rc delegations
-		const rcDelegationsWorker = createWorker('./sync/rc_delegations.ts')
-		print('[Main] Starting RC delegations worker 👷')
-		rcDelegationsWorker.postMessage('start')
-
-		// sync community roles
-		const communitiesWorker = createWorker('./sync/communities.ts')
+		// community_roles
+		createWorker('./sync/communities.ts').postMessage('start')
 		print('[Main] Starting community roles worker 👷')
-		communitiesWorker.postMessage('start')
+
+		// rc_delegations
+		createWorker('./sync/rc_delegations.ts').postMessage('start')
+		print('[Main] Starting RC delegations worker 👷')
 	}
 
 	// author permlink
 	if (
-		isHiveIndexCreated('hafsql_author_permlink_idx') &&
-		isSyncing.rewards === false
+		isSyncing.three === false &&
+		await doesIndexExist('hafsql_author_permlink_idx')
 	) {
-		// sync rewards
-		isSyncing.rewards = true
-		const rewardWorker = createWorker('./sync/rewards.ts')
+		isSyncing.three = true
+		// rewards
+		createWorker('./sync/rewards.ts').postMessage('start')
 		print('[Main] Starting rewards worker 👷')
-		rewardWorker.postMessage('start')
+
+		// reputations
+		createWorker('./sync/reputations.ts').postMessage('start')
+		print('[Main] Starting reputations worker 👷')
 	}
 }
 
