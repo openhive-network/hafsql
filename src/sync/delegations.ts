@@ -40,7 +40,7 @@ const syncDelegations = async () => {
 
 export const fillDelegations = async () => {
   let blockRange = await getBlockRange('delegations')
-  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+  while (blockRange) {
     const delegations = await getDelegations(blockRange)
     await insertDelegations(delegations, blockRange)
     blockRange = await getBlockRange('delegations')
@@ -68,7 +68,7 @@ const insertDelegations = async (
   await trx.begin()
   for (let i = 0; i < delegations.length; i++) {
     const { delegator, delegatee, vesting_shares } = delegations[i]
-    if (vesting_shares === '0') {
+    if (Number(vesting_shares) === Number(0)) {
       await trx.queryObject(
         `DELETE FROM hafsql.delegations_table
           WHERE delegator=$1 AND delegatee=$2;`,
@@ -77,8 +77,8 @@ const insertDelegations = async (
     } else {
       await trx.queryObject(
         `INSERT INTO hafsql.delegations_table (delegator, delegatee, vests)
-          VALUES ($1, $2, $3::numeric/1000000::numeric) ON CONFLICT ON CONSTRAINT hafsql_delegations_table_un
-          DO UPDATE SET vests=($3::numeric/1000000::numeric);`,
+          VALUES ($1, $2, $3) ON CONFLICT ON CONSTRAINT hafsql_delegations_table_un
+          DO UPDATE SET vests=$3;`,
         [delegator, delegatee, vesting_shares],
       )
     }
