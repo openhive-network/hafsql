@@ -49,7 +49,7 @@ export const setupExtraViews = async () => {
   AS SELECT x.delegator,
     x.delegatee,
     x.vests,
-    hafsql.vests_to_hive(x.vests::numeric) as hp_equivalent
+    hafsql.vests_to_hive(x.vests) as hp_equivalent
     FROM hafsql.delegations_table x;`)
 
   // RC Delegations
