@@ -1,3 +1,4 @@
+import { sleep } from '../helpers/functions/sleep.ts'
 import { removeExtraViews, setupExtraViews } from './extra_views.ts'
 import { setupFunctions } from './functions.ts'
 import { removeOperationViews, setupOperationViews } from './operations.ts'
@@ -33,8 +34,9 @@ export const setup = async (): Promise<void> => {
 		if (Deno.env.get('HAFSQL_PUBLICUSER') === 'true') {
 			await setupPublicUser()
 		}
-	} catch (_e) {
-		console.log('trying setup again...')
+	} catch (e) {
+		console.log(e)
+		await sleep(10000)
 		return setup()
 	}
 }
