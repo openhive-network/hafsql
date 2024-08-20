@@ -49,7 +49,7 @@ const syncRCDelegations = async () => {
 
 export const fillRCDelegations = async () => {
   let blockRange = await getBlockRange('rc_delegations')
-  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+  while (blockRange) {
     const delegations = await getRCDelegations(blockRange)
     await insertRCDelegations(delegations, blockRange)
     blockRange = await getBlockRange('rc_delegations')
