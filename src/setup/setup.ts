@@ -9,27 +9,32 @@ import {
 	setupVirtualOperationViews,
 } from './virtual_operations.ts'
 
-export const setup = async () => {
-	await setupSchema()
+export const setup = async (): Promise<void> => {
+	try {
+		await setupSchema()
 
-	await setupFunctions()
+		await setupFunctions()
 
-	await setupTables()
+		await setupTables()
 
-	// Remove the views to recreate them in case they have changed
-	await removeExtraViews()
+		// Remove the views to recreate them in case they have changed
+		await removeExtraViews()
 
-	await removeVirtualOperationViews()
+		await removeVirtualOperationViews()
 
-	await removeOperationViews()
+		await removeOperationViews()
 
-	await setupOperationViews()
+		await setupOperationViews()
 
-	await setupVirtualOperationViews()
+		await setupVirtualOperationViews()
 
-	await setupExtraViews()
+		await setupExtraViews()
 
-	if (Deno.env.get('HAFSQL_PUBLICUSER') === 'true') {
-		await setupPublicUser()
+		if (Deno.env.get('HAFSQL_PUBLICUSER') === 'true') {
+			await setupPublicUser()
+		}
+	} catch (_e) {
+		console.log('trying setup again...')
+		return setup()
 	}
 }
