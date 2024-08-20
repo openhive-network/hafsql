@@ -20,6 +20,9 @@ export const createCommentsIndexes = async () => {
 	await client.queryObject(
 		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_author_created_idx ON hafsql.comments_table USING btree (author, created);',
 	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_root_author_root_permlink_idx ON hafsql.comments_table USING btree (root_author, root_permlink);',
+	)
 }
 
 export const createDelegationsIndexes = async () => {
@@ -43,13 +46,17 @@ export const createCommunitiesIndexes = async () => {
 	)
 }
 
+export const createReputationsIndexes = async () => {
+	// Might be nice to have to sort reputations from high to low
+	// using client = await pool.connect()
+	// await client.queryObject(
+	// 	'CREATE INDEX IF NOT EXISTS hafsql_reputations_table_reputation_idx ON hafsql.reputations_table USING btree (reputation);',
+	// )
+}
+
 export const createHafsqlIndexes = async () => {
 	using client = await pool.connect()
 	await client.queryObject(
 		'CREATE INDEX IF NOT EXISTS hafsql_reblogs_table_post_idx ON hafsql.reblogs_table USING btree (post);',
-	)
-
-	await client.queryObject(
-		'CREATE INDEX IF NOT EXISTS hafsql_votescache_table_timestamp_idx ON hafsql.votescache_table USING btree (timestamp);',
 	)
 }
