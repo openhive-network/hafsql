@@ -1,15 +1,16 @@
 import { JSONBigInt } from '../deps.ts'
 import { pool } from '../helpers/database.ts'
-import { print } from '../helpers/print.ts'
-import { sleep } from '../helpers/sleep.ts'
+import { print } from '../helpers/functions/print.ts'
+import { sleep } from '../helpers/functions/sleep.ts'
 import {
-  LastOpId,
   RcCustomJson,
   RcDelegation,
   RcDelegationAppended,
 } from '../helpers/types.ts'
-import { clearUsername } from '../helpers/validate_username.ts'
+import { clearUsername } from '../helpers/functions/validate_username.ts'
 import { createRCDelegationsIndexes } from '../indexes/hafsql.ts'
+import { getBlockRange } from '../helpers/functions/get_block_range.ts'
+import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
 
 // Need this to handle large RC numbers
 const JSONparser = JSONBigInt({ storeAsString: true }).parse
@@ -22,7 +23,7 @@ self.onmessage = (e: MessageEvent) => {
   if (e.data === 'start') {
     if (!started) {
       started = true
-      print('[RC Delegations] Start massive sync... 🚀')
+      print('[RC Delegations] Start massive sync... ⏳')
       syncRCDelegations()
     }
   }
@@ -33,42 +34,36 @@ const syncRCDelegations = async () => {
   const intervalTime = 250
   if (firstRun) {
     firstRun = false
-    await fillRCDelegations(50000)
+    await fillRCDelegations()
     print('[RC Delegations] Massive sync done ✅')
-    print('[RC Delegations] Creating indexes... 🚀')
+    print('[RC Delegations] Creating indexes... ⏳')
     await createRCDelegationsIndexes()
     print('[RC Delegations] Indexes have been created ✅')
     print('[RC Delegations] Switched to live sync 🟢')
     await sleep(intervalTime)
   }
-  await fillRCDelegations(20000)
+  await fillRCDelegations()
   await sleep(intervalTime)
   syncRCDelegations()
 }
 
-export const fillRCDelegations = async (limit: number) => {
-  const client = await pool.connect()
-  const startQ = await client.queryObject<LastOpId>(
-    'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
-    ['rc_delegations'],
-  )
-  client.release()
-  let start = startQ.rows[0].last_op_id
-  let delegations = await getRCDelegations(start, limit)
-  while (delegations.length > 0) {
-    await insertRCDelegations(delegations)
-    start = delegations[delegations.length - 1].op_id
-    await updateLastOpId(start)
-    delegations = await getRCDelegations(start, limit)
+export const fillRCDelegations = async () => {
+  let blockRange = await getBlockRange('rc_delegations')
+  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+    const delegations = await getRCDelegations(blockRange)
+    await insertRCDelegations(delegations, blockRange)
+    blockRange = await getBlockRange('rc_delegations')
   }
 }
 
-const getRCDelegations = async (start: bigint, limit: number) => {
+const getRCDelegations = async (blockRange: number[]) => {
   const client = await pool.connect()
   const result = await client.queryObject<RcCustomJson>(
     `SELECT op_id, json FROM hafsql.op_custom_json
-    WHERE id=$1 AND op_id > $2 ORDER BY op_id ASC LIMIT $3`,
-    ['rc', start, limit],
+    WHERE id=$1 AND op_id >= hafsql.last_op_id_from_block_num($2)
+    AND op_id <= hafsql.last_op_id_from_block_num($3)
+    ORDER BY op_id ASC`,
+    ['rc', blockRange[0], blockRange[1]],
   )
   client.release()
   if (result.rows.length <= 0) {
@@ -93,15 +88,13 @@ const getRCDelegations = async (start: bigint, limit: number) => {
         for (let k = 0; k < parsedJson.length; k++) {
           const delegation = extractRCDelegationFromArray(parsedJson[k])
           if (delegation !== null) {
-            const temp = { ...delegation, op_id: rcDelegation.op_id }
-            delegationsArray.push(temp)
+            delegationsArray.push(delegation)
           }
         }
       } else {
         const delegation = extractRCDelegationFromArray(parsedJson)
         if (delegation !== null) {
-          const temp = { ...delegation, op_id: rcDelegation.op_id }
-          delegationsArray.push(temp)
+          delegationsArray.push(delegation)
         }
       }
     } catch (_e) {
@@ -128,7 +121,10 @@ const extractRCDelegationFromArray = (arr: RcDelegation) => {
   }
 }
 
-const insertRCDelegations = async (delegations: RcDelegationAppended[]) => {
+const insertRCDelegations = async (
+  delegations: RcDelegationAppended[],
+  blockRange: number[],
+) => {
   using client = await pool.connect()
   const trx = client.createTransaction('hafsql_rc_delegations_sync')
   await trx.begin()
@@ -154,13 +150,6 @@ const insertRCDelegations = async (delegations: RcDelegationAppended[]) => {
       }
     }
   }
+  await updateLastBlockNum('rc_delegations', blockRange[1], trx)
   await trx.commit()
-}
-
-const updateLastOpId = async (opId: bigint) => {
-  using client = await pool.connect()
-  return client.queryObject(
-    'UPDATE hafsql.sync_data SET last_op_id=$1 WHERE table_name=$2;',
-    [opId, 'rc_delegations'],
-  )
 }
