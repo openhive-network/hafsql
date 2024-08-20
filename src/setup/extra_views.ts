@@ -19,7 +19,8 @@ export const setupExtraViews = async () => {
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.transactions
   AS SELECT x.block_num,
     x.trx_in_block,
-    x.trx_hash AS trx_id,
+    x.trx_hash,
+    encode(x.trx_hash, 'hex') AS trx_id,
     x.ref_block_num,
     x.ref_block_prefix,
     x.expiration,
@@ -48,7 +49,7 @@ export const setupExtraViews = async () => {
   AS SELECT x.delegator,
     x.delegatee,
     x.vests,
-    hafsql.vests_to_hive(x.vests) as hp
+    hafsql.vests_to_hive(x.vests::numeric) as hp_equivalent
     FROM hafsql.delegations_table x;`)
 
   // RC Delegations
@@ -56,7 +57,7 @@ export const setupExtraViews = async () => {
   AS SELECT x.delegator,
     x.delegatee,
     x.rc,
-    hafsql.vests_to_hive(x.rc) as hp
+    hafsql.rc_to_hive(x.rc::numeric) as hp_equivalent
     FROM hafsql.rc_delegations_table x;`)
 
   // Comments
@@ -75,6 +76,8 @@ export const setupExtraViews = async () => {
     CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) >= '7 days' THEN (x.created + INTERVAL '7 days') ELSE '1969-12-31 23:59:59' END AS last_payout,
     x.tags,
     x.metadata AS json_metadata,
+    x.root_author,
+    x.root_permlink,
     x.pending_payout_value,
     x.author_rewards_hbd AS author_rewards,
     x.author_rewards_hive AS author_rewards_in_hive,
@@ -181,7 +184,8 @@ export const setupExtraViews = async () => {
   // Accounts
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.accounts
   AS SELECT x.id,
-    x.name
+    x.name,
+    x.block_num
     FROM hive.accounts x;`)
 
   // Operations
@@ -192,7 +196,8 @@ export const setupExtraViews = async () => {
     x.op_pos,
     hive.operation_id_to_type_id(x.id) AS op_type_id,
     hb.created_at AS "timestamp",
-    x.body_binary::jsonb
+    x.body_binary::jsonb as body,
+    hafsql.get_trx_id(x.id) as included_trx_id
     FROM hive.operations x
     JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(x.id);`)
 
@@ -215,7 +220,7 @@ export const setupExtraViews = async () => {
   AS SELECT x.account as account_id,
     a.name as account_name,
     x.reputation,
-    x.last_update
+    x.is_implicit
     FROM hafsql.reputations_table x
     JOIN hive.accounts a ON x.account=a.id;`)
 }
