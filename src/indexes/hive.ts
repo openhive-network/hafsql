@@ -52,12 +52,20 @@ export const createHiveIndexes = async () => {
  */
 export const doesIndexExist = async (name: string) => {
 	using client = await pool.connect()
+	// const result = await client.queryObject<{ indisvalid: boolean }>(
+	// 	`SELECT ix.indisvalid
+	// 		FROM pg_class t, pg_class i, pg_index ix, pg_attribute a
+	// 		WHERE t.oid = ix.indrelid AND i.oid = ix.indexrelid AND a.attrelid = t.oid
+	// 		AND a.attnum = ANY(ix.indkey) AND t.relkind = 'r' AND ix.indisready = true
+	// 		AND i.relname = $1`,
+	// 	[name],
+	// )
 	const result = await client.queryObject<{ indisvalid: boolean }>(
-		`SELECT ix.indisvalid
-			FROM pg_class t, pg_class i, pg_index ix, pg_attribute a
-			WHERE t.oid = ix.indrelid AND i.oid = ix.indexrelid AND a.attrelid = t.oid
-			AND a.attnum = ANY(ix.indkey) AND t.relkind = 'r' AND ix.indisready = true
-			AND i.relname = $1`,
+		`SELECT i.indisvalid
+			FROM pg_index i
+			JOIN pg_class c ON c.oid = i.indrelid
+			JOIN pg_class t ON t.oid = i.indexrelid
+			WHERE t.relname = $1`,
 		[name],
 	)
 	if (result.rows.length < 1) {
