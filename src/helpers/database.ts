@@ -11,6 +11,7 @@ export const pool = new Pool(
 		port: 5432,
 		database: 'haf_block_log',
 		user: 'haf_admin',
+		applicationName: 'hafsql',
 	},
 	POOL_SIZE,
 	true,
