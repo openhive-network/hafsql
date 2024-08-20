@@ -1,6 +1,12 @@
 import { loadDotEnv } from './deps.ts'
+import { pool } from './helpers/database.ts'
 import { print } from './helpers/functions/print.ts'
-import { createHiveIndexes, doesIndexExist } from './indexes/hive.ts'
+import { SyncData } from './helpers/types.ts'
+import {
+	createHiveIndexes,
+	doesIndexExist,
+	hiveIndexes,
+} from './indexes/hive.ts'
 import { setup } from './setup/setup.ts'
 
 // Load .env and .env.defaults
@@ -82,6 +88,54 @@ const main = async () => {
 }
 
 setInterval(main, 5000)
+
+const printStats = async () => {
+	using client = await pool.connect()
+	const head = await client.queryObject<{ num: number }>(
+		`SELECT num FROM hive.blocks ORDER BY num DESC LIMIT 1;`,
+	)
+	const headNum = head.rows[0].num
+	const result = await client.queryObject<SyncData>(
+		`SELECT * FROM hafsql.sync_data;`,
+	)
+	const temp = 'Waiting for index creation ⏳'
+	const syncData = {
+		Indexes: '',
+		delegations: temp,
+		rc_delegations: temp,
+		proposal_approvals: temp,
+		follows: temp,
+		comments: temp,
+		pending_rewards: temp,
+		paid_rewards: temp,
+		reblogs: temp,
+		communities: temp,
+		delete_comments: temp,
+		reputations: temp,
+	}
+	for (let i = 0; i < result.rows.length; i++) {
+		const tableName = result.rows[i].table_name
+		const lastNum = result.rows[i].last_block_num
+		if (headNum - lastNum < 2) {
+			syncData[tableName] = `${lastNum}/${headNum} 🟢`
+		} else {
+			syncData[tableName] = lastNum > 0 ? `${lastNum}/${headNum} 🟡` : temp
+		}
+	}
+	let counter = 0
+	for (let i = 0; i < hiveIndexes.length; i++) {
+		const exists = await doesIndexExist(hiveIndexes[i].name)
+		if (exists) {
+			counter++
+		}
+	}
+	syncData.Indexes = `${counter}/${hiveIndexes.length}`
+	syncData.Indexes += counter === hiveIndexes.length ? ` ✅` : ` ⏳`
+	print('Sync status:')
+	console.table(syncData)
+}
+// 30min
+setInterval(printStats, 1800000)
 
 const createWorker = (path: string) => {
 	return new Worker(import.meta.resolve(path), {
