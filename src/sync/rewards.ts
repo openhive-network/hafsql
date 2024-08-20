@@ -44,7 +44,7 @@ const fillPaidRewards = async () => {
   }
   running1 = true
   let blockRange = await getBlockRange('paid_rewards')
-  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+  while (blockRange) {
     const paidComments = await getPaidComments(blockRange)
     await insertPaidRewards(paidComments, blockRange)
     blockRange = await getBlockRange('paid_rewards')
@@ -56,11 +56,11 @@ const getPaidComments = async (blockRange: number[]) => {
   // Always lag behind the comments_table indexing
   const lastComment = await getLastBlockNum('comments')
   if (blockRange[0] > lastComment) {
+    blockRange[0] = lastComment
+    blockRange[1] = lastComment
     return []
   }
   if (blockRange[1] > lastComment) {
-    blockRange[0] = lastComment
-    blockRange[1] = lastComment
     blockRange[1] = lastComment
   }
   using client = await pool.connect()
@@ -111,7 +111,7 @@ const insertPaidRewards = async (
     await trx.commit()
   } catch (e) {
     // Because we are syncing concurrently we need to catch deadlocks and retry
-    if (e.stack?.indexOf('deadlock') > -1) {
+    if (e.cause?.message === 'deadlock detected') {
       await sleep(2000)
       return insertPaidRewards(rewards, blockRange)
     } else {
@@ -164,7 +164,7 @@ const fillPendingRewards = async () => {
   }
   client.release()
 
-  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+  while (blockRange) {
     const effectiveVotes = await getEffectiveVotes(blockRange)
     await insertPendingRewards(effectiveVotes, blockRange)
     blockRange = await getBlockRange('pending_rewards')
@@ -213,7 +213,7 @@ const insertPendingRewards = async (
     await trx.commit()
   } catch (e) {
     // Because we are syncing concurrently we need to catch deadlocks and retry
-    if (e.stack?.indexOf('deadlock') > -1) {
+    if (e.cause?.message === 'deadlock detected') {
       await sleep(2000)
       return insertPendingRewards(rewards, blockRange)
     } else {
