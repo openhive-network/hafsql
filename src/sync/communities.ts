@@ -61,7 +61,7 @@ const syncCommunities = async () => {
 
 const fillCommunities = async () => {
   let blockRange = await getBlockRange('communities')
-  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+  while (blockRange) {
     const communities = await getCommunities(blockRange)
     await insertCommunities(communities, blockRange)
     blockRange = await getBlockRange('communities')
