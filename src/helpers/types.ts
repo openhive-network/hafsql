@@ -164,3 +164,19 @@ export interface Reputation {
 	reputation: string
 	is_implicit: boolean
 }
+
+export interface SyncData {
+	table_name:
+		| 'delegations'
+		| 'rc_delegations'
+		| 'proposal_approvals'
+		| 'follows'
+		| 'comments'
+		| 'pending_rewards'
+		| 'paid_rewards'
+		| 'reblogs'
+		| 'communities'
+		| 'delete_comments'
+		| 'reputations'
+	last_block_num: number
+}
