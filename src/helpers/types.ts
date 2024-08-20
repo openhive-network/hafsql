@@ -65,7 +65,7 @@ export interface Delegations {
 	op_id: bigint
 	delegator: string
 	delegatee: string
-	vesting_shares: string
+	vesting_shares: string | number
 }
 
 export interface RcCustomJson {
