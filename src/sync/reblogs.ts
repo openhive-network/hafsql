@@ -38,7 +38,7 @@ const fillReblogs = async () => {
 	if (!blockRange) {
 		return
 	}
-	while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+	while (blockRange) {
 		const reblogs = await getReblogs(blockRange)
 		// blockRange[1] can be changed in getReblogs and the change will reflect here
 		// which is what we want
