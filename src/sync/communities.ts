@@ -5,16 +5,18 @@ import {
   CommunityJson,
   CommunityRoles,
   CustomJsonFollow,
-  LastOpId,
 } from '../helpers/types.ts'
 import {
   clearUsername,
   validateAccountName,
-} from '../helpers/validate_username.ts'
-import { print } from '../helpers/print.ts'
-import { sleep } from '../helpers/sleep.ts'
+} from '../helpers/functions/validate_username.ts'
+import { print } from '../helpers/functions/print.ts'
+import { sleep } from '../helpers/functions/sleep.ts'
 import { createCommunitiesIndexes } from '../indexes/hafsql.ts'
-import { cleanString } from '../helpers/clean_string.ts'
+import { cleanString } from '../helpers/functions/clean_string.ts'
+import { getBlockRange } from '../helpers/functions/get_block_range.ts'
+import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
+import { getUserId } from '../helpers/functions/get_user_id.ts'
 
 const roles = {
   muted: -2,
@@ -33,7 +35,7 @@ self.onmessage = (e: MessageEvent) => {
   if (e.data === 'start') {
     if (!started) {
       started = true
-      print('[Community roles] Start massive sync... 🚀')
+      print('[Community roles] Start massive sync... ⏳')
       syncCommunities()
     }
   }
@@ -44,42 +46,37 @@ const syncCommunities = async () => {
   const intervalTime = 250
   if (firstRun) {
     firstRun = false
-    await fillCommunities(50000)
+    await fillCommunities()
     print('[Community roles] Massive sync done ✅')
-    print('[Community roles] Creating indexes... 🚀')
+    print('[Community roles] Creating indexes... ⏳')
     await createCommunitiesIndexes()
     print('[Community roles] Indexes have been created ✅')
     print('[Community roles] Switched to live sync 🟢')
     await sleep(intervalTime)
   }
-  await fillCommunities(20000)
+  await fillCommunities()
   await sleep(intervalTime)
   syncCommunities()
 }
 
-const fillCommunities = async (limit: number) => {
-  const client = await pool.connect()
-  const startQ = await client.queryObject<LastOpId>(
-    'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
-    ['communities'],
-  )
-  let start = startQ.rows[0].last_op_id
-  client.release()
-  let communities = await getCommunities(start, limit)
-  while (communities.length > 0) {
-    await insertCommunities(communities)
-    start = communities[communities.length - 1].op_id
-    await updateLastOpId(start)
-    communities = await getCommunities(start, limit)
+const fillCommunities = async () => {
+  let blockRange = await getBlockRange('communities')
+  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+    const communities = await getCommunities(blockRange)
+    await insertCommunities(communities, blockRange)
+    blockRange = await getBlockRange('communities')
   }
 }
 
-const getCommunities = async (start: bigint, limit: number) => {
+const getCommunities = async (blockRange: number[]) => {
   const client = await pool.connect()
   const result = await client.queryObject<CustomJsonFollow>(
     `SELECT op_id, json, required_posting_auths FROM hafsql.op_custom_json
-      WHERE id=$1 AND op_id > $2 ORDER BY op_id ASC LIMIT $3`,
-    ['community', start, limit],
+      WHERE id=$1 AND op_id >= hafsql.last_op_id_from_block_num($2)
+      AND op_id <= hafsql.last_op_id_from_block_num($3)
+      AND hafsql.to_json("json")->>0 = 'community'
+      ORDER BY op_id ASC`,
+    ['community', blockRange[0], blockRange[1]],
   )
   client.release()
   if (result.rows.length <= 0) {
@@ -133,7 +130,10 @@ const getCommunities = async (start: bigint, limit: number) => {
   return communitiesArray
 }
 
-const insertCommunities = async (communities: Communities[]) => {
+const insertCommunities = async (
+  communities: Communities[],
+  blockRange: number[],
+) => {
   using client = await pool.connect()
   const trx = client.createTransaction('hafsql_commuinities_sync')
   await trx.begin()
@@ -156,6 +156,7 @@ const insertCommunities = async (communities: Communities[]) => {
         break
     }
   }
+  await updateLastBlockNum('communities', blockRange[1], trx)
   await trx.commit()
 }
 
@@ -167,8 +168,8 @@ const subscribe = async (
   if (Object.keys(json).length !== 1) {
     return
   }
-  const account = await getUserId(postingAuths[0], trx)
-  const community = await getUserId(json.community, trx)
+  const account = await getUserId(postingAuths[0])
+  const community = await getUserId(json.community)
   if (!community || !account) {
     return
   }
@@ -188,8 +189,8 @@ const unsubscribe = async (
   if (Object.keys(json).length !== 1) {
     return
   }
-  const account = await getUserId(postingAuths[0], trx)
-  const community = await getUserId(json.community, trx)
+  const account = await getUserId(postingAuths[0])
+  const community = await getUserId(json.community)
   if (!community || !account) {
     return
   }
@@ -210,10 +211,10 @@ const setRole = async (
   if (!Object.hasOwn(json, 'account') || !Object.hasOwn(json, 'role')) {
     return
   }
-  const actor = await getUserId(postingAuths[0], trx)
-  const community = await getUserId(json.community, trx)
+  const actor = await getUserId(postingAuths[0])
+  const community = await getUserId(json.community)
   const account = <string> json.account
-  const target = await getUserId(account, trx)
+  const target = await getUserId(account)
   if (!target || !community || !actor) {
     return
   }
@@ -267,10 +268,10 @@ const setUserTitle = async (
   if (!Object.hasOwn(json, 'account') || !Object.hasOwn(json, 'title')) {
     return
   }
-  const actor = <number> await getUserId(postingAuths[0], trx)
-  const community = await getUserId(json.community, trx)
+  const actor = <number> await getUserId(postingAuths[0])
+  const community = await getUserId(json.community)
   const account = <string> json.account
-  const target = await getUserId(account, trx)
+  const target = await getUserId(account)
   if (!target || !community || !actor) {
     return
   }
@@ -307,42 +308,4 @@ const getRole = async (
     return 0
   }
   return res.rows[0].role
-}
-
-let accountCache: Record<string, number> = {}
-setInterval(() => {
-  // clear cache every 10min
-  accountCache = {}
-}, 600000)
-
-// Caching ids
-const getUserId = async (username: string, trx?: Transaction | PoolClient) => {
-  if (Object.hasOwn(accountCache, username)) {
-    return accountCache[username]
-  } else {
-    if (!trx) {
-      trx = await pool.connect()
-    }
-    const getId = await trx.queryObject<{ id: number }>(
-      'SELECT a.id FROM hive.accounts a WHERE a.name=$1',
-      [username],
-    )
-    if (trx instanceof PoolClient) {
-      trx.release()
-    }
-    if (getId.rows.length < 1) {
-      return null
-    }
-    const id = getId.rows[0].id
-    accountCache[username] = id
-    return id
-  }
-}
-
-const updateLastOpId = async (opId: bigint) => {
-  using client = await pool.connect()
-  return client.queryObject(
-    'UPDATE hafsql.sync_data SET last_op_id=$1 WHERE table_name=$2;',
-    [opId, 'communities'],
-  )
 }
