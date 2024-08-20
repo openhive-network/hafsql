@@ -1,5 +1,34 @@
 import { pool } from '../helpers/database.ts'
 
+/**
+ * Return the jsonb cast of the parameter from the operation body
+ */
+const param = (param: string, jsonb = false) => {
+  if (jsonb) {
+    return `(o.body_binary::jsonb->'value'->'${param}')`
+  }
+  return `(o.body_binary::jsonb->'value'->>'${param}')`
+}
+const amount = (param: string) => {
+  return `hafsql.asset_amount(${param})`
+}
+const symbol = (param: string) => {
+  return `hafsql.asset_symbol(${param})`
+}
+const to_json = (param: string) => {
+  return `hafsql.to_json(${param})`
+}
+// vests to hive
+const v2h = (param: string, block = '') => {
+  if (block !== '') {
+    return `hafsql.vests_to_hive(${param}, ${block})`
+  }
+  return `hafsql.vests_to_hive(${param})`
+}
+const block = (id: string) => {
+  return `hive.operation_id_to_block_num(${id})`
+}
+
 export const setupVirtualOperationViews = async () => {
   using client = await pool.connect()
   // The order of VOps can change on HF so we have to update them
@@ -9,30 +38,37 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_fill_convert_request
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS owner,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'requestid'::text AS requestid,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'amount_in'::text) AS amount_in,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'amount_in'::text) AS amount_in_symbol,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'amount_out'::text) AS amount_out,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'amount_out'::text) AS amount_out_symbol
+      ${param('owner')} AS owner,
+      ${param('requestid')} AS requestid,
+      ${amount(param('amount_in'))} AS amount_in,
+      ${symbol(param('amount_in'))} AS amount_in_symbol,
+      ${amount(param('amount_out'))} AS amount_out,
+      ${symbol(param('amount_out'))} AS amount_out_symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 1;`
   await client.queryObject(VOFillConvertRequest)
 
   // +2
+  // deno-fmt-ignore
   const VOAuthorReward = `CREATE OR REPLACE VIEW hafsql.vo_author_reward
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'author'::text AS author,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'permlink'::text AS permlink,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hbd_payout'::text) AS hbd_payout,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hive_payout'::text) AS hive_payout,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'vesting_payout'::text AS vesting_payout,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'curators_vesting_payout'::text AS curators_vesting_payout,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'payout_must_be_claimed'::text AS payout_must_be_claimed
+      ${param('author')} AS author,
+      ${param('permlink')} AS permlink,
+      ${amount(param('hbd_payout'))} AS hbd_payout,
+      ${amount(param('hive_payout'))} AS hive_payout,
+      ${amount(param('vesting_payout'))} AS vesting_payout,
+      ${v2h(amount(param('vesting_payout')))} AS vesting_payout_hp,
+      ${v2h(amount(param('vesting_payout')), block('o.id'))} AS vesting_payout_historical_hp,
+      ${amount(param('curators_vesting_payout'))} AS curators_vesting_payout,
+      ${v2h(amount(param('curators_vesting_payout')))} AS curators_vesting_payout_hp,
+      ${v2h(amount(param('curators_vesting_payout')), block('o.id'))} AS curators_vesting_payout_historical_hp,
+      ${param('payout_must_be_claimed')} payout_must_be_claimed,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 2;`
   await client.queryObject(VOAuthorReward)
 
@@ -40,13 +76,14 @@ export const setupVirtualOperationViews = async () => {
   const VOCurationReward = `CREATE OR REPLACE VIEW hafsql.vo_curation_reward
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'curator'::text AS curator,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'reward'::text AS reward,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'comment_author'::text AS comment_author,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'comment_permlink'::text AS comment_permlink,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'payout_must_be_claimed'::text AS payout_must_be_claimed
+      ${param('curator')} AS curator,
+      ${param('reward')} AS reward,
+      ${param('comment_author')} AS comment_author,
+      ${param('comment_permlink')} AS comment_permlink,
+      ${param('payout_must_be_claimed')} AS payout_must_be_claimed,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 3;`
   await client.queryObject(VOCurationReward)
 
@@ -54,15 +91,16 @@ export const setupVirtualOperationViews = async () => {
   const VOCommentReward = `CREATE OR REPLACE VIEW hafsql.vo_comment_reward
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'author'::text AS author,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'permlink'::text AS permlink,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'payout'::text) AS payout,
-      ((o.body_binary::jsonb -> 'value'::text) ->> 'author_rewards'::text)::numeric/1000 AS author_rewards,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'total_payout_value'::text) AS total_payout_value,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'curator_payout_value'::text) AS curator_payout_value,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'beneficiary_payout_value'::text) AS beneficiary_payout_value
+      ${param('author')} AS author,
+      ${param('permlink')} AS permlink,
+      ${amount(param('payout'))} AS payout,
+      ${param('author_rewards')}::numeric/1000 AS author_rewards,
+      ${amount(param('total_payout_value'))} AS total_payout_value,
+      ${amount(param('curator_payout_value'))} AS curator_payout_value,
+      ${amount(param('beneficiary_payout_value'))} AS beneficiary_payout_value,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 4;`
   await client.queryObject(VOCommentReward)
 
@@ -70,10 +108,12 @@ export const setupVirtualOperationViews = async () => {
   const VOLiquidityReward = `CREATE OR REPLACE VIEW hafsql.vo_liquidity_reward
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS owner,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'payout'::text AS payout
+      ${param('owner')} AS owner,
+      ${amount(param('payout'))} AS payout,
+      ${symbol(param('payout'))} AS symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 5;`
   await client.queryObject(VOLiquidityReward)
 
@@ -82,27 +122,31 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_interest_operation
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS owner,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'interest'::text) AS interest,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'interest'::text) AS interest_symbol,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'is_saved_into_hbd_balance'::text AS is_saved_into_hbd_balance
+      ${param('owner')} AS owner,
+      ${amount(param('interest'))} AS interest,
+      ${symbol(param('interest'))} AS interest_symbol,
+      ${param('is_saved_into_hbd_balance')} AS is_saved_into_hbd_balance,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 6;`
   await client.queryObject(VOInterestOperation)
 
   // +7
+  // deno-fmt-ignore
   const VOFillVestingWithdraw =
     `CREATE OR REPLACE VIEW hafsql.vo_fill_vesting_withdraw
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'from_account'::text AS from_account,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'to_account'::text AS to_account,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'withdrawn'::text AS withdrawn,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'deposited'::text) AS deposited,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'deposited'::text) AS deposited_symbol
+      ${param('from_account')} AS from_account,
+      ${param('to_account')} AS to_account,
+      ${amount(param('withdrawn'))} AS withdrawn,
+      ${symbol(param('withdrawn'))} AS withdrawn_symbol,
+      ${amount(param('deposited'))} AS deposited,
+      ${symbol(param('deposited'))} AS deposited_symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 7;`
   await client.queryObject(VOFillVestingWithdraw)
 
@@ -110,16 +154,17 @@ export const setupVirtualOperationViews = async () => {
   const VOFillOrder = `CREATE OR REPLACE VIEW hafsql.vo_fill_order
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'current_owner'::text AS current_owner,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'open_owner'::text AS open_owner,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'current_orderid'::text AS current_orderid,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'open_orderid'::text AS open_orderid,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'current_pays'::text) AS current_pays,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'current_pays'::text) AS current_pays_symbol,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'open_pays'::text) AS open_pays,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'open_pays'::text) AS open_pays_symbol
+      ${param('current_owner')} AS current_owner,
+      ${param('open_owner')} AS open_owner,
+      ${param('current_orderid')} AS current_orderid,
+      ${param('open_orderid')} AS open_orderid,
+      ${amount(param('current_pays'))} AS current_pays,
+      ${symbol(param('current_pays'))} AS current_pays_symbol,
+      ${amount(param('open_pays'))} AS open_pays,
+      ${symbol(param('open_pays'))} AS open_pays_symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 8;`
   await client.queryObject(VOFillOrder)
 
@@ -127,9 +172,10 @@ export const setupVirtualOperationViews = async () => {
   const VOShutdownWitness = `CREATE OR REPLACE VIEW hafsql.vo_shutdown_witness
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS owner
+      ${param('owner')} AS owner,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 9;`
   await client.queryObject(VOShutdownWitness)
 
@@ -138,14 +184,15 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_fill_transfer_from_savings
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS from,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS to,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'request_id'::text AS request_id,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'memo'::text AS memo,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'amount'::text) AS amount,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'amount'::text) AS amount_symbol
+      ${param('from')} AS from,
+      ${param('to')} AS to,
+      ${param('request_id')} AS request_id,
+      ${param('memo')} AS memo,
+      ${amount(param('amount'))} AS amount,
+      ${symbol(param('amount'))} AS symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 10;`
   await client.queryObject(VOFillTransferFromSavings)
 
@@ -153,9 +200,10 @@ export const setupVirtualOperationViews = async () => {
   const VOHardfork = `CREATE OR REPLACE VIEW hafsql.vo_hardfork
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'hardfork_id'::text AS hardfork_id
+      ${param('hardfork_id')} AS hardfork_id,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 11;`
   await client.queryObject(VOHardfork)
 
@@ -164,52 +212,63 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_comment_payout_update
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'author'::text AS author,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'permlink'::text AS permlink
+      ${param('author')} AS author,
+      ${param('permlink')} AS permlink,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 12;`
   await client.queryObject(VOCommentPayoutUpdate)
 
   // +13
+  // deno-fmt-ignore
   const VOReturnVestingDelegation =
     `CREATE OR REPLACE VIEW hafsql.vo_return_vesting_delegation
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'account'::text AS account,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'vesting_shares'::text AS vesting_shares
+      ${param('account')} AS account,
+      ${amount(param('vesting_shares'))} AS vesting_shares,
+      ${v2h(amount(param('vesting_shares')))} AS vesting_shares_hp,
+      ${v2h(amount(param('vesting_shares')), block('o.id'))} AS vesting_shares_historical_hp,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 13;`
   await client.queryObject(VOReturnVestingDelegation)
 
   // +14
+  // deno-fmt-ignore
   const VOCommentBenefactorReward =
     `CREATE OR REPLACE VIEW hafsql.vo_comment_benefactor_reward
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'benefactor'::text AS benefactor,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'author'::text AS author,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'permlink'::text AS permlink,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hbd_payout'::text) AS hbd_payout,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'hbd_payout'::text) AS hbd_payout_symbol,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hive_payout'::text) AS hive_payout,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'hive_payout'::text) AS hive_payout_symbol,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'vesting_payout'::text AS vesting_payout,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'payout_must_be_claimed'::text AS payout_must_be_claimed
+      ${param('benefactor')} AS benefactor,
+      ${param('author')} AS author,
+      ${param('permlink')} AS permlink,
+      ${amount(param('hbd_payout'))} AS hbd_payout,
+      ${amount(param('hive_payout'))} AS hive_payout,
+      ${amount(param('vesting_payout'))} AS vesting_payout,
+      ${v2h(amount(param('vesting_payout')))} AS vesting_payout_hp,
+      ${v2h(amount(param('vesting_payout')), block('o.id'))} AS vesting_payout_historical_hp,
+      ${param('payout_must_be_claimed')} AS payout_must_be_claimed,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 14;`
   await client.queryObject(VOCommentBenefactorReward)
 
   // +15
+  // deno-fmt-ignore
   const VOProducerReward = `CREATE OR REPLACE VIEW hafsql.vo_producer_reward
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'producer'::text AS producer,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'vesting_shares'::text AS vesting_shares
+      ${param('producer')} AS producer,
+      ${amount(param('vesting_shares'))} AS vesting_shares,
+      ${v2h(amount(param('vesting_shares')))} AS vesting_shares_hp,
+      ${v2h(amount(param('vesting_shares')), block('o.id'))} AS vesting_shares_historical_hp,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 15;`
   await client.queryObject(VOProducerReward)
 
@@ -218,9 +277,18 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_clear_null_account_balance
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'total_cleared'::text AS total_cleared
+      ${param('total_cleared')} AS total_cleared,
+      array_to_json(array(
+        select hafsql.asset_amount(
+          jsonb_array_elements_text(${param('total_cleared', true)})
+        ) || ' ' ||
+        hafsql.asset_symbol(
+          jsonb_array_elements_text(${param('total_cleared', true)})
+        )
+      )) AS total_cleared_formatted,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 16;`
   await client.queryObject(VOClearNullAccountBalance)
 
@@ -228,13 +296,14 @@ export const setupVirtualOperationViews = async () => {
   const VOProposalPay = `CREATE OR REPLACE VIEW hafsql.vo_proposal_pay
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'proposal_id'::text AS proposal_id,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'receiver'::text AS receiver,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'payer'::text AS payer,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'payment'::text) AS payment,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'payment'::text) AS payment_symbol
+      ${param('proposal_id')} AS proposal_id,
+      ${param('receiver')} AS receiver,
+      ${param('payer')} AS payer,
+      ${amount(param('payment'))} AS payment,
+      ${symbol(param('payment'))} AS symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 17;`
   await client.queryObject(VOProposalPay)
 
@@ -242,11 +311,12 @@ export const setupVirtualOperationViews = async () => {
   const VODHFFunding = `CREATE OR REPLACE VIEW hafsql.vo_dhf_funding
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'treasury'::text AS treasury,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'additional_funds'::text) AS additional_funds,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'additional_funds'::text) AS additional_funds_symbol
+      ${param('treasury')} AS treasury,
+      ${amount(param('additional_funds'))} AS additional_funds,
+      ${symbol(param('additional_funds'))} AS symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 18;`
   await client.queryObject(VODHFFunding)
 
@@ -254,15 +324,16 @@ export const setupVirtualOperationViews = async () => {
   const VOHardforkHive = `CREATE OR REPLACE VIEW hafsql.vo_hardfork_hive
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'account'::text AS account,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'treasury'::text AS treasury,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'other_affected_accounts'::text AS other_affected_accounts,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hbd_transferred'::text) AS hbd_transferred,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hive_transferred'::text) AS hive_transferred,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'total_hive_from_vests'::text) AS total_hive_from_vests,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'vests_converted'::text AS vests_converted
+      ${param('account')} AS account,
+      ${param('treasury')} AS treasury,
+      ${param('other_affected_accounts')} AS other_affected_accounts,
+      ${amount(param('hbd_transferred'))} AS hbd_transferred,
+      ${amount(param('hive_transferred'))} AS hive_transferred,
+      ${amount(param('total_hive_from_vests'))} AS total_hive_from_vests,
+      ${amount(param('vests_converted'))} AS vests_converted,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 19;`
   await client.queryObject(VOHardforkHive)
 
@@ -271,12 +342,13 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_hardfork_hive_restore
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'account'::text AS account,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'treasury'::text AS treasury,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hbd_transferred'::text) AS hbd_transferred,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hive_transferred'::text) AS hive_transferred
+      ${param('account')} AS account,
+      ${param('treasury')} AS treasury,
+      ${amount(param('hbd_transferred'))} AS hbd_transferred,
+      ${amount(param('hive_transferred'))} AS hive_transferred,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 20;`
   await client.queryObject(VOHardforkHiveRestore)
 
@@ -284,10 +356,11 @@ export const setupVirtualOperationViews = async () => {
   const VODelayedVoting = `CREATE OR REPLACE VIEW hafsql.vo_delayed_voting
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'voter'::text AS voter,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'votes'::text AS votes
+      ${param('voter')} AS voter,
+      ${param('votes')} AS votes,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 21;`
   await client.queryObject(VODelayedVoting)
 
@@ -296,9 +369,18 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_consolidate_treasury_balance
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'total_moved'::text AS total_moved
+      ${param('total_moved')} AS total_moved,
+      array_to_json(array(
+        select hafsql.asset_amount(
+          jsonb_array_elements_text(${param('total_moved', true)})
+        ) || ' ' ||
+        hafsql.asset_symbol(
+          jsonb_array_elements_text(${param('total_moved', true)})
+        )
+      )) AS total_moved_formatted,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 22;`
   await client.queryObject(VOConsolidateTreasuryBalance)
 
@@ -307,16 +389,17 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_effective_comment_vote
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'voter'::text AS voter,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'author'::text AS author,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'permlink'::text AS permlink,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'weight'::text AS weight,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'rshares'::text AS rshares,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'total_vote_weight'::text AS total_vote_weight,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'pending_payout'::text) AS pending_payout,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'pending_payout'::text) AS pending_payout_symbol
+      ${param('voter')} AS voter,
+      ${param('author')} AS author,
+      ${param('permlink')} AS permlink,
+      ${param('weight')} AS weight,
+      ${param('rshares')}::numeric AS rshares,
+      ${param('total_vote_weight')} AS total_vote_weight,
+      ${amount(param('pending_payout'))} AS pending_payout,
+      ${symbol(param('pending_payout'))} AS pending_payout_symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 23;`
   await client.queryObject(VOEffectiveCommentVote)
 
@@ -325,10 +408,11 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_ineffective_delete_comment
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'author'::text AS author,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'permlink'::text AS permlink
+      ${param('author')} AS author,
+      ${param('permlink')} AS permlink,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 24;`
   await client.queryObject(VOIneffectiveDeleteComment)
 
@@ -336,11 +420,12 @@ export const setupVirtualOperationViews = async () => {
   const VODHFConversion = `CREATE OR REPLACE VIEW hafsql.vo_dhf_conversion
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'treasury'::text AS treasury,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hive_amount_in'::text) AS hive_amount_in,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hbd_amount_out'::text) AS hbd_amount_out
+      ${param('treasury')} AS treasury,
+      ${amount(param('hive_amount_in'))} AS hive_amount_in,
+      ${amount(param('hbd_amount_out'))} AS hbd_amount_out,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 25;`
   await client.queryObject(VODHFConversion)
 
@@ -348,9 +433,10 @@ export const setupVirtualOperationViews = async () => {
   const VOExpiredAccountNotification =
     `CREATE OR REPLACE VIEW hafsql.vo_expired_account_notification
     AS SELECT o.id as op_id,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'account'::text AS account
+      ${param('account')} AS account,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 26;`
   await client.queryObject(VOExpiredAccountNotification)
 
@@ -359,11 +445,12 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_changed_recovery_account
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'account'::text AS account,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'old_recovery_account'::text AS old_recovery_account,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'new_recovery_account'::text AS new_recovery_account
+      ${param('account')} AS account,
+      ${param('old_recovery_account')} AS old_recovery_account,
+      ${param('new_recovery_account')} AS new_recovery_account,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 27;`
   await client.queryObject(VOChangedRecoveryAccount)
 
@@ -372,12 +459,13 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_transfer_to_vesting_completed
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'from_account'::text AS from_account,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'to_account'::text AS to_account,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hive_vested'::text) AS hive_vested,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'vesting_shares_received'::text AS vesting_shares_received
+      ${param('from_account')} AS from_account,
+      ${param('to_account')} AS to_account,
+      ${amount(param('hive_vested'))} AS hive_vested,
+      ${amount(param('vesting_shares_received'))} AS vesting_shares_received,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 28;`
   await client.queryObject(VOTransferToVestingCompleted)
 
@@ -385,36 +473,50 @@ export const setupVirtualOperationViews = async () => {
   const VOPowReward = `CREATE OR REPLACE VIEW hafsql.vo_pow_reward
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'worker'::text AS worker,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'reward'::text AS reward
+      ${param('worker')} AS worker,
+      ${amount(param('reward'))} AS reward,
+      ${symbol(param('reward'))} AS symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 29;`
   await client.queryObject(VOPowReward)
 
   // +30
+  // deno-fmt-ignore
   const VOVestingSharesSplit =
     `CREATE OR REPLACE VIEW hafsql.vo_vesting_shares_split
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS owner,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'vesting_shares_before_split'::text AS vesting_shares_before_split,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'vesting_shares_after_split'::text AS vesting_shares_after_split
+      ${param('owner')} AS owner,
+      ${amount(param('vesting_shares_before_split'))} AS vesting_shares_before_split,
+      ${v2h(amount(param('vesting_shares_before_split')))} AS before_hp,
+      ${v2h(amount(param('vesting_shares_before_split')), block('o.id'))} AS before_historical_hp,
+      ${amount(param('vesting_shares_after_split'))} AS vesting_shares_after_split,
+      ${v2h(amount(param('vesting_shares_after_split')))} AS after_hp,
+      ${v2h(amount(param('vesting_shares_after_split')), block('o.id'))} AS after_historical_hp,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 30;`
   await client.queryObject(VOVestingSharesSplit)
 
   // +31
+  // deno-fmt-ignore
   const VOAccountCreated = `CREATE OR REPLACE VIEW hafsql.vo_account_created
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'new_account_name'::text AS new_account_name,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'creator'::text AS creator,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'initial_vesting_shares'::text AS initial_vesting_shares,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'initial_delegation'::text AS initial_delegation
+      ${param('new_account_name')} AS new_account_name,
+      ${param('creator')} AS creator,
+      ${amount(param('initial_vesting_shares'))} AS initial_vesting_shares,
+      ${v2h(amount(param('initial_vesting_shares')))} AS vesting_hp,
+      ${v2h(amount(param('initial_vesting_shares')), block('o.id'))} AS vesting_historical_hp,
+      ${amount(param('initial_delegation'))} AS initial_delegation,
+      ${v2h(amount(param('initial_delegation')))} AS delegation_hp,
+      ${v2h(amount(param('initial_delegation')), block('o.id'))} AS delegation_historical_hp,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 31;`
   await client.queryObject(VOAccountCreated)
 
@@ -423,16 +525,17 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_fill_collateralized_convert_request
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS owner,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'requestid'::text AS requestid,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'amount_in'::text) AS amount_in,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'amount_in'::text) AS amount_in_symbol,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'amount_out'::text) AS amount_out,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'amount_out'::text) AS amount_out_symbol,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'excess_collateral'::text) AS excess_collateral,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'excess_collateral'::text) AS excess_collateral_symbol
+      ${param('owner')} AS owner,
+      ${param('requestid')} AS requestid,
+      ${amount(param('amount_in'))} AS amount_in,
+      ${symbol(param('amount_in'))} AS amount_in_symbol,
+      ${amount(param('amount_out'))} AS amount_out,
+      ${symbol(param('amount_out'))} AS amount_out_symbol,
+      ${amount(param('excess_collateral'))} AS excess_collateral,
+      ${symbol(param('excess_collateral'))} AS excess_collateral_symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 32;`
   await client.queryObject(VOFillCollateralizedConvertRequest)
 
@@ -441,9 +544,10 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_system_warning_operation
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'message'::text AS message
+      ${param('message')} AS message,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 33;`
   await client.queryObject(VOSystemWarningOperation)
 
@@ -452,14 +556,15 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_fill_recurrent_transfer
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS from,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS to,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'amount'::text) AS amount,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'amount'::text) AS amount_symbol,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'memo'::text AS memo,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'remaining_executions'::text AS remaining_executions
+      ${param('from')} AS from,
+      ${param('to')} AS to,
+      ${amount(param('amount'))} AS amount,
+      ${symbol(param('amount'))} AS symbol,
+      ${param('memo')} AS memo,
+      ${param('remaining_executions')} AS remaining_executions,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 34;`
   await client.queryObject(VOFillRecurrentTransfer)
 
@@ -468,16 +573,17 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_failed_recurrent_transfer
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS from,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS to,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'amount'::text) AS amount,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'amount'::text) AS amount_symbol,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'memo'::text AS memo,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'consecutive_failures'::text AS consecutive_failures,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'remaining_executions'::text AS remaining_executions,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'deleted'::text AS deleted
+      ${param('from')} AS from,
+      ${param('to')} AS to,
+      ${amount(param('amount'))} AS amount,
+      ${symbol(param('amount'))} AS symbol,
+      ${param('memo')} AS memo,
+      ${param('consecutive_failures')} AS consecutive_failures,
+      ${param('remaining_executions')} AS remaining_executions,
+      ${param('deleted')} AS deleted,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 35;`
   await client.queryObject(VOFailedRecurrentTransfer)
 
@@ -486,12 +592,13 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_limit_order_cancelled
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'seller'::text AS seller,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'orderid'::text AS orderid,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'amount_back'::text) AS amount_back,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'amount_back'::text) AS amount_back_symbol
+      ${param('seller')} AS seller,
+      ${param('orderid')} AS orderid,
+      ${amount(param('amount_back'))} AS amount_back,
+      ${symbol(param('amount_back'))} AS symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 36;`
   await client.queryObject(VOLimitOrderCancelled)
 
@@ -499,9 +606,10 @@ export const setupVirtualOperationViews = async () => {
   const VOProducerMissed = `CREATE OR REPLACE VIEW hafsql.vo_producer_missed
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'producer'::text AS producer
+      ${param('producer')} AS producer,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 37;`
   await client.queryObject(VOProducerMissed)
 
@@ -509,13 +617,14 @@ export const setupVirtualOperationViews = async () => {
   const VOProposalFee = `CREATE OR REPLACE VIEW hafsql.vo_proposal_fee
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'creator'::text AS creator,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'treasury'::text AS treasury,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'proposal_id'::text AS proposal_id,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'fee'::text) AS fee,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'fee'::text) AS fee_symbol
+      ${param('creator')} AS creator,
+      ${param('treasury')} AS treasury,
+      ${param('proposal_id')} AS proposal_id,
+      ${amount(param('fee'))} AS fee,
+      ${symbol(param('fee'))} AS fee_symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 38;`
   await client.queryObject(VOProposalFee)
 
@@ -524,12 +633,12 @@ export const setupVirtualOperationViews = async () => {
     `CREATE OR REPLACE VIEW hafsql.vo_collateralized_convert_immediate_conversion
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'owner'::text AS owner,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'requestid'::text AS requestid,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hbd_out'::text) AS hbd_out,
-      hafsql.asset_symbol((o.body_binary::jsonb -> 'value'::text) ->> 'hbd_out'::text) AS hbd_out_symbol
+      ${param('owner')} AS owner,
+      ${param('requestid')} AS requestid,
+      ${amount(param('hbd_out'))} AS hbd_out,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 39;`
   await client.queryObject(VOCollateralizedConvertImmediateConversion)
 
@@ -537,13 +646,15 @@ export const setupVirtualOperationViews = async () => {
   const VOEscrowApproved = `CREATE OR REPLACE VIEW hafsql.vo_escrow_approved
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS from,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS to,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'agent'::text AS agent,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'escrow_id'::text AS escrow_id,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'fee'::text AS fee
+      ${param('from')} AS from,
+      ${param('to')} AS to,
+      ${param('agent')} AS agent,
+      ${param('escrow_id')} AS escrow_id,
+      ${amount(param('fee'))} AS fee,
+      ${symbol(param('fee'))} AS fee_symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 40;`
   await client.queryObject(VOEscrowApproved)
 
@@ -551,15 +662,17 @@ export const setupVirtualOperationViews = async () => {
   const VOEscrowRejected = `CREATE OR REPLACE VIEW hafsql.vo_escrow_rejected
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'from'::text AS from,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'to'::text AS to,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'agent'::text AS agent,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'escrow_id'::text AS escrow_id,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hbd_amount'::text) AS hbd_amount,
-      hafsql.asset_amount((o.body_binary::jsonb -> 'value'::text) ->> 'hive_amount'::text) AS hive_amount,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'fee'::text AS fee
+      ${param('from')} AS from,
+      ${param('to')} AS to,
+      ${param('agent')} AS agent,
+      ${param('escrow_id')} AS escrow_id,
+      ${amount(param('hbd_amount'))} AS hbd_amount,
+      ${amount(param('hive_amount'))} AS hive_amount,
+      ${amount(param('fee'))} AS fee,
+      ${symbol(param('fee'))} AS fee_symbol,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 41;`
   await client.queryObject(VOEscrowRejected)
 
@@ -567,10 +680,11 @@ export const setupVirtualOperationViews = async () => {
   const VOProxyCleared = `CREATE OR REPLACE VIEW hafsql.vo_proxy_cleared
     AS SELECT o.id as op_id,
       hb.created_at AS "timestamp",
-      (o.body_binary::jsonb -> 'value'::text) ->> 'account'::text AS account,
-      (o.body_binary::jsonb -> 'value'::text) ->> 'proxy'::text AS proxy
+      ${param('account')} AS account,
+      ${param('proxy')} AS proxy,
+      ${block('o.id')} as block_num
     FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(o.id)
+    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 42;`
   await client.queryObject(VOProxyCleared)
 }
