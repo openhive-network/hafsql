@@ -40,7 +40,7 @@ const syncProposalApprovals = async () => {
 
 const fillProposalApprovals = async () => {
   let blockRange = await getBlockRange('proposal_approvals')
-  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+  while (blockRange) {
     const data = await getData(blockRange)
     await insertData(data, blockRange)
     blockRange = await getBlockRange('proposal_approvals')
