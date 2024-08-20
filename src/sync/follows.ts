@@ -43,7 +43,7 @@ const syncFollows = async () => {
 
 const fillFollows = async () => {
   let blockRange = await getBlockRange('follows')
-  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+  while (blockRange) {
     const follows = await getFollows(blockRange)
     await insertFollows(follows, blockRange)
     blockRange = await getBlockRange('follows')
