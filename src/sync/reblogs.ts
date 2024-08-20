@@ -53,6 +53,8 @@ const getReblogs = async (blockRange: number[]) => {
 	const end = await getLastBlockNum('comments')
 	// Always lag behind the comments_table indexing
 	if (blockRange[0] > end) {
+		blockRange[0] = end
+		blockRange[1] = end
 		return []
 	}
 	if (blockRange[1] > end) {
@@ -64,14 +66,14 @@ const getReblogs = async (blockRange: number[]) => {
 	const client = await pool.connect()
 	const result = await client.queryObject<CustomJson>(
 		`(SELECT op_id, json, required_posting_auths, id FROM hafsql.op_custom_json
-			WHERE id = 'follow' AND op_id >= hafsql.last_op_id_from_block_num($1)
+			WHERE id = 'follow' AND op_id >= hafsql.first_op_id_from_block_num($1)
 			AND op_id <= hafsql.last_op_id_from_block_num($2)
 			AND CASE WHEN op_id > 25769795186065408
 			THEN (hafsql.to_json(json) ->> 0) = 'reblog'
 			ELSE TRUE END)
 		UNION ALL
 		(SELECT op_id, json, required_posting_auths, id FROM hafsql.op_custom_json
-			WHERE id = 'reblog' AND op_id >= hafsql.last_op_id_from_block_num($1)
+			WHERE id = 'reblog' AND op_id >= hafsql.first_op_id_from_block_num($1)
 			AND op_id <= hafsql.last_op_id_from_block_num($2)
 			AND CASE WHEN op_id > 25769795186065408
 			THEN (hafsql.to_json(json) ->> 0) = 'reblog'
