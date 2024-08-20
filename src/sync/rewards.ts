@@ -6,9 +6,7 @@ import { sleep } from '../helpers/functions/sleep.ts'
 import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
 import {
   AuthorPermlink,
-  BlockRange,
   EffectiveCommentVote,
-  LastOpId,
   PaidComments,
 } from '../helpers/types.ts'
 
