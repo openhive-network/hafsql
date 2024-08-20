@@ -1,6 +1,3 @@
-export interface LastOpId {
-	last_op_id: bigint
-}
 export interface BlockRange {
 	block_range: [number, number] | null
 }
