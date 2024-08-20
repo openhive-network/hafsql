@@ -100,7 +100,7 @@ const printStats = async () => {
 	)
 	const temp = 'Waiting for index creation ⏳'
 	const syncData = {
-		Indexes: '',
+		indexes: '',
 		delegations: temp,
 		rc_delegations: temp,
 		proposal_approvals: temp,
@@ -116,10 +116,18 @@ const printStats = async () => {
 	for (let i = 0; i < result.rows.length; i++) {
 		const tableName = result.rows[i].table_name
 		const lastNum = result.rows[i].last_block_num
-		if (headNum - lastNum < 2) {
-			syncData[tableName] = `${lastNum}/${headNum} 🟢`
+		// Green if behind by 2 blocks
+		if (headNum - lastNum < 3) {
+			syncData[tableName] = `${format(lastNum)}/${format(headNum)} 🟢`
 		} else {
-			syncData[tableName] = lastNum > 0 ? `${lastNum}/${headNum} 🟡` : temp
+			syncData[tableName] = lastNum > 0
+				? `${format(lastNum)}/${format(headNum)} 🟡`
+				: temp
+		}
+		if (tableName === 'pending_rewards') {
+			if (lastNum === 0) {
+				syncData[tableName] = 'Waiting for comments to sync ⏳'
+			}
 		}
 	}
 	let counter = 0
@@ -129,13 +137,20 @@ const printStats = async () => {
 			counter++
 		}
 	}
-	syncData.Indexes = `${counter}/${hiveIndexes.length}`
-	syncData.Indexes += counter === hiveIndexes.length ? ` ✅` : ` ⏳`
+	syncData.indexes = `${counter}/${hiveIndexes.length}`
+	syncData.indexes += counter === hiveIndexes.length ? ` ✅` : ` ⏳`
 	print('Sync status:')
 	console.table(syncData)
 }
+// 30s
+setTimeout(printStats, 30000)
+
 // 30min
 setInterval(printStats, 1800000)
+
+const format = (num: number) => {
+	return new Intl.NumberFormat().format(num)
+}
 
 const createWorker = (path: string) => {
 	return new Worker(import.meta.resolve(path), {
