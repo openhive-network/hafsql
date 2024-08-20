@@ -1,8 +1,12 @@
 import { pool } from '../helpers/database.ts'
-import { print } from '../helpers/print.ts'
-import { sleep } from '../helpers/sleep.ts'
+import { getBlockRange } from '../helpers/functions/get_block_range.ts'
+import { getLastBlockNum } from '../helpers/functions/get_last_block_num.ts'
+import { print } from '../helpers/functions/print.ts'
+import { sleep } from '../helpers/functions/sleep.ts'
+import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
 import {
   AuthorPermlink,
+  BlockRange,
   EffectiveCommentVote,
   LastOpId,
   PaidComments,
@@ -29,54 +33,52 @@ export const syncRewards = async () => {
     firstRun = false
     resetPaidPosts()
   }
-  fillPendingRewards(100000)
-  // This updates more columns so we go a bit lighter
-  fillPaidRewards(20000)
+  fillPendingRewards()
+  fillPaidRewards()
   await sleep(intervalTime)
   syncRewards()
 }
 
 let running1 = false
-const fillPaidRewards = async (limit: number) => {
+const fillPaidRewards = async () => {
   if (running1) {
     return
   }
   running1 = true
-  const client = await pool.connect()
-  const startQ = await client.queryObject<LastOpId>(
-    'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
-    ['paid_rewards'],
-  )
-  let start = startQ.rows[0].last_op_id
-  client.release()
-  let paidComments = await getPaidComments(start, limit)
-  while (paidComments.length > 0) {
-    await insertPaidRewards(paidComments)
-    start = paidComments[paidComments.length - 1].op_id
-    await updateLastOpIdPaid(start)
-    paidComments = await getPaidComments(start, limit)
+  let blockRange = await getBlockRange('paid_rewards')
+  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+    const paidComments = await getPaidComments(blockRange)
+    await insertPaidRewards(paidComments, blockRange)
+    blockRange = await getBlockRange('paid_rewards')
   }
   running1 = false
 }
 
-const getPaidComments = async (start: bigint, limit: number) => {
-  using client = await pool.connect()
-  const endQ = await client.queryObject<LastOpId>(
-    'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
-    ['comments'],
-  )
-  const end = endQ.rows[0].last_op_id
+const getPaidComments = async (blockRange: number[]) => {
   // Always lag behind the comments_table indexing
+  const lastComment = await getLastBlockNum('comments')
+  if (blockRange[0] > lastComment) {
+    return []
+  }
+  if (blockRange[1] > lastComment) {
+    blockRange[1] = lastComment
+  }
+  using client = await pool.connect()
   const result = await client.queryObject<PaidComments>(
     `SELECT op_id, author, permlink, payout, author_rewards, total_payout_value, curator_payout_value, beneficiary_payout_value FROM hafsql.vo_comment_reward
-      WHERE op_id > $1 AND op_id <= $2 ORDER BY op_id ASC LIMIT $3`,
-    [start, end, limit],
+      WHERE op_id >= hafsql.last_op_id_from_block_num($1)
+      AND op_id <= hafsql.last_op_id_from_block_num($2)
+      ORDER BY op_id ASC`,
+    [blockRange[0], blockRange[1]],
   )
   return result.rows
 }
 
 let retry1 = 0
-const insertPaidRewards = async (rewards: PaidComments[]) => {
+const insertPaidRewards = async (
+  rewards: PaidComments[],
+  blockRange: number[],
+) => {
   using client = await pool.connect()
   const trx = client.createTransaction('paid_rewards_sync')
   await trx.begin()
@@ -106,6 +108,7 @@ const insertPaidRewards = async (rewards: PaidComments[]) => {
         ],
       )
     }
+    await updateLastBlockNum('paid_rewards', blockRange[1], trx)
     await trx.commit()
     retry1 = 0
   } catch (e) {
@@ -113,21 +116,10 @@ const insertPaidRewards = async (rewards: PaidComments[]) => {
     if (retry1 > 5) {
       throw new Error(e)
     }
-    if (client.session.current_transaction) {
-      await trx.rollback()
-    }
     retry1++
     await sleep(2000)
-    await insertPaidRewards(rewards)
+    return insertPaidRewards(rewards, blockRange)
   }
-}
-
-const updateLastOpIdPaid = async (opId: bigint) => {
-  using client = await pool.connect()
-  await client.queryObject(
-    'UPDATE hafsql.sync_data SET last_op_id=$1 WHERE table_name=$2;',
-    [opId, 'paid_rewards'],
-  )
 }
 
 /**
@@ -136,61 +128,76 @@ const updateLastOpIdPaid = async (opId: bigint) => {
 
 let running2 = false
 // This starts syncing at the end of reindex near last week
-const fillPendingRewards = async (limit: number) => {
+const fillPendingRewards = async () => {
   if (running2) {
     return
   }
   running2 = true
   const client = await pool.connect()
-  const startQ = await client.queryObject<LastOpId>(
-    'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
-    ['pending_rewards'],
-  )
-  let start = startQ.rows[0].last_op_id
-  // Find last paid out post/comment
+  // Find last paid post/comment
   const lastPaid = await client.queryObject<AuthorPermlink>(
     'SELECT author, permlink FROM hafsql.vo_comment_payout_update ORDER BY op_id DESC LIMIT 1',
   )
-  if (lastPaid.rows.length <= 0) {
-    return
-  }
-  // Get author & permlink of the last paid out post
-  const startComment = await client.queryObject<{ op_id: bigint }>(
-    'SELECT op_id FROM hafsql.op_comment WHERE author=$1 AND permlink=$2 ORDER BY op_id ASC LIMIT 1',
+  // Get block_num of the last paid post
+  const startComment = await client.queryObject<{ block_num: number }>(
+    'SELECT block_num FROM hafsql.op_comment WHERE author=$1 AND permlink=$2 ORDER BY op_id ASC LIMIT 1',
     [lastPaid.rows[0].author, lastPaid.rows[0].permlink],
   )
   client.release()
-  const cmOpId = startComment.rows[0].op_id
-  // Start syncing from the highest op_id
-  start = cmOpId > start ? cmOpId : start
-  let effectiveVotes = await getEffectiveVotes(start, limit)
-  while (effectiveVotes.length > 0) {
-    await insertPendingRewards(effectiveVotes)
-    start = effectiveVotes[effectiveVotes.length - 1].op_id
-    await updateLastOpIdPending(start)
-    effectiveVotes = await getEffectiveVotes(start, limit)
+  const cmBlockNum = startComment.rows[0].block_num
+  const commentsLastBlockNum = await getLastBlockNum('comments')
+  // wait for comments_table to sync first
+  if (cmBlockNum > commentsLastBlockNum) {
+    return
+  }
+  let blockRange = await getBlockRange('pending_rewards')
+  if (!blockRange) {
+    return
+  }
+  await client.connect()
+  // start range should be higher than the last paid post
+  if (cmBlockNum > blockRange[0]) {
+    await updateLastBlockNum('pending_rewards', cmBlockNum, client)
+    blockRange = await getBlockRange('pending_rewards')
+    if (!blockRange) {
+      return
+    }
+  }
+  client.release()
+
+  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+    const effectiveVotes = await getEffectiveVotes(blockRange)
+    await insertPendingRewards(effectiveVotes, blockRange)
+    blockRange = await getBlockRange('pending_rewards')
   }
   running2 = false
 }
 
-const getEffectiveVotes = async (start: bigint, limit: number) => {
+const getEffectiveVotes = async (blockRange: number[]) => {
   using client = await pool.connect()
-  const endQ = await client.queryObject<LastOpId>(
-    'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
-    ['comments'],
-  )
-  const end = endQ.rows[0].last_op_id
   // Always lag behind the comments_table indexing
+  const end = await getLastBlockNum('comments')
+  if (blockRange[0] > end) {
+    return []
+  }
+  if (blockRange[1] > end) {
+    blockRange[1] = end
+  }
   const result = await client.queryObject<EffectiveCommentVote>(
     `SELECT op_id, author, permlink, pending_payout FROM hafsql.vo_effective_comment_vote
-      WHERE op_id > $1 AND op_id <= $2 ORDER BY op_id ASC LIMIT $3`,
-    [start, end, limit],
+      WHERE op_id >= hafsql.last_op_id_from_block_num($1)
+      AND op_id <= hafsql.last_op_id_from_block_num($2)
+      ORDER BY op_id ASC`,
+    [blockRange[0], blockRange[1]],
   )
   return result.rows
 }
 
 let retry2 = 0
-const insertPendingRewards = async (rewards: EffectiveCommentVote[]) => {
+const insertPendingRewards = async (
+  rewards: EffectiveCommentVote[],
+  blockRange: number[],
+) => {
   using client = await pool.connect()
   const trx = client.createTransaction('pending_rewards_sync')
   await trx.begin()
@@ -202,6 +209,7 @@ const insertPendingRewards = async (rewards: EffectiveCommentVote[]) => {
         [pending_payout, author, permlink],
       )
     }
+    await updateLastBlockNum('pending_rewards', blockRange[1], trx)
     await trx.commit()
     retry2 = 0
   } catch (e) {
@@ -209,12 +217,9 @@ const insertPendingRewards = async (rewards: EffectiveCommentVote[]) => {
     if (retry2 > 5) {
       throw new Error(e)
     }
-    if (client.session.current_transaction) {
-      await trx.rollback()
-    }
     retry2++
     await sleep(2000)
-    await insertPendingRewards(rewards)
+    return insertPendingRewards(rewards, blockRange)
   }
 }
 
@@ -248,12 +253,4 @@ const resetPaidPosts = () => {
     }
     // takes 50-80ms
   }, intervalTime)
-}
-
-const updateLastOpIdPending = async (opId: bigint) => {
-  using client = await pool.connect()
-  await client.queryObject(
-    'UPDATE hafsql.sync_data SET last_op_id=$1 WHERE table_name=$2;',
-    [opId, 'pending_rewards'],
-  )
 }
