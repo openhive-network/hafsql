@@ -181,19 +181,42 @@ export const setupFunctions = async () => {
     'Get highest op_id inside a block';`,
   )
 
+  // hafsql.first_op_id_from_block_num(int4)
+  // Get lowest op_id inside a block
+  await client.queryObject(
+    `CREATE OR REPLACE FUNCTION hafsql.first_op_id_from_block_num(int4)
+    RETURNS int8
+    AS $$
+    BEGIN
+      RETURN (SELECT id FROM hive.operations
+        WHERE hive.operation_id_to_block_num(id) = $1
+        ORDER BY id ASC limit 1);
+    EXCEPTION WHEN OTHERS THEN
+      RETURN NULL;
+    END
+    $$
+    LANGUAGE plpgsql
+    IMMUTABLE
+    RETURNS NULL ON NULL INPUT;`,
+  )
+  await client.queryObject(
+    `COMMENT ON FUNCTION hafsql.first_op_id_from_block_num (int4) IS
+    'Get lowest op_id inside a block';`,
+  )
+
   // hafsql.get_next_block_range(text)
   // Return a range of 49999 block numbers e.g. [1, 50000]
   // Probably can increase - have to test
   await client.queryObject(
     `CREATE OR REPLACE FUNCTION hafsql.get_next_block_range(text)
-    RETURNS int8
+    RETURNS int4[]
     AS $$
     DECLARE
       last_num int4;
       head_num int4;
     BEGIN
       SELECT num INTO STRICT head_num FROM hive.blocks ORDER BY num DESC LIMIT 1;
-      SELECT last_block_num INTO STRICT last_num FROM hafsql.sync_data WHERE name = $1;
+      SELECT last_block_num INTO STRICT last_num FROM hafsql.sync_data WHERE table_name = $1;
       RETURN
         CASE WHEN head_num > last_num THEN
           CASE WHEN head_num >= last_num + 50000
