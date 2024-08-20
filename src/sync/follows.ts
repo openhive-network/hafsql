@@ -1,12 +1,15 @@
 import { Transaction } from '../deps.ts'
 import { pool } from '../helpers/database.ts'
-import { print } from '../helpers/print.ts'
-import { sleep } from '../helpers/sleep.ts'
-import { CustomJsonFollow, Follows, LastOpId } from '../helpers/types.ts'
+import { print } from '../helpers/functions/print.ts'
+import { sleep } from '../helpers/functions/sleep.ts'
+import { CustomJsonFollow, Follows } from '../helpers/types.ts'
 import {
   clearUsername,
   validateAccountName,
-} from '../helpers/validate_username.ts'
+} from '../helpers/functions/validate_username.ts'
+import { getBlockRange } from '../helpers/functions/get_block_range.ts'
+import { getUserId } from '../helpers/functions/get_user_id.ts'
+import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
 
 let started = false
 // Run this file in a separate worker thread than the main application
@@ -16,7 +19,7 @@ self.onmessage = (e: MessageEvent) => {
   if (e.data === 'start') {
     if (!started) {
       started = true
-      print('[Follows] Start massive sync... 🚀')
+      print('[Follows] Start massive sync... ⏳')
       syncFollows()
     }
   }
@@ -27,47 +30,36 @@ const syncFollows = async () => {
   const intervalTime = 250
   if (firstRun) {
     firstRun = false
-    await fillFollows(50000)
+    // TODO: increase the limit
+    await fillFollows()
     print('[Follows] Massive sync done ✅')
     print('[Follows] Switched to live sync 🟢')
     await sleep(intervalTime)
   }
-  await fillFollows(20000)
+  await fillFollows()
   await sleep(intervalTime)
   syncFollows()
 }
 
-let accountCache: Record<string, number> = {}
-
-const clearCache = () => {
-  accountCache = {}
-}
-// every 10min clear cache
-setInterval(() => clearCache(), 600000)
-
-const fillFollows = async (limit: number) => {
-  const client = await pool.connect()
-  const startQ = await client.queryObject<LastOpId>(
-    'SELECT last_op_id FROM hafsql.sync_data WHERE table_name=$1;',
-    ['follows'],
-  )
-  client.release()
-  let start = startQ.rows[0].last_op_id
-  let follows = await getFollows(start, limit)
-  while (follows.length > 0) {
-    await insertFollows(follows)
-    start = follows[follows.length - 1].op_id
-    await updateLastOpId(start)
-    follows = await getFollows(start, limit)
+const fillFollows = async () => {
+  let blockRange = await getBlockRange('follows')
+  while (blockRange && (blockRange[1] - blockRange[0] > 0)) {
+    const follows = await getFollows(blockRange)
+    await insertFollows(follows, blockRange)
+    blockRange = await getBlockRange('follows')
   }
 }
 
-const getFollows = async (start: bigint, limit: number) => {
+const getFollows = async (blockRange: number[]) => {
   const client = await pool.connect()
+  // block 5999998 - op_id 25769795186065408
   const result = await client.queryObject<CustomJsonFollow>(
     `SELECT op_id, json, required_posting_auths FROM hafsql.op_custom_json
-      WHERE id=$1 AND op_id > $2 ORDER BY op_id ASC LIMIT $3`,
-    ['follow', start, limit],
+      WHERE id=$1 AND op_id >= hafsql.last_op_id_from_block_num($2)
+      AND op_id <= hafsql.last_op_id_from_block_num($3)
+      AND CASE WHEN op_id > 25769795186065408 THEN hafsql.to_json("json")->>0 = 'follow' ELSE TRUE END
+      ORDER BY op_id ASC LIMIT $3`,
+    ['follow', blockRange[0], blockRange[1]],
   )
   client.release()
   if (result.rows.length <= 0) {
@@ -146,6 +138,7 @@ const validateCustomJson = async (customJson: CustomJsonFollow) => {
     return
   }
   const ids = await getIds(follower, following, what)
+
   if (!ids) {
     return
   }
@@ -187,7 +180,7 @@ const getIds = async (
   return ids
 }
 
-const insertFollows = async (follows: Follows[]) => {
+const insertFollows = async (follows: Follows[], blockRange: number[]) => {
   using client = await pool.connect()
   const trx = client.createTransaction('hafsql_follows_sync')
   await trx.begin()
@@ -246,6 +239,7 @@ const insertFollows = async (follows: Follows[]) => {
         break
     }
   }
+  await updateLastBlockNum('follows', blockRange[1], trx)
   await trx.commit()
 }
 
@@ -411,32 +405,4 @@ const resetAllLists = async (item: Follows, trx: Transaction) => {
   await resetMutedList(item, trx)
   await resetFollowBlacklist(item, trx)
   await resetFollowMutedList(item, trx)
-}
-
-// Caching ids for duration of the sync
-const getUserId = async (username: string) => {
-  username = clearUsername(username)
-  if (Object.hasOwn(accountCache, username)) {
-    return accountCache[username]
-  } else {
-    using client = await pool.connect()
-    const getId = await client.queryObject<{ id: number }>(
-      'SELECT a.id FROM hive.accounts a WHERE a.name=$1',
-      [username],
-    )
-    if (getId.rows.length < 1) {
-      return null
-    }
-    const id = getId.rows[0].id
-    accountCache[username] = id
-    return id
-  }
-}
-
-const updateLastOpId = async (opId: bigint) => {
-  using client = await pool.connect()
-  return client.queryObject(
-    'UPDATE hafsql.sync_data SET last_op_id=$1 WHERE table_name=$2;',
-    [opId, 'follows'],
-  )
 }
