@@ -77,9 +77,13 @@ const main = async () => {
 		await doesIndexExist('hafsql_author_permlink_idx')
 	) {
 		isSyncing.three = true
-		// rewards
-		createWorker('./sync/rewards.ts').postMessage('start')
-		print('[Main] Starting rewards worker 👷')
+		// paid_rewards
+		createWorker('./sync/paid_rewards.ts').postMessage('start')
+		print('[Main] Starting paid_rewards worker 👷')
+
+		// pending_rewards
+		createWorker('./sync/pending_rewards.ts').postMessage('start')
+		print('[Main] Starting pending_rewards worker 👷')
 
 		// reputations
 		createWorker('./sync/reputations.ts').postMessage('start')
