@@ -1,14 +1,10 @@
-import { Transaction } from '../deps.ts'
 import { pool } from '../helpers/database.ts'
+import { getBlockRange } from '../helpers/functions/get_block_range.ts'
 import { getUserId } from '../helpers/functions/get_user_id.ts'
 import { print } from '../helpers/functions/print.ts'
 import { sleep } from '../helpers/functions/sleep.ts'
 import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
-import {
-  BlockRange,
-  EffectiveCommentVoteREP,
-  Reputation,
-} from '../helpers/types.ts'
+import { EffectiveCommentVoteREP, Reputation } from '../helpers/types.ts'
 import { createReputationsIndexes } from '../indexes/hafsql.ts'
 
 let started = false
@@ -32,6 +28,8 @@ const syncReputations = async () => {
     firstRun = false
     print('[Reputations] Setting up the table... ⏳')
     await fillAccounts()
+    await fillFakeTable()
+    await fillCache()
     print('[Reputations] Table setup done ✅')
     await fillReputations()
     print('[Reputations] Massive sync done ✅')
@@ -54,7 +52,7 @@ const fillAccounts = async () => {
   const lastAccountQ = await client.queryObject<{ account: number }>(
     `SELECT account FROM hafsql.reputations_table ORDER BY account DESC LIMIT 1`,
   )
-  let lastAccount = 0
+  let lastAccount = -1
   if (lastAccountQ.rows.length > 0) {
     lastAccount = lastAccountQ.rows[0].account
   }
@@ -74,31 +72,30 @@ const fillAccounts = async () => {
   }
 }
 
+let massiveSync = true
 const fillReputations = async () => {
-  let blockRange = await getBlockRange()
+  let blockRange = await getBlockRange('reputations')
+  if (!blockRange) {
+    return
+  }
+  if (blockRange[1] - blockRange[0] < 49999) {
+    massiveSync = false
+  }
   while (blockRange) {
     const votes = await getVotes(blockRange)
-    await processVotes(votes, blockRange)
-    blockRange = await getBlockRange()
+    await processVotes(votes)
+    await cleanTheCache(blockRange)
+    if (massiveSync) {
+      await processFakeTable(blockRange)
+    }
+    blockRange = await getBlockRange('reputations')
   }
-}
-
-const getBlockRange = async () => {
-  using client = await pool.connect()
-  const blockRangeQ = await client.queryObject<BlockRange>(
-    'SELECT hafsql.get_next_block_range($1) as block_range;',
-    ['reputations'],
-  )
-  if (blockRangeQ.rows.length < 1) {
-    return null
-  }
-  return blockRangeQ.rows[0].block_range
 }
 
 const getVotes = async (blockRange: number[]) => {
   using client = await pool.connect()
   const result = await client.queryObject<EffectiveCommentVoteREP>(
-    `SELECT op_id, voter, author, permlink, rshares FROM hafsql.vo_effective_comment_vote
+    `SELECT op_id, voter, author, permlink, rshares, timestamp FROM hafsql.vo_effective_comment_vote
       WHERE op_id >= hafsql.first_op_id_from_block_num($1)
       AND op_id <= hafsql.last_op_id_from_block_num($2)
       ORDER BY op_id ASC`,
@@ -107,67 +104,104 @@ const getVotes = async (blockRange: number[]) => {
   return result.rows
 }
 
-const processVotes = async (
-  votes: EffectiveCommentVoteREP[],
-  blockRange: number[],
-) => {
-  using client = await pool.connect()
-  const trx = client.createTransaction('hafsql_reputations_sync')
-  await trx.begin()
+const processVotes = async (votes: EffectiveCommentVoteREP[]) => {
+  let client, trx
+  if (!massiveSync) {
+    client = await pool.connect()
+    trx = client.createTransaction('hafsql_reputations_sync')
+    await trx.begin()
+  }
   for (let i = 0; i < votes.length; i++) {
     const vote = votes[i]
-    const voterId = <number> await getUserId(vote.voter)
-    const voterRep = await getUserRep(voterId, trx)
-    // Rule #1: Must have non-negative reputation to effect another user's reputation
-    if (voterRep.reputation < 0) {
-      continue
-    }
-    const authorId = <number> await getUserId(vote.author)
-    const authorRep = await getUserRep(authorId, trx)
-    let rshares = BigInt(0)
-    // Throw away the last 6 digits - it is noise per original code
-    rshares = rsharesToBI(vote.rshares)
     // Case study:
     // A upvotes B and B gets more reputations than A
     // A wants to change the upvote to downvote - can't affect the reputation
     // So we must remove the affect of A's upvote first before Rule #2
+    // get this before inserting into the cache
     const prevRshares = await getPrevRshares(
       vote.voter,
       vote.author,
       vote.permlink,
       vote.op_id,
-      trx,
     )
+    // Throw away the last 6 digits - it is noise per original code
+    const rshares = rsharesToBI(vote.rshares)
+    if (massiveSync) {
+      // Insert into cache before everything else to have consistent reputation across all runs
+      const cacheKey = vote.voter + ';' + vote.author + ';' + vote.permlink
+      cache[cacheKey] = {
+        rshares,
+        timestamp: new Date(vote.timestamp + 'Z').getTime(),
+      }
+    }
+    const voterId = <number> await getUserId(vote.voter)
+    const voterRep = massiveSync
+      ? fakeTable[voterId]
+      : await getUserRep(voterId)
+    // Rule #1: Must have non-negative reputation to effect another user's reputation
+    if (voterRep.reputation < 0) {
+      continue
+    }
+    const authorId = <number> await getUserId(vote.author)
+    const authorRep = massiveSync
+      ? fakeTable[authorId]
+      : await getUserRep(authorId)
+    // Get the value so we don't actually modify the fakeTable
+    let literalRep = authorRep.reputation
     if (prevRshares > 0) {
-      authorRep.reputation -= prevRshares
+      literalRep -= prevRshares
     }
     // Rule #2: If you are down voting another user, you must have more reputation than them to impact their reputation
     // Rule #3: Must be explicit for downvotes
     // TODO: There is room for improvement - HIGHREP idea from @gtg
     if (
       rshares < 0 && !voterRep.is_implicit &&
-      voterRep.reputation < authorRep.reputation
+      voterRep.reputation < literalRep
     ) {
       continue
     }
-
-    if (authorRep.is_implicit) {
-      // make it explicit
-      await trx.queryObject(
-        `UPDATE hafsql.reputations_table SET reputation = reputation + $1 - $2, is_implicit=$3
-          WHERE account=$4`,
-        [rshares, prevRshares, false, authorId],
-      )
+    if (massiveSync) {
+      // Update fakeTable
+      if (prevRshares > 0) {
+        authorRep.reputation -= prevRshares
+      }
+      authorRep.reputation += rshares
+      authorRep.updated = true
+      if (authorRep.is_implicit) {
+        authorRep.is_implicit = false
+      }
     } else {
-      await trx.queryObject(
-        `UPDATE hafsql.reputations_table SET reputation = reputation + $1 - $2
-          WHERE account=$3`,
-        [rshares, prevRshares, authorId],
-      )
+      if (authorRep.is_implicit) {
+        await trx?.queryObject(
+          `UPDATE hafsql.reputations_table SET reputation = $1, is_implicit=$2
+            WHERE account=$3`,
+          [authorRep.reputation + rshares, false, authorId],
+        )
+      } else {
+        await trx?.queryObject(
+          `UPDATE hafsql.reputations_table SET reputation = $1 WHERE account=$2`,
+          [authorRep.reputation + rshares, authorId],
+        )
+      }
     }
   }
-  await updateLastBlockNum('reputations', blockRange[1], trx)
-  await trx.commit()
+  if (!massiveSync) {
+    await trx?.commit()
+  }
+}
+
+const getUserRep = async (userId: number) => {
+  using client = await pool.connect()
+  const getRep = await client.queryObject<Reputation>(
+    'SELECT reputation, is_implicit FROM hafsql.reputations_table WHERE account=$1',
+    [userId],
+  )
+  const reputation = BigInt(getRep.rows[0].reputation)
+  return {
+    reputation,
+    is_implicit: getRep.rows[0].is_implicit,
+    updated: true, // for ts typing sake
+  }
 }
 
 // Get previous vote of the voter on the certain post - 0 if none
@@ -176,21 +210,29 @@ const getPrevRshares = async (
   author: string,
   permlink: string,
   op_id: bigint,
-  trx: Transaction,
 ) => {
-  const result = await trx.queryObject<{ rshares: string }>(
-    `SELECT rshares FROM hafsql.vo_effective_comment_vote
-      WHERE voter=$1 AND author=$2 AND permlink=$3
-      AND op_id < $4
-      ORDER BY op_id DESC
-      LIMIT 1`,
-    [voter, author, permlink, op_id],
-  )
-  if (result.rows.length < 1) {
+  if (massiveSync) {
+    const cacheKey = voter + ';' + author + ';' + permlink
+    if (Object.hasOwn(cache, cacheKey)) {
+      return cache[cacheKey].rshares
+    }
     return BigInt(0)
+  } else {
+    using client = await pool.connect()
+    const result = await client.queryObject<{ rshares: string }>(
+      `SELECT rshares FROM hafsql.vo_effective_comment_vote
+        WHERE voter=$1 AND author=$2 AND permlink=$3
+        AND op_id < $4
+        ORDER BY op_id DESC
+        LIMIT 1`,
+      [voter, author, permlink, op_id],
+    )
+    if (result.rows.length < 1) {
+      return BigInt(0)
+    }
+    const rshares = result.rows[0].rshares
+    return rsharesToBI(rshares)
   }
-  const rshares = result.rows[0].rshares
-  return rsharesToBI(rshares)
 }
 
 const rsharesToBI = (rshares: string) => {
@@ -203,14 +245,149 @@ const rsharesToBI = (rshares: string) => {
   return BigInt(0)
 }
 
-const getUserRep = async (userId: number, trx: Transaction) => {
-  const getRep = await trx.queryObject<Reputation>(
-    'SELECT reputation, is_implicit FROM hafsql.reputations_table WHERE account=$1',
-    [userId],
+// only used during massiveSync
+const processFakeTable = async (blockRange: number[]) => {
+  using client = await pool.connect()
+  const trx = client.createTransaction('hafsql_reputations_sync')
+  await trx.begin()
+  for (let i = 0; i < fakeTable.length; i++) {
+    if (!fakeTable[i].updated) {
+      continue
+    }
+    const account = i
+    const { is_implicit, reputation } = fakeTable[i]
+    await trx.queryObject(
+      `UPDATE hafsql.reputations_table SET reputation = $1, is_implicit=$2
+        WHERE account=$3`,
+      [reputation, is_implicit, account],
+    )
+  }
+  await updateLastBlockNum('reputations', blockRange[1], trx)
+  await trx.commit()
+
+  // If the above transaction fails and rolls back we can't rollback faketables
+  // so we have to do this after making sure the transaction is committed
+  for (let i = 0; i < fakeTable.length; i++) {
+    if (fakeTable[i].updated) {
+      fakeTable[i].updated = false
+    }
+  }
+}
+
+// only used during massiveSync
+// Using cache to speedup the sync - index is the account id
+let fakeTable: {
+  reputation: bigint
+  is_implicit: boolean
+  updated: boolean
+}[] = []
+let firstFakeRun = true
+const fillFakeTable = async () => {
+  if (!massiveSync) {
+    fakeTable = []
+    return
+  }
+  if (firstFakeRun) {
+    const blockRange = await getBlockRange('reputations')
+    if (!blockRange) {
+      return
+    }
+    // don't need to fill cache if not massive sync
+    if (blockRange[1] - blockRange[0] < 49999) {
+      return
+    }
+  }
+  using client = await pool.connect()
+  const lastId = fakeTable.length - 1
+  const result = await client.queryObject<Reputation>(
+    `SELECT account, reputation, is_implicit FROM hafsql.reputations_table WHERE account > $1 ORDER BY account ASC`,
+    [lastId],
   )
-  const reputation = BigInt(getRep.rows[0].reputation)
-  return {
-    reputation,
-    is_implicit: getRep.rows[0].is_implicit,
+  result.rows.forEach((row) => {
+    fakeTable[row.account] = {
+      reputation: BigInt(row.reputation),
+      is_implicit: row.is_implicit,
+      updated: false,
+    }
+  })
+  if (firstFakeRun) {
+    firstFakeRun = false
+    setInterval(fillFakeTable, 1000)
+  }
+}
+
+// only used during massiveSync
+// hardfork 17 at 10629455 and hf19 at 12988978
+// max cashout window pre_hf17 = 30 days
+// but might have comments till hf19
+const HF19 = 12988978
+let cache: Record<string, { rshares: bigint; timestamp: number }> = {}
+const fillCache = async () => {
+  // This is run once at the start
+  const blockRange = await getBlockRange('reputations')
+  if (!blockRange) {
+    return
+  }
+  // don't need to fill cache if not massive sync
+  if (blockRange[1] - blockRange[0] < 49999) {
+    return
+  }
+  let maxAge = 604800000 // ms 7days
+  if (blockRange[0] <= HF19) {
+    maxAge = 2592000000 // ms 30days
+  }
+  if (blockRange[0] === 1) {
+    // no need to fill cache - nothing to fill
+  } else {
+    const timestamp = await getTimestamp(blockRange[0] - 1)
+    const firstNum = await getBlockNum(timestamp - maxAge)
+    const votes = await getVotes([firstNum, blockRange[0] - 1])
+    votes.forEach((item) => {
+      const cacheKey = item.voter + ';' + item.author + ';' + item.permlink
+      cache[cacheKey] = {
+        rshares: rsharesToBI(item.rshares),
+        timestamp: new Date(item.timestamp + 'Z').getTime(),
+      }
+    })
+  }
+}
+// only used during massiveSync
+const getTimestamp = async (blockNum: number) => {
+  using client = await pool.connect()
+  const result = await client.queryObject<{ created_at: string }>(
+    `SELECT created_at FROM hive.blocks WHERE num=$1`,
+    [blockNum],
+  )
+  return new Date(result.rows[0].created_at + 'Z').getTime()
+}
+// only used during massiveSync
+const getBlockNum = async (timestamp: number) => {
+  using client = await pool.connect()
+  const result = await client.queryObject<{ num: number }>(
+    `SELECT num FROM hive.blocks WHERE created_at <= $1
+      ORDER BY created_at DESC LIMIT 1`,
+    [new Date(timestamp).toISOString()],
+  )
+  if (result.rows.length < 1) {
+    return 1
+  }
+  return result.rows[0].num
+}
+// only used during massiveSync
+const cleanTheCache = async (blockRange: number[]) => {
+  if (!massiveSync) {
+    cache = {}
+    return
+  }
+  let maxAge = 604800000 // ms 7days
+  if (blockRange[1] <= HF19) {
+    maxAge = 2592000000 // ms 30days
+  }
+  const timeOfBlock = await getTimestamp(blockRange[1])
+  const lastTime = timeOfBlock - maxAge
+  for (const i in cache) {
+    if (cache[i].timestamp < lastTime) {
+      delete cache[i]
+    }
   }
 }
