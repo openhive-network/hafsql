@@ -92,7 +92,8 @@ const insertComments = async (comments: CommentOp[], blockRange: number[]) => {
 		await trx.commit()
 	} catch (e) {
 		if (e.cause?.message === 'deadlock detected') {
-			await sleep(1000)
+			console.log('deadlock comments')
+			await sleep(5000)
 			return insertComments(comments, blockRange)
 		} else {
 			print(e)
@@ -355,7 +356,7 @@ const insertDeletedComments = async (
 	} catch (e) {
 		// probably a deadlock - retry
 		if (e.cause?.message === 'deadlock detected') {
-			await sleep(2000)
+			await sleep(5000)
 			return insertDeletedComments(deletedCms, blockRange)
 		} else {
 			print(e)
