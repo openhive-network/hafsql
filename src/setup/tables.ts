@@ -15,6 +15,7 @@ export const setupTables = async () => {
     delegator varchar(16) NOT NULL,
     delegatee varchar(16) NOT NULL,
     vests numeric NOT NULL,
+    timestamp timestamp NOT NULL,
     CONSTRAINT hafsql_delegations_table_un UNIQUE (delegator, delegatee)
   );`,
   )
