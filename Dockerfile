@@ -1,4 +1,4 @@
-FROM denoland/deno:1.45.5
+FROM denoland/deno:1.46.1
 
 # The port that your application listens to.
 # EXPOSE 1993
@@ -18,4 +18,4 @@ COPY . .
 # Compile the main app so that it doesn't need to be compiled each startup/entry.
 RUN deno cache src/main.ts
 
-CMD ["run", "--allow-net", "--allow-read", "--allow-env", "src/main.ts"]
+CMD ["run", "--v8-flags=--max-old-space-size=8000", "--allow-net", "--allow-read", "--allow-env", "src/main.ts"]
