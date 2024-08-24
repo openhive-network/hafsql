@@ -212,10 +212,10 @@ const insertFollows = async (follows: Follows[], blockRange: number[]) => {
         break
       case 'follow':
       case 'blog':
-        follow(item, trx)
+        await follow(item, trx)
         break
       case 'ignore':
-        mute(item, trx)
+        await mute(item, trx)
         break
       case 'reset_blacklist':
         await resetBlacklist(item, trx)
