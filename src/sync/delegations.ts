@@ -50,7 +50,7 @@ export const fillDelegations = async () => {
 const getDelegations = async (blockRange: number[]) => {
   using client = await pool.connect()
   const result = await client.queryObject<Delegations>(
-    `SELECT op_id, delegator, delegatee, vesting_shares FROM hafsql.op_delegate_vesting_shares
+    `SELECT delegator, delegatee, vesting_shares, timestamp FROM hafsql.op_delegate_vesting_shares
       WHERE op_id >= hafsql.first_op_id_from_block_num($1)
       AND op_id <= hafsql.last_op_id_from_block_num($2)
       ORDER BY op_id ASC`,
@@ -67,7 +67,7 @@ const insertDelegations = async (
   const trx = client.createTransaction('hafsql_delegations_sync')
   await trx.begin()
   for (let i = 0; i < delegations.length; i++) {
-    const { delegator, delegatee, vesting_shares } = delegations[i]
+    const { delegator, delegatee, vesting_shares, timestamp } = delegations[i]
     if (Number(vesting_shares) === Number(0)) {
       await trx.queryObject(
         `DELETE FROM hafsql.delegations_table
@@ -76,10 +76,10 @@ const insertDelegations = async (
       )
     } else {
       await trx.queryObject(
-        `INSERT INTO hafsql.delegations_table (delegator, delegatee, vests)
-          VALUES ($1, $2, $3) ON CONFLICT ON CONSTRAINT hafsql_delegations_table_un
-          DO UPDATE SET vests=$3;`,
-        [delegator, delegatee, vesting_shares],
+        `INSERT INTO hafsql.delegations_table (delegator, delegatee, vests, timestamp)
+          VALUES ($1, $2, $3, $4) ON CONFLICT ON CONSTRAINT hafsql_delegations_table_un
+          DO UPDATE SET vests=$3, timestamp=$4;`,
+        [delegator, delegatee, vesting_shares, timestamp],
       )
     }
   }
