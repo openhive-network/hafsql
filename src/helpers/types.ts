@@ -44,7 +44,7 @@ export interface DeletedComment extends AuthorPermlink {
 	op_id: bigint
 }
 
-export interface EffectiveCommentVote extends DeletedComment {
+export interface EffectiveCommentVote extends AuthorPermlink {
 	pending_payout: number
 }
 
@@ -62,10 +62,10 @@ export interface RootAuthorPermlink {
 }
 
 export interface Delegations {
-	op_id: bigint
 	delegator: string
 	delegatee: string
 	vesting_shares: string | number
+	timestamp: string
 }
 
 export interface RcCustomJson {
@@ -158,9 +158,11 @@ export interface EffectiveCommentVoteREP {
 	author: string
 	permlink: string
 	rshares: string
+	timestamp: string
 }
 
 export interface Reputation {
+	account: number
 	reputation: string
 	is_implicit: boolean
 }
