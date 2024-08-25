@@ -234,4 +234,29 @@ export const setupFunctions = async () => {
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;`,
   )
+  await client.queryObject(
+    `COMMENT ON FUNCTION hafsql.get_next_block_range (text) IS
+    'Used by HafSQL to sync blocks';`,
+  )
+
+  // hafsql.parse_reputation(int8)
+  await client.queryObject(
+    `CREATE OR REPLACE FUNCTION hafsql.parse_reputation(int8)
+    RETURNS numeric(6, 2)
+    AS $$
+    BEGIN
+      RETURN CASE WHEN $1 > 0 THEN ((log10($1 - 10) - 9) * 9 + 25)::numeric(6, 2)
+        ELSE (-(log10(-$1 - 10) - 9) * 9 + 25)::numeric(6, 2) END;
+    EXCEPTION WHEN OTHERS THEN
+      RETURN NULL;
+    END
+    $$
+    LANGUAGE plpgsql
+    IMMUTABLE
+    RETURNS NULL ON NULL INPUT;`,
+  )
+  await client.queryObject(
+    `COMMENT ON FUNCTION hafsql.parse_reputation (int8) IS
+    'Parse large reputation number into user friendly number';`,
+  )
 }
