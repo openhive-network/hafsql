@@ -83,7 +83,7 @@ const fillReputations = async () => {
   }
   while (blockRange) {
     const votes = await getVotes(blockRange)
-    await processVotes(votes)
+    await processVotes(votes, blockRange)
     await cleanTheCache(blockRange)
     if (massiveSync) {
       await processFakeTable(blockRange)
@@ -104,7 +104,10 @@ const getVotes = async (blockRange: number[]) => {
   return result.rows
 }
 
-const processVotes = async (votes: EffectiveCommentVoteREP[]) => {
+const processVotes = async (
+  votes: EffectiveCommentVoteREP[],
+  blockRange: number[],
+) => {
   let client, trx
   if (!massiveSync) {
     client = await pool.connect()
@@ -154,11 +157,13 @@ const processVotes = async (votes: EffectiveCommentVoteREP[]) => {
     // Rule #2: If you are down voting another user, you must have more reputation than them to impact their reputation
     // Rule #3: Must be explicit for downvotes
     // TODO: There is room for improvement - HIGHREP idea from @gtg
-    if (
-      rshares < 0 && !voterRep.is_implicit &&
-      voterRep.reputation < literalRep
-    ) {
-      continue
+    if (rshares < 0) {
+      if (voterRep.is_implicit) {
+        continue
+      }
+      if (voterRep.reputation < literalRep) {
+        continue
+      }
     }
     if (massiveSync) {
       // Update fakeTable
@@ -185,8 +190,10 @@ const processVotes = async (votes: EffectiveCommentVoteREP[]) => {
       }
     }
   }
-  if (!massiveSync) {
-    await trx?.commit()
+  if (!massiveSync && trx) {
+    await updateLastBlockNum('reputations', blockRange[1], trx)
+    await trx.commit()
+    client?.release()
   }
 }
 
@@ -236,13 +243,7 @@ const getPrevRshares = async (
 }
 
 const rsharesToBI = (rshares: string) => {
-  if (
-    rshares.length > 6 && !rshares.startsWith('-') ||
-    rshares.length > 7 && rshares.startsWith('-')
-  ) {
-    return BigInt(rshares.slice(0, -6))
-  }
-  return BigInt(0)
+  return BigInt(rshares) >> 6n
 }
 
 // only used during massiveSync
