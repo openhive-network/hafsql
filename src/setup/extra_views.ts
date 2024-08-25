@@ -221,7 +221,8 @@ export const setupExtraViews = async () => {
   AS SELECT x.account as account_id,
     a.name as account_name,
     x.reputation,
-    x.is_implicit
+    x.is_implicit,
+    hafsql.parse_reputation(x.reputation) as rep
     FROM hafsql.reputations_table x
     JOIN hive.accounts a ON x.account=a.id;`)
 }
