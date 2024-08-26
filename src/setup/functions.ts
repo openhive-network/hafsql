@@ -248,7 +248,7 @@ export const setupFunctions = async () => {
       RETURN CASE WHEN $1 > 0 THEN ((log10($1 - 10) - 9) * 9 + 25)::numeric(6, 2)
         ELSE (-(log10(-$1 - 10) - 9) * 9 + 25)::numeric(6, 2) END;
     EXCEPTION WHEN OTHERS THEN
-      RETURN NULL;
+      RETURN 0;
     END
     $$
     LANGUAGE plpgsql
