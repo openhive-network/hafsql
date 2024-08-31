@@ -4,6 +4,7 @@ export {
   Transaction,
 } from 'https://deno.land/x/postgres@v0.19.3/mod.ts'
 export { load as loadDotEnv } from 'https://deno.land/std@0.224.0/dotenv/mod.ts'
+export { BigDenary } from 'https://deno.land/x/bigdenary@1.0.0/mod.ts'
 
 // @deno-types="npm:@types/diff-match-patch@1.0.36"
 import diff_match_patch from 'npm:diff-match-patch@1.0.5'
