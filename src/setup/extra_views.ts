@@ -225,6 +225,29 @@ export const setupExtraViews = async () => {
     hafsql.parse_reputation(x.reputation) as rep
     FROM hafsql.reputations_table x
     JOIN hive.accounts a ON x.account=a.id;`)
+
+  // Balances
+  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.balances
+  AS SELECT x.account as account_id,
+    a.name as account_name,
+    x.hive,
+    x.hbd,
+    x.vests,
+    hafsql.vests_to_hive(x.vests) as hp_equivalent
+    FROM hafsql.balances_table x
+    JOIN hive.accounts a ON x.account=a.id;`)
+
+  // Balances history
+  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.balances_history
+  AS SELECT x.account as account_id,
+    a.name as account_name,
+    x.block_num,
+    x.hive,
+    x.hbd,
+    x.vests,
+    hafsql.vests_to_hive(x.vests) as hp_equivalent
+    FROM hafsql.balances_history_table x
+    JOIN hive.accounts a ON x.account=a.id;`)
 }
 
 export const removeExtraViews = async () => {
@@ -249,5 +272,6 @@ export const removeExtraViews = async () => {
     hafsql.applied_hardforks,
     hafsql.community_subs,
     hafsql.community_roles,
-    hafsql.reputations;`)
+    hafsql.reputations,
+    hafsql.balances;`)
 }
