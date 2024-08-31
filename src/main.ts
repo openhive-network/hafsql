@@ -46,6 +46,10 @@ const main = async () => {
 		// proposals
 		createWorker('./sync/proposals.ts').postMessage('start')
 		print('[Main] Starting proposal worker 👷')
+
+		// balances
+		createWorker('./sync/balances.ts').postMessage('start')
+		print('[Main] Starting balances worker 👷')
 	}
 
 	// custom_json id
@@ -93,6 +97,7 @@ const main = async () => {
 
 setInterval(main, 5000)
 
+// Log status of the sync every 30min
 const printStats = async () => {
 	using client = await pool.connect()
 	const head = await client.queryObject<{ num: number }>(
