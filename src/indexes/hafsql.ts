@@ -54,6 +54,19 @@ export const createReputationsIndexes = async () => {
 	// )
 }
 
+export const createBalancesIndexes = async () => {
+	using client = await pool.connect()
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_hive_idx ON hafsql.balances_table USING btree (hive);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_hbd_idx ON hafsql.balances_table USING btree (hbd);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_vests_idx ON hafsql.balances_table USING btree (vests);',
+	)
+}
+
 export const createHafsqlIndexes = async () => {
 	using client = await pool.connect()
 	await client.queryObject(
