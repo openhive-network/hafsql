@@ -259,4 +259,56 @@ export const setupFunctions = async () => {
     `COMMENT ON FUNCTION hafsql.parse_reputation (int8) IS
     'Parse large reputation number into user friendly number';`,
   )
+
+  // hafsql.get_balance(int4, int4 default NULL)
+  // Get account balance - optionally at certain block_num
+  await client.queryObject(
+    `CREATE OR REPLACE FUNCTION hafsql.get_balance(int4, int4 default NULL)
+    RETURNS table (hive numeric, hbd numeric, vests numeric, hp numeric)
+    AS $$
+    BEGIN
+      CASE WHEN $2 is NULL THEN
+        RETURN QUERY
+          (SELECT b.hive, b.hbd, b.vests, hafsql.vests_to_hive(b.vests) AS hp
+          FROM hafsql.balances_table b WHERE b.account = $1);
+      ELSE
+		CASE WHEN
+			(SELECT EXISTS(SELECT 1 FROM hafsql.balances_history_table b WHERE b.account = $1 AND b.block_num <= $2 LIMIT 1)) = true
+		THEN RETURN QUERY
+      (SELECT b.hive, b.hbd, b.vests, hafsql.vests_to_hive(b.vests, $2) AS hp
+      FROM hafsql.balances_history_table b WHERE b.account = $1 AND b.block_num <= $2
+      ORDER BY b.block_num DESC LIMIT 1);
+		ELSE RETURN QUERY SELECT 0::numeric, 0::numeric, 0::numeric, 0::numeric;
+		END CASE;
+      END CASE;
+    END
+    $$
+    LANGUAGE plpgsql
+    IMMUTABLE;`,
+  )
+  await client.queryObject(
+    `COMMENT ON FUNCTION hafsql.get_balance (int4, int4) IS
+    'Get account balance - optionally at certain block_num including the historical hp equivalent';`,
+  )
+
+  // hafsql.get_balance(text, int4 default NULL)
+  // Get account balance - optionally at certain block_num
+  await client.queryObject(
+    `CREATE OR REPLACE FUNCTION hafsql.get_balance(text, int4 default NULL)
+    RETURNS table (hive numeric, hbd numeric, vests numeric, hp numeric)
+    AS $$
+    DECLARE
+      account int4;
+    BEGIN
+      SELECT a.id FROM hive.accounts a WHERE a.name = $1 INTO account;
+      RETURN QUERY SELECT * FROM hafsql.get_balance(account, $2);
+    END
+    $$
+    LANGUAGE plpgsql
+    IMMUTABLE;`,
+  )
+  await client.queryObject(
+    `COMMENT ON FUNCTION hafsql.get_balance (text, int4) IS
+    'Get account balance - optionally at certain block_num including the historical hp equivalent';`,
+  )
 }
