@@ -47,10 +47,17 @@ export const fillDelegations = async () => {
   }
 }
 
+// hafsql.op_account_create_with_delegation
+// TODO: missing the above
 const getDelegations = async (blockRange: number[]) => {
   using client = await pool.connect()
   const result = await client.queryObject<Delegations>(
-    `SELECT delegator, delegatee, vesting_shares, timestamp FROM hafsql.op_delegate_vesting_shares
+    `SELECT delegator, delegatee, vesting_shares, timestamp, op_id FROM hafsql.op_delegate_vesting_shares
+      WHERE op_id >= hafsql.first_op_id_from_block_num($1)
+      AND op_id <= hafsql.last_op_id_from_block_num($2)
+      UNION ALL
+      SELECT creator AS delegator, new_account_name AS delegatee, delegation_vests AS vesting_shares, timestamp, op_id
+      FROM hafsql.op_account_create_with_delegation
       WHERE op_id >= hafsql.first_op_id_from_block_num($1)
       AND op_id <= hafsql.last_op_id_from_block_num($2)
       ORDER BY op_id ASC`,
