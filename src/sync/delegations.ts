@@ -48,7 +48,7 @@ export const fillDelegations = async () => {
 }
 
 // hafsql.op_account_create_with_delegation
-// TODO: missing the above
+// TODO: handle vo_hardfork_hive
 const getDelegations = async (blockRange: number[]) => {
   using client = await pool.connect()
   const result = await client.queryObject<Delegations>(
