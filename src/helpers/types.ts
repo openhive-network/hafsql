@@ -182,3 +182,19 @@ export interface SyncData {
 		| 'reputations'
 	last_block_num: number
 }
+
+export interface ImpactedBalances {
+	account_name: string
+	amount: bigint
+	asset_precision: number
+	asset_symbol_nai: number
+	id: bigint
+	block_num: number
+}
+
+export interface Balances {
+	account: number
+	hive: string
+	hbd: string
+	vests: string
+}
