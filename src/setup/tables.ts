@@ -12,31 +12,31 @@ export const setupTables = async () => {
   // Delegations
   await client.queryObject(
     `CREATE TABLE IF NOT EXISTS hafsql.delegations_table (
-    delegator varchar(16) NOT NULL,
-    delegatee varchar(16) NOT NULL,
-    vests numeric NOT NULL,
-    timestamp timestamp NOT NULL,
-    CONSTRAINT hafsql_delegations_table_un UNIQUE (delegator, delegatee)
-  );`,
+      delegator varchar(16) NOT NULL,
+      delegatee varchar(16) NOT NULL,
+      vests numeric NOT NULL,
+      timestamp timestamp NOT NULL,
+      CONSTRAINT hafsql_delegations_table_un UNIQUE (delegator, delegatee)
+    );`,
   )
 
   // RC Delegations
   await client.queryObject(
     `CREATE TABLE IF NOT EXISTS hafsql.rc_delegations_table (
-    delegator varchar(16) NOT NULL,
-    delegatee varchar(16) NOT NULL,
-    rc varchar NOT NULL,
-    CONSTRAINT hafsql_rc_delegations_table_un UNIQUE (delegator, delegatee)
-  );`,
+      delegator varchar(16) NOT NULL,
+      delegatee varchar(16) NOT NULL,
+      rc varchar NOT NULL,
+      CONSTRAINT hafsql_rc_delegations_table_un UNIQUE (delegator, delegatee)
+    );`,
   )
 
   // Proposal Approvals
   await client.queryObject(
     `CREATE TABLE IF NOT EXISTS hafsql.proposal_approvals_table (
-    id int4 NOT NULL,
-    voter varchar(16) NOT NULL,
-    CONSTRAINT hafsql_proposal_approvals_table_un UNIQUE (id, voter)
-  );`,
+      id int4 NOT NULL,
+      voter varchar(16) NOT NULL,
+      CONSTRAINT hafsql_proposal_approvals_table_un UNIQUE (id, voter)
+    );`,
   )
 
   // Blacklists
@@ -49,10 +49,10 @@ export const setupTables = async () => {
   // Blacklist Follows
   await client.queryObject(
     `CREATE TABLE IF NOT EXISTS hafsql.blacklist_follows_table (
-    account int4 NOT NULL,
-    blacklist int4 NOT NULL,
-    CONSTRAINT hafsql_blacklist_follows_table_un UNIQUE (account, blacklist)
-  );`,
+      account int4 NOT NULL,
+      blacklist int4 NOT NULL,
+      CONSTRAINT hafsql_blacklist_follows_table_un UNIQUE (account, blacklist)
+    );`,
   )
 
   // Mute
@@ -65,10 +65,10 @@ export const setupTables = async () => {
   // Mute Follows
   await client.queryObject(
     `CREATE TABLE IF NOT EXISTS hafsql.mute_follows_table (
-    account int4 NOT NULL,
-    mute_list int4 NOT NULL,
-    CONSTRAINT hafsql_mute_follows_table_un UNIQUE (account, mute_list)
-  );`,
+      account int4 NOT NULL,
+      mute_list int4 NOT NULL,
+      CONSTRAINT hafsql_mute_follows_table_un UNIQUE (account, mute_list)
+    );`,
   )
 
   // Reblogs
@@ -114,42 +114,55 @@ export const setupTables = async () => {
   // Community Roles
   await client.queryObject(
     `CREATE TABLE IF NOT EXISTS hafsql.community_roles_table (
-    account int4 NOT NULL,
-    community int4 NOT NULL,
-    "role" int2 NOT NULL DEFAULT 0,
-    title varchar NULL,
-    CONSTRAINT hafsql_community_roles_table_un UNIQUE (account, community)
-  );`,
+      account int4 NOT NULL,
+      community int4 NOT NULL,
+      "role" int2 NOT NULL DEFAULT 0,
+      title varchar NULL,
+      CONSTRAINT hafsql_community_roles_table_un UNIQUE (account, community)
+    );`,
   )
 
   // Community Subs
   await client.queryObject(
     `CREATE TABLE IF NOT EXISTS hafsql.community_subs_table (
-    account int4 NOT NULL,
-    community int4 NOT NULL,
-    CONSTRAINT hafsql_community_subs_table_un UNIQUE (account, community)
-  );`,
+      account int4 NOT NULL,
+      community int4 NOT NULL,
+      CONSTRAINT hafsql_community_subs_table_un UNIQUE (account, community)
+    );`,
   )
 
   // Reputations
   await client.queryObject(
     `CREATE TABLE IF NOT EXISTS hafsql.reputations_table (
-    account int4 NOT NULL,
-    reputation int8 NOT NULL DEFAULT 0,
-    is_implicit bool NOT NULL DEFAULT TRUE,
-    CONSTRAINT hafsql_reputations_table_un UNIQUE (account)
-  );`,
+      account int4 NOT NULL,
+      reputation int8 NOT NULL DEFAULT 0,
+      is_implicit bool NOT NULL DEFAULT TRUE,
+      CONSTRAINT hafsql_reputations_table_un UNIQUE (account)
+    );`,
   )
 
-  // // Vote chache - caching 7 days old votes - needed for reputations
-  // await client.queryObject(`CREATE TABLE IF NOT EXISTS hafsql.votescache_table (
-  //   voter int4 NOT NULL,
-  //   author varchar NOT NULL,
-  //   permlink varchar NOT NULL,
-  //   shares varchar NOT NULL DEFAULT '0',
-  //   timestamp int8 NOT NULL,
-  //   CONSTRAINT hafsql_votescache_table_un UNIQUE (voter, author, permlink)
-  // );`)
+  // Balances
+  await client.queryObject(
+    `CREATE TABLE IF NOT EXISTS hafsql.balances_table (
+      account int4 NOT NULL,
+      hive numeric(21, 3) NOT NULL DEFAULT 0,
+      hbd numeric(21, 3) NOT NULL DEFAULT 0,
+      vests numeric(27, 6) NOT NULL DEFAULT 0,
+      CONSTRAINT hafsql_balances_table_un UNIQUE (account)
+    );`,
+  )
+
+  // Balances_history
+  await client.queryObject(
+    `CREATE TABLE IF NOT EXISTS hafsql.balances_history_table (
+      account int4 NOT NULL,
+      block_num int4 NOT NULL,
+      hive numeric(21, 3) NOT NULL DEFAULT 0,
+      hbd numeric(21, 3) NOT NULL DEFAULT 0,
+      vests numeric(27, 6) NOT NULL DEFAULT 0,
+      CONSTRAINT hafsql_balances_history_table_un UNIQUE (account, block_num)
+    );`,
+  )
 
   client.release()
 
@@ -170,6 +183,7 @@ const setupSyncDataTable = async () => {
     'communities',
     'delete_comments',
     'reputations',
+    'balances',
   ]
   for (let i = 0; i < tableNames.length; i++) {
     const name = tableNames[i]
