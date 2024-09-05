@@ -6,7 +6,8 @@ import { getUserId } from '../helpers/functions/get_user_id.ts'
 import { print } from '../helpers/functions/print.ts'
 import { sleep } from '../helpers/functions/sleep.ts'
 import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
-import { Balances, ImpactedBalances } from '../helpers/types.ts'
+import { opId } from '../helpers/operation_id.ts'
+import { Balances, HardforkHive, ImpactedBalances } from '../helpers/types.ts'
 import { createBalancesIndexes } from '../indexes/hafsql.ts'
 
 let started = false
@@ -89,6 +90,7 @@ const getImpactedBalances = async (blockRange: number[]) => {
     // 3889921816588623 = hf1
     query +=
       `\nSELECT (hive.get_impacted_balances(body_binary, id > 3889921816588623)).*, id,
+        hive.operation_id_to_type_id(id) AS op_type_id,
         hive.operation_id_to_block_num(id) AS block_num FROM hive.operations
         WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
         AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
@@ -113,10 +115,19 @@ const processImpactedBalances = async (
   const trx = client.createTransaction('hafsql_balances_sync')
   await trx.begin()
   for (let i = 0; i < impactedBalances.length; i++) {
-    const { account_name, asset_symbol_nai, block_num } = impactedBalances[i]
+    const { account_name, asset_symbol_nai, block_num, op_type_id } =
+      impactedBalances[i]
     let amount = new BigDenary(impactedBalances[i].amount)
     const accountId = <number> await getUserId(account_name)
     await insertHistory(accountId, block_num, amount, asset_symbol_nai, trx)
+    // get_impacted_balances() doesn't set the accounts affected by hive fork to 0
+    // so we have to set them manually here
+    if (block_num === 41818752) {
+      await clearHiveForkBalances(trx)
+    }
+    if (op_type_id === opId.consolidate_treasury_balance) {
+      await consolidateTreasury(impactedBalances[i], trx)
+    }
     if (asset_symbol_nai === 13) { // hbd
       amount = amount.div(1000)
       if (massiveSync) {
@@ -280,4 +291,76 @@ const fillFakeTable = async () => {
       updated: false,
     }
   })
+}
+
+// hive.get_impacted_balances doesn't return the balances removed by Hive Fork at 41818752
+const clearHiveForkBalances = async (trx: Transaction) => {
+  const result = await trx.queryObject<HardforkHive>(
+    `SELECT account, hbd_transferred, hive_transferred, vests_converted FROM hafsql.vo_hardfork_hive`,
+  )
+  for (let i = 0; i < result.rows.length; i++) {
+    const { account } = result.rows[i]
+    const accountId = await getUserId(account)
+    await trx.queryObject(
+      `UPDATE hafsql.balances_table SET hive=0, hbd=0, vests=0 WHERE account=$1;`,
+      [accountId],
+    )
+    const hfNum = 41818752
+    await trx.queryObject(
+      `INSERT INTO hafsql.balances_history_table (account, block_num, hive, hbd, vests)
+        VALUES ($1, $2, 0, 0, 0) ON CONFLICT ON CONSTRAINT hafsql_balances_history_table_un
+        DO UPDATE SET hive=0, hbd=0, vests=0;`,
+      [accountId, hfNum],
+    )
+  }
+}
+
+// get_impacted_balances doesn't set the effect of balance on steem.dao for this vop
+const consolidateTreasury = async (
+  impactedBalance: ImpactedBalances,
+  trx: Transaction,
+) => {
+  const { asset_symbol_nai, block_num } = impactedBalance
+  const accountId = <number> await getUserId('steem.dao')
+  let amount = new BigDenary(impactedBalance.amount)
+  if (asset_symbol_nai === 13) { // hbd
+    amount = amount.div(1000).mul(-1)
+    if (massiveSync) {
+      fakeTable[accountId].hbd = new BigDenary(fakeTable[accountId].hbd).add(
+        amount,
+      ).toString()
+      fakeTable[accountId].updated = true
+      return
+    }
+    await trx.queryObject(
+      `UPDATE hafsql.balances_table SET hbd = hbd + $1 WHERE account = $2`,
+      [amount.toString(), accountId],
+    )
+  } else if (asset_symbol_nai === 21) { // hive
+    amount = amount.div(1000).mul(-1)
+    if (massiveSync) {
+      fakeTable[accountId].hive = new BigDenary(fakeTable[accountId].hive).add(
+        amount,
+      ).toString()
+      fakeTable[accountId].updated = true
+      return
+    }
+    await trx.queryObject(
+      `UPDATE hafsql.balances_table SET hive = hive + $1 WHERE account = $2`,
+      [amount.toString(), accountId],
+    )
+  } else if (asset_symbol_nai === 37) { // vests
+    amount = amount.div(1000000).mul(-1)
+    if (massiveSync) {
+      fakeTable[accountId].vests = new BigDenary(fakeTable[accountId].vests)
+        .add(amount).toString()
+      fakeTable[accountId].updated = true
+      return
+    }
+    await trx.queryObject(
+      `UPDATE hafsql.balances_table SET vests = vests + $1 WHERE account = $2`,
+      [amount.toString(), accountId],
+    )
+  }
+  await insertHistory(accountId, block_num, amount, asset_symbol_nai, trx)
 }
