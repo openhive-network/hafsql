@@ -15,9 +15,6 @@ const amount = (param: string) => {
 const symbol = (param: string) => {
   return `hafsql.asset_symbol(${param})`
 }
-const to_json = (param: string) => {
-  return `hafsql.to_json(${param})`
-}
 // vests to hive
 const v2h = (param: string, block = '') => {
   if (block !== '') {
@@ -81,8 +78,8 @@ export const setupVirtualOperationViews = async () => {
       ${symbol(param('reward'))} AS symbol,
       ${v2h(amount(param('reward')))} AS reward_hp,
       ${v2h(amount(param('reward')), block('o.id'))} AS reward_historical_hp,
-      ${param('comment_author')} AS comment_author,
-      ${param('comment_permlink')} AS comment_permlink,
+      ${param('author')} AS author,
+      ${param('permlink')} AS permlink,
       ${param('payout_must_be_claimed')} AS payout_must_be_claimed,
       ${block('o.id')} as block_num
     FROM hive.operations o
