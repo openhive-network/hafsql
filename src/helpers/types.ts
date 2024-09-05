@@ -66,6 +66,7 @@ export interface Delegations {
 	delegatee: string
 	vesting_shares: string | number
 	timestamp: string
+	block_num: number
 }
 
 export interface RcCustomJson {
@@ -190,6 +191,7 @@ export interface ImpactedBalances {
 	asset_symbol_nai: number
 	id: bigint
 	block_num: number
+	op_type_id: number
 }
 
 export interface Balances {
@@ -197,4 +199,11 @@ export interface Balances {
 	hive: string
 	hbd: string
 	vests: string
+}
+
+export interface HardforkHive {
+	account: string
+	hbd_transferred: string
+	hive_transferred: string
+	vests_converted: string
 }
