@@ -1,9 +1,10 @@
+import { Transaction } from '../deps.ts'
 import { pool } from '../helpers/database.ts'
 import { getBlockRange } from '../helpers/functions/get_block_range.ts'
 import { print } from '../helpers/functions/print.ts'
 import { sleep } from '../helpers/functions/sleep.ts'
 import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
-import { Delegations } from '../helpers/types.ts'
+import { Delegations, HardforkHive } from '../helpers/types.ts'
 import { createDelegationsIndexes } from '../indexes/hafsql.ts'
 
 let started = false
@@ -52,11 +53,11 @@ export const fillDelegations = async () => {
 const getDelegations = async (blockRange: number[]) => {
   using client = await pool.connect()
   const result = await client.queryObject<Delegations>(
-    `SELECT delegator, delegatee, vesting_shares, timestamp, op_id FROM hafsql.op_delegate_vesting_shares
+    `SELECT delegator, delegatee, vesting_shares, timestamp, op_id, block_num FROM hafsql.op_delegate_vesting_shares
       WHERE op_id >= hafsql.first_op_id_from_block_num($1)
       AND op_id <= hafsql.last_op_id_from_block_num($2)
       UNION ALL
-      SELECT creator AS delegator, new_account_name AS delegatee, delegation_vests AS vesting_shares, timestamp, op_id
+      SELECT creator AS delegator, new_account_name AS delegatee, delegation_vests AS vesting_shares, timestamp, op_id, block_num
       FROM hafsql.op_account_create_with_delegation
       WHERE op_id >= hafsql.first_op_id_from_block_num($1)
       AND op_id <= hafsql.last_op_id_from_block_num($2)
@@ -74,7 +75,12 @@ const insertDelegations = async (
   const trx = client.createTransaction('hafsql_delegations_sync')
   await trx.begin()
   for (let i = 0; i < delegations.length; i++) {
-    const { delegator, delegatee, vesting_shares, timestamp } = delegations[i]
+    const { delegator, delegatee, vesting_shares, timestamp, block_num } =
+      delegations[i]
+    if (block_num === 41818752) {
+      // clear hardfork_hive accounts delegations
+      await clearHiveForkDelegations(trx)
+    }
     if (Number(vesting_shares) === Number(0)) {
       await trx.queryObject(
         `DELETE FROM hafsql.delegations_table
@@ -92,4 +98,18 @@ const insertDelegations = async (
   }
   await updateLastBlockNum('delegations', blockRange[1], trx)
   await trx.commit()
+}
+
+const clearHiveForkDelegations = async (trx: Transaction) => {
+  const result = await trx.queryObject<HardforkHive>(
+    `SELECT account, hbd_transferred, hive_transferred, vests_converted FROM hafsql.vo_hardfork_hive`,
+  )
+  for (let i = 0; i < result.rows.length; i++) {
+    const { account } = result.rows[i]
+    await trx.queryObject(
+      `DELETE FROM hafsql.delegations_table
+        WHERE delegator=$1;`,
+      [account],
+    )
+  }
 }
