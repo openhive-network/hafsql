@@ -23,6 +23,9 @@ export const createCommentsIndexes = async () => {
 	await client.queryObject(
 		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_root_author_root_permlink_idx ON hafsql.comments_table USING btree (root_author, root_permlink);',
 	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_author_id_idx ON hafsql.comments_table USING btree (author, id desc);',
+	)
 }
 
 export const createDelegationsIndexes = async () => {
@@ -64,6 +67,13 @@ export const createBalancesIndexes = async () => {
 	)
 	await client.queryObject(
 		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_vests_idx ON hafsql.balances_table USING btree (vests);',
+	)
+}
+
+export const createFollowsIndexes = async () => {
+	using client = await pool.connect()
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_follows_table_following_idx ON hafsql.follows_table USING btree (following);',
 	)
 }
 
