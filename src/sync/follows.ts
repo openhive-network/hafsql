@@ -10,6 +10,7 @@ import {
 import { getBlockRange } from '../helpers/functions/get_block_range.ts'
 import { getUserId } from '../helpers/functions/get_user_id.ts'
 import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
+import { createFollowsIndexes } from '../indexes/hafsql.ts'
 
 let started = false
 // Run this file in a separate worker thread than the main application
@@ -33,6 +34,7 @@ const syncFollows = async () => {
     // TODO: increase the limit
     await fillFollows()
     print('[Follows] Massive sync done ✅')
+    await createFollowsIndexes()
     print('[Follows] Switched to live sync 🟢')
     await sleep(intervalTime)
   }
