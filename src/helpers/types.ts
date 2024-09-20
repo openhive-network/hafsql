@@ -66,7 +66,6 @@ export interface Delegations {
 	delegatee: string
 	vesting_shares: string | number
 	timestamp: string
-	block_num: number
 }
 
 export interface RcCustomJson {
