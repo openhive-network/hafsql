@@ -182,11 +182,32 @@ export const setupExtraViews = async () => {
     x.voter
     FROM hafsql.proposal_approvals_table x;`)
 
+  // Reputations
+  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.reputations
+  AS SELECT x.account as account_id,
+    a.name as account_name,
+    x.reputation,
+    x.is_implicit,
+    hafsql.parse_reputation(x.reputation) as rep
+    FROM hafsql.reputations_table x
+    JOIN hive.accounts a ON x.account=a.id;`)
+
   // Accounts
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.accounts
   AS SELECT x.id,
     x.name,
-    x.block_num
+    x.block_num,
+    (SELECT ov.timestamp FROM hafsql.op_vote ov WHERE ov.voter = x.name ORDER BY ov.op_id DESC LIMIT 1) AS last_vote_time,
+    (SELECT ct.created FROM hafsql.comments_table ct WHERE ct.author = x.name and ct.parent_author ='' ORDER BY ct.id DESC LIMIT 1) AS last_root_post,
+    (SELECT ct.created FROM hafsql.comments_table ct WHERE ct.author = x.name ORDER BY ct.id DESC LIMIT 1) AS last_post,
+    (SELECT COUNT(1) FROM hafsql.comments_table ct WHERE ct.author = x.name) AS total_posts,
+    (SELECT COUNT(1) FROM hafsql.follows f WHERE f.following_name = x.name) AS followers,
+    (SELECT COUNT(1) FROM hafsql.follows f WHERE f.follower_name = x.name) AS followings,
+    (SELECT r.rep FROM hafsql.reputations r WHERE r.account_name = x.name) AS reputation,
+    (SELECT COALESCE(SUM(d.vests), 0) FROM hafsql.delegations d WHERE d.delegatee = x.name) AS incoming_vests,
+    (SELECT COALESCE(SUM(d.hp_equivalent), 0) FROM hafsql.delegations d WHERE d.delegatee = x.name) AS incoming_hp,
+    (SELECT COALESCE(SUM(d.vests), 0) FROM hafsql.delegations d WHERE d.delegator = x.name) AS outgoing_vests,
+    (SELECT COALESCE(SUM(d.hp_equivalent), 0) FROM hafsql.delegations d WHERE d.delegator = x.name) AS outgoing_hp
     FROM hive.accounts x;`)
 
   // Operations
@@ -215,16 +236,6 @@ export const setupExtraViews = async () => {
     x.block_num,
     x.hardfork_vop_id
     FROM hive.applied_hardforks x;`)
-
-  // Reputations
-  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.reputations
-  AS SELECT x.account as account_id,
-    a.name as account_name,
-    x.reputation,
-    x.is_implicit,
-    hafsql.parse_reputation(x.reputation) as rep
-    FROM hafsql.reputations_table x
-    JOIN hive.accounts a ON x.account=a.id;`)
 
   // Balances
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.balances
