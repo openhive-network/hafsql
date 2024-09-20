@@ -26,11 +26,7 @@ const syncReputations = async () => {
   const intervalTime = 250
   if (firstRun) {
     firstRun = false
-    print('[Reputations] Setting up the table... ⏳')
-    await fillAccounts()
-    await fillFakeTable()
     await fillCache()
-    print('[Reputations] Table setup done ✅')
     await fillReputations()
     print('[Reputations] Massive sync done ✅')
     await createReputationsIndexes()
@@ -42,12 +38,11 @@ const syncReputations = async () => {
   syncReputations()
 }
 
-let firstRunFillAccounts = true
 /**
  * Fill the reputations table with the account ids from hive.accounts
  * And keep adding them on live sync
  */
-const fillAccounts = async () => {
+const prepareTable = async () => {
   using client = await pool.connect()
   const lastAccountQ = await client.queryObject<{ account: number }>(
     `SELECT account FROM hafsql.reputations_table ORDER BY account DESC LIMIT 1`,
@@ -66,10 +61,6 @@ const fillAccounts = async () => {
       [lastAccount],
     )
   }
-  if (firstRunFillAccounts) {
-    firstRunFillAccounts = false
-    setInterval(fillAccounts, 1000)
-  }
 }
 
 let massiveSync = true
@@ -82,6 +73,8 @@ const fillReputations = async () => {
     massiveSync = false
   }
   while (blockRange) {
+    await prepareTable()
+    await fillFakeTable()
     const votes = await getVotes(blockRange)
     await processVotes(votes, blockRange)
     await cleanTheCache(blockRange)
@@ -282,21 +275,10 @@ let fakeTable: {
   is_implicit: boolean
   updated: boolean
 }[] = []
-let firstFakeRun = true
 const fillFakeTable = async () => {
   if (!massiveSync) {
     fakeTable = []
     return
-  }
-  if (firstFakeRun) {
-    const blockRange = await getBlockRange('reputations')
-    if (!blockRange) {
-      return
-    }
-    // don't need to fill cache if not massive sync
-    if (blockRange[1] - blockRange[0] < 49999) {
-      return
-    }
   }
   using client = await pool.connect()
   const lastId = fakeTable.length - 1
@@ -311,10 +293,6 @@ const fillFakeTable = async () => {
       updated: false,
     }
   })
-  if (firstFakeRun) {
-    firstFakeRun = false
-    setInterval(fillFakeTable, 1000)
-  }
 }
 
 // only used during massiveSync
