@@ -148,6 +148,8 @@ export const setupTables = async () => {
       hive numeric(21, 3) NOT NULL DEFAULT 0,
       hbd numeric(21, 3) NOT NULL DEFAULT 0,
       vests numeric(27, 6) NOT NULL DEFAULT 0,
+      hive_savings numeric(21, 3) NOT NULL DEFAULT 0,
+      hbd_savings numeric(21, 3) NOT NULL DEFAULT 0,
       CONSTRAINT hafsql_balances_table_un UNIQUE (account)
     );`,
   )
@@ -160,7 +162,62 @@ export const setupTables = async () => {
       hive numeric(21, 3) NOT NULL DEFAULT 0,
       hbd numeric(21, 3) NOT NULL DEFAULT 0,
       vests numeric(27, 6) NOT NULL DEFAULT 0,
+      hive_savings numeric(21, 3) NOT NULL DEFAULT 0,
+      hbd_savings numeric(21, 3) NOT NULL DEFAULT 0,
       CONSTRAINT hafsql_balances_history_table_un UNIQUE (account, block_num)
+    );`,
+  )
+
+  // Total_balances
+  await client.queryObject(
+    `CREATE TABLE IF NOT EXISTS hafsql.total_balances_table (
+      block_num int4 NOT NULL,
+      hive numeric(21, 3) NOT NULL DEFAULT 0,
+      hbd numeric(21, 3) NOT NULL DEFAULT 0,
+      vests numeric(27, 6) NOT NULL DEFAULT 0,
+      hive_savings numeric(21, 3) NOT NULL DEFAULT 0,
+      hbd_savings numeric(21, 3) NOT NULL DEFAULT 0,
+      CONSTRAINT hafsql_total_balances_table_un UNIQUE (block_num)
+    );`,
+  )
+
+  // Pending saving withdraws
+  await client.queryObject(
+    `CREATE TABLE IF NOT EXISTS hafsql.pending_saving_withdraws_table (
+      "from" int4 NOT NULL,
+      "to" int4 NOT NULL,
+      request_id int4 NOT NULL,
+      amount numeric(21, 3) NOT NULL,
+      symbol varchar NOT NULL,
+      CONSTRAINT hafsql_pending_saving_withdraws_table_un UNIQUE ("from", request_id)
+    );`,
+  )
+
+  // Accounts
+  await client.queryObject(
+    `CREATE TABLE IF NOT EXISTS hafsql.accounts_table (
+      account int4 NOT NULL,
+      creator int4,
+      owner jsonb,
+      active jsonb,
+      posting jsonb,
+      memo_key varchar,
+      json_metadata jsonb,
+      posting_metadata jsonb,
+      created_at timestamp,
+      last_update timestamp,
+      last_owner_update timestamp,
+      recovery int4,
+      reward_hive_balance numeric(21, 3) NOT NULL DEFAULT 0,
+      reward_hbd_balance numeric(21, 3) NOT NULL DEFAULT 0,
+      reward_vests_balance numeric(27, 6) NOT NULL DEFAULT 0,
+      next_vesting_withdrawal timestamp,
+      to_withdraw numeric(27, 6) NOT NULL DEFAULT 0,
+      vesting_withdraw_rate numeric(27, 6) NOT NULL DEFAULT 0,
+      withdrawn numeric(27, 6) NOT NULL DEFAULT 0,
+      withdraw_routes jsonb,
+      proxy int4,
+      CONSTRAINT hafsql_accounts_table_un UNIQUE (account)
     );`,
   )
 
@@ -184,6 +241,7 @@ const setupSyncDataTable = async () => {
     'delete_comments',
     'reputations',
     'balances',
+    'accounts',
   ]
   for (let i = 0; i < tableNames.length; i++) {
     const name = tableNames[i]
