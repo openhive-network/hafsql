@@ -157,7 +157,7 @@ export const setupOperationViews = async () => {
   AS SELECT o.id AS op_id,
     hb.created_at AS "timestamp",
     ${param('owner')} AS "owner",
-    ${param('requestid')} AS "requestid",
+    ${param('requestid')}::int4 AS "requestid",
     ${amount(param('amount'))} AS "amount",
     ${symbol(param('amount'))} AS "symbol",
     ${block('o.id')} AS "block_num",
@@ -251,7 +251,7 @@ export const setupOperationViews = async () => {
     ${param('worker_account')} AS "worker_account",
     ${param('block_id')} AS "block_id",
     ${param('nonce')} AS "nonce",
-    ${param('work')} AS "work",
+    ${param('work')}::jsonb AS "work",
     ${param('props')} AS "props",
     ${block('o.id')} AS "block_num",
     hafsql.get_trx_id(o.id) AS "trx_id"
@@ -325,8 +325,8 @@ export const setupOperationViews = async () => {
     hb.created_at AS "timestamp",
     ${param('from_account')} AS "from_account",
     ${param('to_account')} AS "to_account",
-    ${param('percent')} AS "percent",
-    ${param('auto_vest')} AS "auto_vest",
+    ${param('percent')}::int4 AS "percent",
+    ${param('auto_vest')}::boolean AS "auto_vest",
     ${block('o.id')} AS "block_num",
     hafsql.get_trx_id(o.id) AS "trx_id"
     FROM hive.operations o
@@ -532,7 +532,7 @@ export const setupOperationViews = async () => {
   AS SELECT o.id AS op_id,
     hb.created_at AS "timestamp",
     ${param('from')} AS "from",
-    ${param('request_id')} AS "request_id",
+    ${param('request_id')}::int4 AS "request_id",
     ${param('to')} AS "to",
     ${amount(param('amount'))} AS "amount",
     ${symbol(param('amount'))} AS "symbol",
@@ -549,7 +549,7 @@ export const setupOperationViews = async () => {
   AS SELECT o.id AS op_id,
     hb.created_at AS "timestamp",
     ${param('from')} AS "from",
-    ${param('request_id')} AS "request_id",
+    ${param('request_id')}::int4 AS "request_id",
     ${block('o.id')} AS "block_num",
     hafsql.get_trx_id(o.id) AS "trx_id"
     FROM hive.operations o
@@ -733,7 +733,7 @@ export const setupOperationViews = async () => {
   AS SELECT o.id AS op_id,
     hb.created_at AS "timestamp",
     ${param('owner')} AS "owner",
-    ${param('requestid')} AS "requestid",
+    ${param('requestid')}::int4 AS "requestid",
     ${amount(param('amount'))} AS "amount",
     ${symbol(param('amount'))} AS "symbol",
     ${block('o.id')} AS "block_num",
