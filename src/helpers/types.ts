@@ -193,16 +193,190 @@ export interface ImpactedBalances {
 	op_type_id: number
 }
 
-export interface Balances {
-	account: number
-	hive: string
-	hbd: string
-	vests: string
-}
-
 export interface HardforkHive {
 	account: string
 	hbd_transferred: string
 	hive_transferred: string
 	vests_converted: string
+}
+
+export interface BalancesOnly {
+	hive: string
+	hbd: string
+	vests: string
+	hive_savings: string
+	hbd_savings: string
+}
+
+export interface Balances extends BalancesOnly {
+	account: number
+}
+
+export interface BalancesFakeTable extends BalancesOnly {
+	updated: boolean
+}
+
+export interface TransferToSavings {
+	op_id: bigint
+	from: string
+	to: string
+	amount: string
+	symbol: 'hive' | 'hbd'
+	block_num: number
+}
+
+export interface TransferFromSavings extends TransferToSavings {
+	request_id: number
+}
+
+export interface CancelFromTransfer {
+	op_id: bigint
+	from: string
+	request_id: number
+	block_num: number
+}
+
+export interface FillFromTransfer extends CancelFromTransfer {}
+
+export interface Interests {
+	op_id: bigint
+	owner: string
+	interest: string
+	block_num: number
+}
+
+export interface Savings {
+	type:
+		| 'transfer_to_savings'
+		| 'transfer_from_savings'
+		| 'cancel_transfer_from_savings'
+		| 'fill_transfer_from_savings'
+		| 'interest'
+	op_id: bigint
+	from?: string
+	to?: string
+	amount?: string
+	symbol?: 'hive' | 'hbd'
+	request_id?: number
+	owner?: string
+	interest?: string
+	block_num: number
+}
+
+export interface PendingSavings {
+	amount: string
+	symbol: 'hive' | 'hbd'
+}
+
+export type AllSymbols =
+	| 'hive'
+	| 'hbd'
+	| 'vests'
+	| 'hive_savings'
+	| 'hbd_savings'
+
+export interface AccountCreated {
+	new_account_name: string
+	creator: string
+	timestamp: string
+	block_num: number
+	op_id: bigint
+}
+export interface AccountCreate {
+	new_account_name: string
+	owner: string
+	active: string
+	posting: string
+	memo_key: string
+	json_metadata: string
+	block_num: number
+	op_id: bigint
+}
+export interface AccountUpdate {
+	account: string
+	owner: string
+	active: string
+	posting: string
+	memo_key: string
+	json_metadata: string
+	timestamp: string
+	block_num: number
+	op_id: bigint
+}
+export interface AccountUpdate2 {
+	account: string
+	json_metadata: string
+	posting_json_metadata: string
+	timestamp: string
+	block_num: number
+	op_id: bigint
+}
+export interface WitnessProxy {
+	account: string
+	proxy: string
+	block_num: number
+	op_id: bigint
+}
+export interface ChangedRecovery {
+	account: string
+	new_recovery_account: string
+	timestamp: string
+	block_num: number
+	op_id: bigint
+}
+export interface WithdrawRoute {
+	from_account: string
+	to_account: string
+	percent: number
+	auto_vest: boolean
+	block_num: number
+	op_id: bigint
+}
+export interface RecoverAccount {
+	account_to_recover: string
+	new_owner_authority: string
+	block_num: number
+	op_id: bigint
+}
+export interface Pow {
+	worker_account: string
+	worker: string
+	block_num: number
+	op_id: bigint
+}
+
+export interface AccountsData {
+	new_account_name?: string
+	creator?: string
+	timestamp?: string
+	owner?: string
+	active?: string
+	posting?: string
+	memo_key?: string
+	json_metadata?: string
+	posting_json_metadata?: string
+	proxy?: string
+	account?: string
+	new_recovery_account?: string
+	from_account?: string
+	to_account?: string
+	percent?: number
+	auto_vest?: boolean
+	account_to_recover?: string
+	new_owner_authority?: string
+	worker_account?: string
+	worker?: string
+	block_num: number
+	op_id: bigint
+	type:
+		| 'account_created'
+		| 'account_create'
+		| 'account_update'
+		| 'account_update2'
+		| 'account_witness_proxy'
+		| 'proxy_cleared'
+		| 'changed_recovery_account'
+		| 'set_withdraw_vesting_route'
+		| 'recover_account'
+		| 'pow'
 }
