@@ -1,3 +1,4 @@
+import { PoolClient, Transaction } from '../../deps.ts'
 import { pool } from '../database.ts'
 import { clearUsername } from './validate_username.ts'
 
@@ -10,16 +11,24 @@ const clearCache = () => {
 setInterval(() => clearCache(), 600000)
 
 // Caching ids for duration of the sync
-export const getUserId = async (username: string) => {
+export const getUserId = async (username: string, trx?: Transaction) => {
   username = clearUsername(username)
   if (Object.hasOwn(accountCache, username)) {
     return accountCache[username]
   } else {
-    using client = await pool.connect()
+    let client
+    if (trx) {
+      client = trx
+    } else {
+      client = await pool.connect()
+    }
     const getId = await client.queryObject<{ id: number }>(
       'SELECT a.id FROM hive.accounts a WHERE a.name=$1',
       [username],
     )
+    if (!trx && client instanceof PoolClient) {
+      client.release()
+    }
     if (getId.rows.length < 1) {
       return null
     }
