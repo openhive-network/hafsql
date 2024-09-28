@@ -118,6 +118,7 @@ export const setupVirtualOperationViews = async () => {
   await client.queryObject(VOLiquidityReward)
 
   // +6
+  // deno-fmt-ignore
   const VOInterestOperation =
     `CREATE OR REPLACE VIEW hafsql.vo_interest_operation
     AS SELECT o.id as op_id,
@@ -125,7 +126,7 @@ export const setupVirtualOperationViews = async () => {
       ${param('owner')} AS owner,
       ${amount(param('interest'))} AS interest,
       ${symbol(param('interest'))} AS interest_symbol,
-      ${param('is_saved_into_hbd_balance')} AS is_saved_into_hbd_balance,
+      ${param('is_saved_into_hbd_balance')}::boolean AS is_saved_into_hbd_balance,
       ${block('o.id')} as block_num
     FROM hive.operations o
     JOIN hive.blocks hb ON hb.num = ${block('o.id')}
