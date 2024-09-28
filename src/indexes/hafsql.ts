@@ -68,6 +68,9 @@ export const createBalancesIndexes = async () => {
 	await client.queryObject(
 		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_vests_idx ON hafsql.balances_table USING btree (vests);',
 	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_balances_history_table_vests_idx ON hafsql.balances_history_table USING btree (block_num);',
+	)
 }
 
 export const createFollowsIndexes = async () => {
@@ -75,6 +78,10 @@ export const createFollowsIndexes = async () => {
 	await client.queryObject(
 		'CREATE INDEX IF NOT EXISTS hafsql_follows_table_following_idx ON hafsql.follows_table USING btree (following);',
 	)
+}
+
+export const createAccountsIndexes = async () => {
+	// TODO
 }
 
 export const createHafsqlIndexes = async () => {
