@@ -1,6 +1,7 @@
 import { loadDotEnv } from './deps.ts'
 import { pool } from './helpers/database.ts'
 import { print } from './helpers/functions/print.ts'
+import { sleep } from './helpers/functions/sleep.ts'
 import { SyncData } from './helpers/types.ts'
 import {
 	createHiveIndexes,
@@ -12,12 +13,7 @@ import { setup } from './setup/setup.ts'
 // Load .env and .env.defaults
 await loadDotEnv({ export: true })
 
-// Setup database - create views and tables
-await setup()
-
-// Start indexing
-print('[Main] Start creating indexes... ⏳')
-createHiveIndexes()
+print('[Main] Waiting for HAF to be ready... ⏳')
 
 // index and sync at the same time
 const isSyncing = {
@@ -50,6 +46,10 @@ const main = async () => {
 		// balances
 		createWorker('./sync/balances.ts').postMessage('start')
 		print('[Main] Starting balances worker 👷')
+
+		// accounts
+		createWorker('./sync/accounts.ts').postMessage('start')
+		print('[Accounts] Starting accounts worker 👷')
 	}
 
 	// custom_json id
@@ -95,7 +95,26 @@ const main = async () => {
 	}
 }
 
-setInterval(main, 5000)
+const entryPoint = async () => {
+	using client = await pool.connect()
+	const result = await client.queryObject<{ is_ready: boolean }>(
+		'SELECT hive.is_instance_ready() AS is_ready;',
+	)
+	if (result.rows[0]?.is_ready) {
+		// Setup database - create views and tables
+		await setup()
+		print('[Main] Start creating indexes... ⏳')
+		createHiveIndexes()
+		setInterval(main, 5000)
+		setTimeout(printStats, 60000)
+		setInterval(printStats, 1800000)
+	} else {
+		await sleep(5000)
+		entryPoint()
+	}
+}
+
+entryPoint()
 
 // Log status of the sync every 30min
 const printStats = async () => {
@@ -151,11 +170,6 @@ const printStats = async () => {
 	print('Sync status:')
 	console.table(syncData)
 }
-// 30s
-setTimeout(printStats, 30000)
-
-// 30min
-setInterval(printStats, 1800000)
 
 const format = (num: number) => {
 	return new Intl.NumberFormat().format(num)
