@@ -186,7 +186,7 @@ export const setupTables = async () => {
     `CREATE TABLE IF NOT EXISTS hafsql.pending_saving_withdraws_table (
       "from" int4 NOT NULL,
       "to" int4 NOT NULL,
-      request_id int4 NOT NULL,
+      request_id int8 NOT NULL,
       amount numeric(21, 3) NOT NULL,
       symbol varchar NOT NULL,
       CONSTRAINT hafsql_pending_saving_withdraws_table_un UNIQUE ("from", request_id)
