@@ -136,18 +136,18 @@ export const setupFunctions = async () => {
     'Return trx_id from op_id';`)
 
   // hafsql.to_json(text)
-  // Cast json string into JSONB - return null on invalid json
+  // Cast json string into JSONB - return {} on invalid json
   await client.queryObject(`CREATE OR REPLACE FUNCTION hafsql.to_json(text)
     RETURNS jsonb
     AS $$
     DECLARE
       jsonified jsonb;
     BEGIN
-      SELECT CASE WHEN hafsql.is_json($1) THEN $1::jsonb ELSE NULL END
+      SELECT CASE WHEN hafsql.is_json($1) THEN $1::jsonb ELSE '{}'::jsonb END
         INTO jsonified;
       RETURN jsonified;
     EXCEPTION WHEN OTHERS THEN
-      RETURN NULL;
+      RETURN '{}'::jsonb;
     END
     $$
     LANGUAGE plpgsql
@@ -155,7 +155,7 @@ export const setupFunctions = async () => {
     RETURNS NULL ON NULL INPUT;`)
   await client.queryObject(
     `COMMENT ON FUNCTION hafsql.to_json (text) IS
-    'Cast valid json TEXT into JSONB and return NULL on invalid json string';`,
+    'Cast valid json TEXT into JSONB and return {} on invalid json string';`,
   )
 
   // hafsql.last_op_id_from_block_num(int4)
