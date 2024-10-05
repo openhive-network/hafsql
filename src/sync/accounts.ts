@@ -1,7 +1,7 @@
 // hafsql.op_setwithdraw_vesting_route
 
+import { Transaction } from '../deps.ts'
 import { pool } from '../helpers/database.ts'
-import { cleanJson } from '../helpers/functions/clean_json.ts'
 import { getBlockRange } from '../helpers/functions/get_block_range.ts'
 import { getUserId } from '../helpers/functions/get_user_id.ts'
 import { print } from '../helpers/functions/print.ts'
@@ -13,10 +13,15 @@ import {
   AccountsData,
   AccountUpdate,
   AccountUpdate2,
+  AuthorReward,
   ChangedRecovery,
+  ClaimReward,
+  CurationReward,
+  FillVestingWithdraw,
   Pow,
   RecoverAccount,
   WithdrawRoute,
+  WithdrawVesting,
   WitnessProxy,
 } from '../helpers/types.ts'
 import { createAccountsIndexes } from '../indexes/hafsql.ts'
@@ -76,8 +81,12 @@ const prepareTable = async () => {
   }
 }
 
+let massiveSync = true
 const fillAccounts = async () => {
   let blockRange = await getBlockRange('accounts')
+  if (blockRange && blockRange[1] - blockRange[0] < 49999) {
+    massiveSync = false
+  }
   while (blockRange) {
     await prepareTable()
     const data = await getData(blockRange)
@@ -89,71 +98,117 @@ const fillAccounts = async () => {
 const getData = async (blockRange: number[]) => {
   using client = await pool.connect()
   const accountCreated = await client.queryObject<AccountCreated>(
-    `SELECT new_account_name, creator, timestamp, block_num, op_id FROM hafsql.vo_account_created
+    `SELECT new_account_name, creator, timestamp, op_id FROM hafsql.vo_account_created
       WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY op_id;`,
   )
   const accountCreate = await client.queryObject<AccountCreate>(
-    `SELECT new_account_name, owner, active, posting, memo_key, json_metadata, block_num, op_id FROM hafsql.op_account_create
+    `SELECT new_account_name, owner, active, posting, memo_key, hafsql.to_json(json_metadata) AS json_metadata, op_id FROM hafsql.op_account_create
       WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
     UNION ALL
-      SELECT new_account_name, owner, active, posting, memo_key, json_metadata, block_num, op_id FROM hafsql.op_account_create_with_delegation
+      SELECT new_account_name, owner, active, posting, memo_key, hafsql.to_json(json_metadata) AS json_metadata, op_id FROM hafsql.op_account_create_with_delegation
         WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
         AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
     UNION ALL
-      SELECT new_account_name, owner, active, posting, memo_key, json_metadata, block_num, op_id FROM hafsql.op_create_claimed_account
+      SELECT new_account_name, owner, active, posting, memo_key, hafsql.to_json(json_metadata) AS json_metadata, op_id FROM hafsql.op_create_claimed_account
         WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
         AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
     ORDER BY op_id;`,
   )
   const accountUpdate = await client.queryObject<AccountUpdate>(
-    `SELECT account, owner, active, posting, memo_key, json_metadata, timestamp, block_num, op_id FROM hafsql.op_account_update
+    `SELECT account, owner, active, posting, memo_key, hafsql.to_json(json_metadata) AS json_metadata, timestamp, op_id FROM hafsql.op_account_update
       WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY op_id;`,
   )
   const accountUpdate2 = await client.queryObject<AccountUpdate2>(
-    `SELECT account, json_metadata, posting_json_metadata, timestamp, block_num, op_id FROM hafsql.op_account_update2
+    `SELECT account, hafsql.to_json(json_metadata) AS json_metadata, hafsql.to_json(posting_json_metadata) AS posting_json_metadata,
+      timestamp, op_id FROM hafsql.op_account_update2
       WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY op_id;`,
   )
   const accountWitnessProxy = await client.queryObject<WitnessProxy>(
-    `SELECT account, proxy, block_num, op_id FROM hafsql.op_account_witness_proxy
+    `SELECT account, proxy, op_id FROM hafsql.op_account_witness_proxy
       WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY op_id;`,
   )
   const proxyCleared = await client.queryObject<WitnessProxy>(
-    `SELECT account, proxy, block_num, op_id FROM hafsql.vo_proxy_cleared
+    `SELECT account, proxy, op_id FROM hafsql.vo_proxy_cleared
       WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY op_id;`,
   )
   const changedRecoveryAccount = await client.queryObject<ChangedRecovery>(
-    `SELECT account, new_recovery_account, timestamp, block_num, op_id FROM hafsql.vo_changed_recovery_account
+    `SELECT account, new_recovery_account, timestamp, op_id FROM hafsql.vo_changed_recovery_account
       WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY op_id;`,
   )
   const setWithdrawVestingRoute = await client.queryObject<WithdrawRoute>(
-    `SELECT from_account, to_account, percent, auto_vest, block_num, op_id FROM hafsql.op_setwithdraw_vesting_route
+    `SELECT from_account, to_account, percent, auto_vest, op_id FROM hafsql.op_setwithdraw_vesting_route
       WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY op_id;`,
   )
   const recoverAccount = await client.queryObject<RecoverAccount>(
-    `SELECT account_to_recover, new_owner_authority, block_num, op_id FROM hafsql.op_recover_account
+    `SELECT account_to_recover, new_owner_authority, op_id FROM hafsql.op_recover_account
       WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY op_id;`,
   )
   const pow = await client.queryObject<Pow>(
-    `SELECT worker_account, work ->>'worker' AS worker, block_num, op_id FROM hafsql.op_pow
+    `SELECT worker_account, work ->>'worker' AS worker, op_id FROM hafsql.op_pow
       WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
+      ORDER BY op_id;`,
+  )
+  const authorReward = await client.queryObject<AuthorReward>(
+    `SELECT author AS account, hbd_payout, hive_payout, vesting_payout, op_id FROM hafsql.vo_author_reward
+      WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
+      AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
+      AND payout_must_be_claimed = true
+      UNION ALL
+      SELECT benefactor AS account, hbd_payout, hive_payout, vesting_payout, op_id FROM hafsql.vo_comment_benefactor_reward
+      WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
+      AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
+      AND payout_must_be_claimed = true
+      ORDER BY op_id;`,
+  )
+  const curationReward = await client.queryObject<CurationReward>(
+    `SELECT curator AS account, reward, op_id FROM hafsql.vo_curation_reward
+      WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
+      AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
+      AND payout_must_be_claimed = true
+      ORDER BY op_id;`,
+  )
+  const claimReward = await client.queryObject<ClaimReward>(
+    `SELECT account, reward_hive, reward_hbd, reward_vests, op_id FROM hafsql.op_claim_reward_balance
+      WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
+      AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
+      ORDER BY op_id;`,
+  )
+  // 13 weeks ago = 2620800 blocks ago
+  // process only the last 13 weeks - older withdraws are already done at this point
+  const headBlock = (await client.queryObject<{ block_num: number }>(
+    `SELECT block_num FROM hafsql.blocks ORDER BY block_num DESC LIMIT 1;`,
+  )).rows[0].block_num
+  const weeksAgo13 = (headBlock - 2620800) || 0
+  const withdrawVesting = await client.queryObject<WithdrawVesting>(
+    `SELECT account, vesting_shares, "timestamp", op_id FROM hafsql.op_withdraw_vesting
+      WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
+      AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
+      AND op_id >= hafsql.first_op_id_from_block_num(${weeksAgo13})
+      ORDER BY op_id;`,
+  )
+  const fillVestingWithdraw = await client.queryObject<FillVestingWithdraw>(
+    `SELECT from_account AS account, withdrawn, "timestamp", op_id FROM hafsql.vo_fill_vesting_withdraw
+      WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
+      AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
+      AND op_id >= hafsql.first_op_id_from_block_num(${weeksAgo13})
       ORDER BY op_id;`,
   )
 
@@ -188,6 +243,21 @@ const getData = async (blockRange: number[]) => {
   pow.rows.forEach((element) => {
     data.push({ ...element, type: 'pow' })
   })
+  authorReward.rows.forEach((element) => {
+    data.push({ ...element, type: 'author_reward' })
+  })
+  curationReward.rows.forEach((element) => {
+    data.push({ ...element, type: 'curation_reward' })
+  })
+  claimReward.rows.forEach((element) => {
+    data.push({ ...element, type: 'claim_reward' })
+  })
+  withdrawVesting.rows.forEach((element) => {
+    data.push({ ...element, type: 'withdraw_vesting' })
+  })
+  fillVestingWithdraw.rows.forEach((element) => {
+    data.push({ ...element, type: 'fill_vesting_withdraw' })
+  })
 
   data.sort((a, b) => {
     if (a.op_id > b.op_id) {
@@ -206,165 +276,443 @@ const processData = async (data: AccountsData[], blockRange: number[]) => {
   using client = await pool.connect()
   const trx = client.createTransaction('hafsql_accounts_sync')
   await trx.begin()
-  data.forEach(async (element) => {
+  for (const element of data) {
     const { type } = element
     if (type === 'account_created') {
-      // new_account_name, creator, timestamp
-      const new_account_name = <string> element.new_account_name
-      const creator = <string> element.creator
-      const timestamp = <string> element.timestamp
-      const accountId = await getUserId(new_account_name, trx)
-      const creatorId = await getUserId(creator, trx)
-      await trx.queryObject(
-        `UPDATE hafsql.accounts_table SET creator=$1, recovery=$2, created_at=$3, last_owner_update=$4 WHERE account=$5`,
-        [creatorId, creatorId, timestamp, timestamp, accountId],
-      )
+      await handleAccountCreated(element, trx)
     } else if (type === 'account_create') {
-      // new_account_name, owner, active, posting, memo_key, json_metadata
-      const new_account_name = <string> element.new_account_name
-      const owner = <string> element.owner
-      const active = <string> element.active
-      const posting = <string> element.posting
-      const memo_key = <string> element.memo_key
-      const json_metadata = cleanJson(<string> element.json_metadata)
-      const accountId = await getUserId(new_account_name, trx)
-      await trx.queryObject(
-        `UPDATE hafsql.accounts_table SET owner=$1, active=$2, posting=$3, memo_key=$4, json_metadata=$5 WHERE account=$6`,
-        [owner, active, posting, memo_key, json_metadata, accountId],
-      )
+      await handleAccountCreate(element, trx)
     } else if (type === 'account_update') {
-      // account, owner, active, posting, memo_key, json_metadata, timestamp
-      const account = <string> element.account
-      const owner = <string> element.owner
-      const active = <string> element.active
-      const posting = <string> element.posting
-      const memo_key = <string> element.memo_key
-      const timestamp = <string> element.timestamp
-      const json_metadata = cleanJson(<string> element.json_metadata)
-      const accountId = await getUserId(account, trx)
-      let additional = ''
-      const addParams = []
-      let i = 0
-      const paramsStart = 5
-      if (owner) {
-        additional += `owner=$${paramsStart + i} ,`
-        addParams.push(owner)
-        i++
-        additional += `last_owner_update=$${paramsStart + i} ,`
-        addParams.push(timestamp)
-        i++
-      }
-      if (active) {
-        additional += `active=$${paramsStart + i} ,`
-        addParams.push(active)
-        i++
-      }
-      if (posting) {
-        additional += `posting=$${paramsStart + i} ,`
-        addParams.push(posting)
-      }
-      await trx.queryObject(
-        `UPDATE hafsql.accounts_table SET ${additional} memo_key=$1, json_metadata=$2, last_update=$3 WHERE account=$4`,
-        [memo_key, json_metadata, timestamp, accountId, ...addParams],
-      )
+      await handleAccountUpdate(element, trx)
     } else if (type === 'account_update2') {
-      // account, json_metadata, posting_json_metadata, timestamp
-      const account = <string> element.account
-      const timestamp = <string> element.timestamp
-      const json_metadata = cleanJson(<string> element.json_metadata)
-      const posting_metadata = cleanJson(<string> element.posting_json_metadata)
-      const accountId = await getUserId(account, trx)
-      let additional = ''
-      const addParams = []
-      if (element.json_metadata) {
-        additional += `json_metadata=$4 ,`
-        addParams.push(json_metadata)
-      }
-      await trx.queryObject(
-        `UPDATE hafsql.accounts_table SET ${additional} posting_metadata=$1, last_update=$2 WHERE account=$3`,
-        [posting_metadata, accountId, timestamp, ...addParams],
-      )
+      await handleAccountUpdate2(element, trx)
     } else if (type === 'recover_account') {
-      // account_to_recover, new_owner_authority
-      const account = <string> element.account_to_recover
-      const owner = <string> element.new_owner_authority
-      const accountId = await getUserId(account, trx)
-      await trx.queryObject(
-        `UPDATE hafsql.accounts_table SET owner=$1 WHERE account=$2`,
-        [owner, accountId],
-      )
+      await handleRecoverAccount(element, trx)
     } else if (type === 'changed_recovery_account') {
-      // account, new_recovery_account, timestamp
-      const account = <string> element.account
-      const new_recovery_account = <string> element.new_recovery_account
-      const timestamp = <string> element.timestamp
-      const accountId = await getUserId(account, trx)
-      const recoveryId = await getUserId(new_recovery_account, trx)
-      await trx.queryObject(
-        `UPDATE hafsql.accounts_table SET recovery=$1, last_owner_update=$2 WHERE account=$3`,
-        [recoveryId, timestamp, accountId],
-      )
+      await handleChangedRecovery(element, trx)
     } else if (type === 'set_withdraw_vesting_route') {
-      // from_account, to_account, percent, auto_vest
-      const from_account = <string> element.from_account
-      const to_account = <string> element.to_account
-      const percent = <number> element.percent
-      const auto_vest = <boolean> element.auto_vest
-      const accountId = await getUserId(from_account, trx)
-      if (percent === 0) {
-        // remove
-        await trx.queryObject(
-          `UPDATE hafsql.accounts_table SET withdraw_routes = (SELECT jsonb_agg(value) FROM jsonb_array_elements(withdraw_routes) w WHERE w->>'to_account' != $1)
-            WHERE account=$2`,
-          [to_account, accountId],
-        )
-      } else {
-        const temp = JSON.stringify([{
-          from_account,
-          to_account,
-          percent,
-          auto_vest,
-        }])
-        await trx.queryObject(
-          `UPDATE hafsql.accounts_table SET withdraw_routes = COALESCE(withdraw_routes, '[]'::jsonb) || $1::jsonb
-            WHERE account=$2`,
-          [temp, accountId],
-        )
-      }
+      await handleSetWithdrawRoute(element, trx)
     } else if (type === 'account_witness_proxy') {
-      // account, proxy
-      const account = <string> element.account
-      const proxy = <string> element.proxy
-      const accountId = await getUserId(account, trx)
-      const proxyId = await getUserId(proxy, trx)
-      await trx.queryObject(
-        `UPDATE hafsql.accounts_table SET proxy=$1 WHERE account=$2`,
-        [proxyId, accountId],
-      )
+      await handleWitnessProxy(element, trx)
     } else if (type === 'proxy_cleared') {
-      // account, proxy
-      const account = <string> element.account
-      const accountId = await getUserId(account, trx)
-      await trx.queryObject(
-        `UPDATE hafsql.accounts_table SET proxy=$1 WHERE account=$2`,
-        [null, accountId],
-      )
+      await handleProxyCleared(element, trx)
     } else if (type === 'pow') {
-      // worker_account, worker
-      const account = <string> element.worker_account
-      const key = <string> element.worker
-      const publicKey = JSON.stringify({
-        account_auths: [],
-        key_auths: [[key, 1]],
-        weight_threshold: 1,
-      })
-      const accountId = await getUserId(account, trx)
-      await trx.queryObject(
-        `UPDATE hafsql.accounts_table SET owner=$1, active=$1, posting=$1, memo_key=$2 WHERE account=$3 AND owner IS NULL`,
-        [publicKey, key, accountId],
-      )
+      await handlePow(element, trx)
+    } else if (type === 'author_reward') {
+      await handleAuthorReward(element, trx)
+    } else if (type === 'curation_reward') {
+      await handleCurationReward(element, trx)
+    } else if (type === 'claim_reward') {
+      await handleClaimReward(element, trx)
+    } else if (type === 'withdraw_vesting') {
+      await handleWithdrawVesting(element, trx)
+    } else if (type === 'fill_vesting_withdraw') {
+      await handleFillVestingWithdraw(element, trx)
     }
-  })
+  }
+  if (massiveSync) {
+    await processRewards(trx)
+  }
   await updateLastBlockNum('accounts', blockRange[1], trx)
   await trx.commit()
+}
+
+const rewardsCache: Record<
+  string,
+  { reward_hive: string; reward_hbd: string; reward_vests: string }
+> = {}
+const processRewards = async (trx: Transaction) => {
+  const keys = Object.keys(rewardsCache)
+  for (let i = 0; i < keys.length; i++) {
+    const accountId = keys[i]
+    const { reward_hbd, reward_hive, reward_vests } = rewardsCache[accountId]
+    await trx.queryObject(
+      `UPDATE hafsql.accounts_table SET reward_hive_balance = reward_hive_balance + $1,
+        reward_hbd_balance = reward_hbd_balance + $2, reward_vests_balance = reward_vests_balance + $3
+        WHERE account = $4`,
+      [reward_hive, reward_hbd, reward_vests, accountId],
+    )
+    delete rewardsCache[accountId]
+  }
+}
+
+const handleAccountCreated = async (
+  element: AccountsData,
+  trx: Transaction,
+) => {
+  // new_account_name, creator, timestamp
+  const new_account_name = <string> element.new_account_name
+  const creator = <string> element.creator
+  const timestamp = element.timestamp
+  const accountId = await getUserId(new_account_name, trx)
+  const creatorId = await getUserId(creator, trx)
+  await trx.queryObject(
+    `UPDATE hafsql.accounts_table SET creator=$1, recovery=$2, created_at=$3 WHERE account=$4`,
+    [creatorId, creatorId, timestamp, accountId],
+  )
+}
+
+const handleAccountCreate = async (element: AccountsData, trx: Transaction) => {
+  // new_account_name, owner, active, posting, memo_key, json_metadata
+  const new_account_name = <string> element.new_account_name
+  const owner = element.owner
+  const active = element.active
+  const posting = element.posting
+  const memo_key = element.memo_key
+  // hafsql.to_json should take care of cleaning this json
+  const json_metadata = JSON.stringify(element.json_metadata)
+  const accountId = await getUserId(new_account_name, trx)
+  await trx.queryObject(
+    `UPDATE hafsql.accounts_table SET owner=$1, active=$2, posting=$3, memo_key=$4, json_metadata=$5 WHERE account=$6`,
+    [owner, active, posting, memo_key, json_metadata, accountId],
+  )
+}
+
+const handleAccountUpdate = async (element: AccountsData, trx: Transaction) => {
+  // account, owner, active, posting, memo_key, json_metadata, timestamp
+  const account = <string> element.account
+  const owner = <string> element.owner
+  const active = element.active
+  const posting = element.posting
+  const memo_key = element.memo_key
+  const timestamp = element.timestamp
+  const json_metadata = JSON.stringify(element.json_metadata)
+  const accountId = await getUserId(account, trx)
+  let additional = ''
+  const addParams = []
+  let i = 0
+  const paramsStart = 5
+  if (owner) {
+    additional += `owner=$${paramsStart + i} ,`
+    addParams.push(owner)
+    i++
+    additional += `last_owner_update=$${paramsStart + i} ,`
+    addParams.push(timestamp)
+    i++
+  }
+  if (active) {
+    additional += `active=$${paramsStart + i} ,`
+    addParams.push(active)
+    i++
+  }
+  if (posting) {
+    additional += `posting=$${paramsStart + i} ,`
+    addParams.push(posting)
+  }
+  await trx.queryObject(
+    `UPDATE hafsql.accounts_table SET ${additional} memo_key=$1, json_metadata=$2, last_update=$3 WHERE account=$4`,
+    [memo_key, json_metadata, timestamp, accountId, ...addParams],
+  )
+}
+
+const handleAccountUpdate2 = async (
+  element: AccountsData,
+  trx: Transaction,
+) => {
+  // account, json_metadata, posting_json_metadata, timestamp
+  const account = <string> element.account
+  const timestamp = element.timestamp
+  const json_metadata = JSON.stringify(element.json_metadata)
+  const posting_metadata = JSON.stringify(element.posting_json_metadata)
+  const accountId = await getUserId(account, trx)
+  let additional = ''
+  const addParams = []
+  if (element.json_metadata) {
+    additional += `json_metadata=$4 ,`
+    addParams.push(json_metadata)
+  }
+  await trx.queryObject(
+    `UPDATE hafsql.accounts_table SET ${additional} posting_metadata=$1, last_update=$2 WHERE account=$3`,
+    [posting_metadata, timestamp, accountId, ...addParams],
+  )
+}
+
+const handleRecoverAccount = async (
+  element: AccountsData,
+  trx: Transaction,
+) => {
+  const account = <string> element.account_to_recover
+  const owner = element.new_owner_authority
+  const accountId = await getUserId(account, trx)
+  await trx.queryObject(
+    `UPDATE hafsql.accounts_table SET owner=$1 WHERE account=$2`,
+    [owner, accountId],
+  )
+}
+
+const handleChangedRecovery = async (
+  element: AccountsData,
+  trx: Transaction,
+) => {
+  // account, new_recovery_account, timestamp
+  const account = <string> element.account
+  const new_recovery_account = <string> element.new_recovery_account
+  const timestamp = element.timestamp
+  const accountId = await getUserId(account, trx)
+  const recoveryId = await getUserId(new_recovery_account, trx)
+  await trx.queryObject(
+    `UPDATE hafsql.accounts_table SET recovery=$1, last_owner_update=$2 WHERE account=$3`,
+    [recoveryId, timestamp, accountId],
+  )
+}
+
+const handleSetWithdrawRoute = async (
+  element: AccountsData,
+  trx: Transaction,
+) => {
+  // from_account, to_account, percent, auto_vest
+  const from_account = <string> element.from_account
+  const to_account = element.to_account
+  const percent = element.percent
+  const auto_vest = element.auto_vest
+  const accountId = await getUserId(from_account, trx)
+  if (percent === 0) {
+    // remove
+    await trx.queryObject(
+      `UPDATE hafsql.accounts_table SET withdraw_routes = (SELECT jsonb_agg(value) FROM jsonb_array_elements(withdraw_routes) w WHERE w->>'to_account' != $1)
+            WHERE account=$2`,
+      [to_account, accountId],
+    )
+  } else {
+    const temp = JSON.stringify([{
+      from_account,
+      to_account,
+      percent,
+      auto_vest,
+    }])
+    await trx.queryObject(
+      `UPDATE hafsql.accounts_table SET withdraw_routes = COALESCE(withdraw_routes, '[]'::jsonb) || $1::jsonb
+            WHERE account=$2`,
+      [temp, accountId],
+    )
+  }
+}
+
+const handleWitnessProxy = async (element: AccountsData, trx: Transaction) => {
+  // account, proxy
+  const account = <string> element.account
+  const proxy = <string> element.proxy
+  const accountId = await getUserId(account, trx)
+  const proxyId = await getUserId(proxy, trx)
+  await trx.queryObject(
+    `UPDATE hafsql.accounts_table SET proxy=$1 WHERE account=$2`,
+    [proxyId, accountId],
+  )
+}
+
+const handleProxyCleared = async (element: AccountsData, trx: Transaction) => {
+  // account, proxy
+  const account = <string> element.account
+  const accountId = await getUserId(account, trx)
+  await trx.queryObject(
+    `UPDATE hafsql.accounts_table SET proxy=$1 WHERE account=$2`,
+    [null, accountId],
+  )
+}
+
+const handlePow = async (element: AccountsData, trx: Transaction) => {
+  // worker_account, worker
+  const account = <string> element.worker_account
+  const key = element.worker
+  const publicKey = JSON.stringify({
+    account_auths: [],
+    key_auths: [[key, 1]],
+    weight_threshold: 1,
+  })
+  const accountId = await getUserId(account, trx)
+  await trx.queryObject(
+    `UPDATE hafsql.accounts_table SET owner=$1, active=$1, posting=$1, memo_key=$2 WHERE account=$3 AND owner IS NULL`,
+    [publicKey, key, accountId],
+  )
+}
+
+const handleAuthorReward = async (element: AccountsData, trx: Transaction) => {
+  // account, hbd_payout, hive_payout, vesting_payout
+  const account = <string> element.account
+  const hbd_payout = <string> element.hbd_payout
+  const hive_payout = <string> element.hive_payout
+  const vesting_payout = <string> element.vesting_payout
+  const accountId = <number> await getUserId(account, trx)
+  if (accountId < 4) {
+    return
+  }
+  if (massiveSync) {
+    if (!Object.hasOwn(rewardsCache, accountId)) {
+      rewardsCache[accountId] = {
+        reward_hbd: hbd_payout,
+        reward_hive: hive_payout,
+        reward_vests: vesting_payout,
+      }
+    } else {
+      // Number should be fine unless proven otherwise
+      if (Number(hbd_payout) !== 0) {
+        rewardsCache[accountId].reward_hbd =
+          (Number(rewardsCache[accountId].reward_hbd) + Number(hbd_payout))
+            .toString()
+      }
+      if (Number(hive_payout) !== 0) {
+        rewardsCache[accountId].reward_hive =
+          (Number(rewardsCache[accountId].reward_hive) +
+            Number(hive_payout))
+            .toString()
+      }
+      if (Number(vesting_payout) !== 0) {
+        rewardsCache[accountId].reward_vests =
+          (Number(rewardsCache[accountId].reward_vests) +
+            Number(vesting_payout))
+            .toString()
+      }
+    }
+  } else {
+    await trx.queryObject(
+      `UPDATE hafsql.accounts_table SET reward_hive_balance = reward_hive_balance + $1,
+        reward_hbd_balance = reward_hbd_balance + $2, reward_vests_balance = reward_vests_balance + $3
+        WHERE account = $4`,
+      [hive_payout, hbd_payout, vesting_payout, accountId],
+    )
+  }
+}
+
+const handleCurationReward = async (
+  element: AccountsData,
+  trx: Transaction,
+) => {
+  // account, reward
+  const account = <string> element.account
+  const reward = <string> element.reward
+  const accountId = <number> await getUserId(account, trx)
+  if (accountId < 4) {
+    return
+  }
+  if (massiveSync) {
+    if (!Object.hasOwn(rewardsCache, accountId)) {
+      rewardsCache[accountId] = {
+        reward_hbd: '0',
+        reward_hive: '0',
+        reward_vests: reward,
+      }
+    } else {
+      rewardsCache[accountId].reward_vests =
+        (Number(rewardsCache[accountId].reward_vests) + Number(reward))
+          .toString()
+    }
+  } else {
+    await trx.queryObject(
+      `UPDATE hafsql.accounts_table SET reward_vests_balance = reward_vests_balance + $1
+        WHERE account = $2`,
+      [reward, accountId],
+    )
+  }
+}
+
+const handleClaimReward = async (element: AccountsData, trx: Transaction) => {
+  // account, reward_hive, reward_hbd, reward_vests
+  const account = <string> element.account
+  const reward_hive = <string> element.reward_hive
+  const reward_hbd = <string> element.reward_hbd
+  const reward_vests = <string> element.reward_vests
+  const accountId = <number> await getUserId(account, trx)
+  if (accountId < 4) {
+    return
+  }
+  if (massiveSync) {
+    if (!Object.hasOwn(rewardsCache, accountId)) {
+      rewardsCache[accountId] = {
+        reward_hbd: `-${reward_hbd}`,
+        reward_hive: `-${reward_hive}`,
+        reward_vests: `-${reward_vests}`,
+      }
+    } else {
+      if (Number(reward_hive) !== 0) {
+        rewardsCache[accountId].reward_hive =
+          (Number(rewardsCache[accountId].reward_hive) -
+            Number(reward_hive))
+            .toString()
+      }
+      if (Number(reward_hbd) !== 0) {
+        rewardsCache[accountId].reward_hbd =
+          (Number(rewardsCache[accountId].reward_hbd) - Number(reward_hbd))
+            .toString()
+      }
+      if (Number(reward_vests) !== 0) {
+        rewardsCache[accountId].reward_vests =
+          (Number(rewardsCache[accountId].reward_vests) -
+            Number(reward_vests))
+            .toString()
+      }
+    }
+  } else {
+    await trx.queryObject(
+      `UPDATE hafsql.accounts_table SET reward_hive_balance = reward_hive_balance - $1,
+            reward_hbd_balance = reward_hbd_balance - $2, reward_vests_balance = reward_vests_balance - $3
+            WHERE account = $4`,
+      [reward_hive, reward_hbd, reward_vests, accountId],
+    )
+  }
+}
+
+const handleWithdrawVesting = async (
+  element: AccountsData,
+  trx: Transaction,
+) => {
+  // account, vesting_shares, timestamp
+  const account = <string> element.account
+  const vesting_shares = element.vesting_shares
+  const timestamp = <string> element.timestamp
+  const accountId = await getUserId(account)
+  if (Number(vesting_shares) === 0) {
+    await trx.queryObject(
+      `UPDATE hafsql.accounts_table SET to_withdraw=$1, vesting_withdraw_rate=$1, withdrawn=$1, next_vesting_withdrawal=$2
+        WHERE account=$3`,
+      [0, null, accountId],
+    )
+    return
+  }
+  // 1 week - 3 seconds
+  // because the actual timestamp of operations is -3 of the blocks
+  const withdrawalInterval = 604797000
+  const nextWithdrawal = new Date(
+    new Date(timestamp + 'Z').getTime() + withdrawalInterval,
+  ).toISOString()
+  await trx.queryObject(
+    `UPDATE hafsql.accounts_table SET to_withdraw=$1, vesting_withdraw_rate=$2::numeric/13, next_vesting_withdrawal=$3
+      WHERE account = $4`,
+    [vesting_shares, vesting_shares, nextWithdrawal, accountId],
+  )
+}
+
+const handleFillVestingWithdraw = async (
+  element: AccountsData,
+  trx: Transaction,
+) => {
+  // account, withdrawn, "timestamp"
+  const account = <string> element.account
+  const withdrawn = element.withdrawn
+  const timestamp = <string> element.timestamp
+  const accountId = await getUserId(account)
+  const isLastOne = (await trx.queryObject<{ is_last: boolean }>(
+    `SELECT to_withdraw - $1::numeric <= 0 AS is_last FROM hafsql.accounts_table WHERE account = $2`,
+    [withdrawn, accountId],
+  )).rows[0].is_last
+  if (isLastOne) {
+    await trx.queryObject(
+      `UPDATE hafsql.accounts_table SET to_withdraw=$1, vesting_withdraw_rate=$1, withdrawn=$1, next_vesting_withdrawal=$2
+        WHERE account=$3`,
+      [0, null, accountId],
+    )
+    return
+  }
+  const withdrawalInterval = 604797000
+  const nextWithdrawal = new Date(
+    new Date(timestamp + 'Z').getTime() + withdrawalInterval,
+  ).toISOString()
+  await trx.queryObject(
+    `UPDATE hafsql.accounts_table SET
+      to_withdraw = to_withdraw - $1,
+      vesting_withdraw_rate = LEAST(to_withdraw - $1, vesting_withdraw_rate),
+      next_vesting_withdrawal = $2,
+      withdrawn = withdrawn + $1
+      WHERE account = $3`,
+    [withdrawn, nextWithdrawal, accountId],
+  )
 }
