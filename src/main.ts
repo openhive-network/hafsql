@@ -13,8 +13,6 @@ import { setup } from './setup/setup.ts'
 // Load .env and .env.defaults
 await loadDotEnv({ export: true })
 
-print('[Main] Waiting for HAF to be ready... ⏳')
-
 // index and sync at the same time
 const isSyncing = {
 	one: false,
@@ -95,6 +93,7 @@ const main = async () => {
 	}
 }
 
+let once = false
 const entryPoint = async () => {
 	using client = await pool.connect()
 	const result = await client.queryObject<{ is_ready: boolean }>(
@@ -109,6 +108,10 @@ const entryPoint = async () => {
 		setTimeout(printStats, 60000)
 		setInterval(printStats, 1800000)
 	} else {
+		if (!once) {
+			print('[Main] Waiting for HAF to be ready... ⏳')
+			once = true
+		}
 		await sleep(5000)
 		entryPoint()
 	}
