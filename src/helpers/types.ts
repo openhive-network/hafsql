@@ -122,7 +122,7 @@ export interface ExpiredAccount {
 }
 
 export interface ApprovalsAndExpired {
-	type: string
+	type: 'approval' | 'expired'
 	op_id: bigint
 	voter?: string
 	proposal_ids?: number[]
@@ -226,13 +226,13 @@ export interface TransferToSavings {
 }
 
 export interface TransferFromSavings extends TransferToSavings {
-	request_id: number
+	request_id: bigint
 }
 
 export interface CancelFromTransfer {
 	op_id: bigint
 	from: string
-	request_id: number
+	request_id: bigint
 	block_num: number
 }
 
@@ -257,7 +257,7 @@ export interface Savings {
 	to?: string
 	amount?: string
 	symbol?: 'hive' | 'hbd'
-	request_id?: number
+	request_id?: bigint
 	owner?: string
 	interest?: string
 	block_num: number
@@ -279,7 +279,6 @@ export interface AccountCreated {
 	new_account_name: string
 	creator: string
 	timestamp: string
-	block_num: number
 	op_id: bigint
 }
 export interface AccountCreate {
@@ -288,8 +287,7 @@ export interface AccountCreate {
 	active: string
 	posting: string
 	memo_key: string
-	json_metadata: string
-	block_num: number
+	json_metadata: object
 	op_id: bigint
 }
 export interface AccountUpdate {
@@ -298,30 +296,26 @@ export interface AccountUpdate {
 	active: string
 	posting: string
 	memo_key: string
-	json_metadata: string
+	json_metadata: object
 	timestamp: string
-	block_num: number
 	op_id: bigint
 }
 export interface AccountUpdate2 {
 	account: string
-	json_metadata: string
-	posting_json_metadata: string
+	json_metadata: object
+	posting_json_metadata: object
 	timestamp: string
-	block_num: number
 	op_id: bigint
 }
 export interface WitnessProxy {
 	account: string
 	proxy: string
-	block_num: number
 	op_id: bigint
 }
 export interface ChangedRecovery {
 	account: string
 	new_recovery_account: string
 	timestamp: string
-	block_num: number
 	op_id: bigint
 }
 export interface WithdrawRoute {
@@ -329,19 +323,47 @@ export interface WithdrawRoute {
 	to_account: string
 	percent: number
 	auto_vest: boolean
-	block_num: number
 	op_id: bigint
 }
 export interface RecoverAccount {
 	account_to_recover: string
 	new_owner_authority: string
-	block_num: number
 	op_id: bigint
 }
 export interface Pow {
 	worker_account: string
 	worker: string
-	block_num: number
+	op_id: bigint
+}
+export interface AuthorReward {
+	account: string
+	hbd_payout: string
+	hive_payout: string
+	vesting_payout: string
+	op_id: bigint
+}
+export interface CurationReward {
+	account: string
+	reward: string
+	op_id: bigint
+}
+export interface ClaimReward {
+	account: string
+	reward_hive: string
+	reward_hbd: string
+	reward_vests: string
+	op_id: bigint
+}
+export interface WithdrawVesting {
+	account: string
+	vesting_shares: string
+	timestamp: string
+	op_id: bigint
+}
+export interface FillVestingWithdraw {
+	account: string
+	withdrawn: string
+	timestamp: string
 	op_id: bigint
 }
 
@@ -353,8 +375,8 @@ export interface AccountsData {
 	active?: string
 	posting?: string
 	memo_key?: string
-	json_metadata?: string
-	posting_json_metadata?: string
+	json_metadata?: object
+	posting_json_metadata?: object
 	proxy?: string
 	account?: string
 	new_recovery_account?: string
@@ -366,7 +388,15 @@ export interface AccountsData {
 	new_owner_authority?: string
 	worker_account?: string
 	worker?: string
-	block_num: number
+	hbd_payout?: string
+	hive_payout?: string
+	vesting_payout?: string
+	reward?: string
+	reward_hive?: string
+	reward_hbd?: string
+	reward_vests?: string
+	vesting_shares?: string
+	withdrawn?: string
 	op_id: bigint
 	type:
 		| 'account_created'
@@ -379,4 +409,9 @@ export interface AccountsData {
 		| 'set_withdraw_vesting_route'
 		| 'recover_account'
 		| 'pow'
+		| 'author_reward'
+		| 'curation_reward'
+		| 'claim_reward'
+		| 'withdraw_vesting'
+		| 'fill_vesting_withdraw'
 }
