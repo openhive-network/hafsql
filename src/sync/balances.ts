@@ -90,7 +90,6 @@ const fillBalances = async () => {
     await fillFakeTable()
     const data = await getData(blockRange)
     await processData(data, blockRange)
-    await processFakeTable(blockRange)
     blockRange = await getBlockRange('balances')
   }
 }
@@ -204,13 +203,21 @@ const processData = async (
   if (massiveSync) {
     await processHistory(trx)
     await processTotalBalances(trx)
+    await processFakeTable(trx)
   }
-  if (!massiveSync) {
-    // this is done in processFakeTables during massive sync
-    await updateLastBlockNum('balances', blockRange[1], trx)
-  }
+  await updateLastBlockNum('balances', blockRange[1], trx)
   await trx.commit()
   client.release()
+
+  if (massiveSync) {
+    // If the above transaction fails and rolls back we can't rollback faketables
+    // so we have to do this after making sure the transaction is committed
+    for (let i = 0; i < fakeTable.length; i++) {
+      if (fakeTable[i].updated) {
+        fakeTable[i].updated = false
+      }
+    }
+  }
 }
 
 const handleNormalBalances = async (
@@ -279,9 +286,9 @@ const handleNormalBalances = async (
         symbol = 'hive'
         break
     }
-    if (impactsTotalBalances(op_type_id)) {
-      await totalBalances(block_num, amount.toString(), symbol, trx)
-    }
+    // if (impactsTotalBalances(op_type_id)) {
+    await totalBalances(block_num, amount.toString(), symbol, trx)
+    // }
     await insertHistory(accountId, block_num, trx)
   }
 }
@@ -318,123 +325,18 @@ const impactsTotalBalances = (op_type_id: number) => {
 
 const handleSavings = async (savings: Savings[], trx: Transaction) => {
   for (let i = 0; i < savings.length; i++) {
-    const { type, block_num } = savings[i]
+    const item = savings[i]
+    const { type, block_num } = item
     if (type === 'transfer_to_savings') {
-      // Add to the savings balance of the "to" account
-      const to = <string> savings[i].to
-      const amount = <string> savings[i].amount
-      const symbol = <'hive' | 'hbd'> savings[i].symbol
-      const toId = <number> await getUserId(to, trx)
-      if (massiveSync) {
-        if (symbol === 'hive') {
-          fakeTable[toId].hive_savings = new BigDenary(
-            fakeTable[toId].hive_savings,
-          ).add(amount).toString()
-        } else {
-          fakeTable[toId].hbd_savings = new BigDenary(
-            fakeTable[toId].hbd_savings,
-          ).add(amount).toString()
-        }
-        fakeTable[toId].updated = true
-      } else {
-        await trx.queryObject(
-          `UPDATE hafsql.balances_table SET ${symbol}_savings = ${symbol}_savings + $1 WHERE account = $2`,
-          [amount, toId],
-        )
-      }
-      await totalBalances(block_num, amount, `${symbol}_savings`, trx)
-      await insertHistory(toId, block_num, trx)
+      await handleTransferToSavings(item, trx, block_num)
     } else if (type === 'transfer_from_savings') {
-      // Deduct from the savings balance of the "from" account
-      const from = <string> savings[i].from
-      const to = <string> savings[i].to
-      const amount = <string> savings[i].amount
-      const symbol = <'hive' | 'hbd'> savings[i].symbol
-      const request_id = <number> savings[i].request_id
-      const fromId = <number> await getUserId(from, trx)
-      const toId = <number> await getUserId(to, trx)
-      if (massiveSync) {
-        if (symbol === 'hive') {
-          fakeTable[fromId].hive_savings = new BigDenary(
-            fakeTable[fromId].hive_savings,
-          ).minus(amount).toString()
-        } else {
-          fakeTable[fromId].hbd_savings = new BigDenary(
-            fakeTable[fromId].hbd_savings,
-          ).minus(amount).toString()
-        }
-      } else {
-        await trx.queryObject(
-          `UPDATE hafsql.balances_table SET ${symbol}_savings = ${symbol}_savings - $1 WHERE account = $2`,
-          [amount, fromId],
-        )
-      }
-      // insert pending savings - shouldn't be that many rows to make things too slow
-      // if slow, have to bulk insert
-      await trx.queryObject(
-        `INSERT INTO hafsql.pending_saving_withdraws_table ("from", "to", request_id, amount, symbol) VALUES ($1, $2, $3, $4, $5)`,
-        [fromId, toId, request_id, amount, symbol],
-      )
-      await totalBalances(block_num, '-' + amount, `${symbol}_savings`, trx)
-      await insertHistory(fromId, block_num, trx)
+      await handleTransferFromSavings(item, trx, block_num)
     } else if (type === 'cancel_transfer_from_savings') {
-      // Add back to the savings balance of the "from" account
-      const from = <string> savings[i].from
-      const request_id = <number> savings[i].request_id
-      const fromId = <number> await getUserId(from, trx)
-      const pendingQ = await trx.queryObject<PendingSavings>(
-        `SELECT amount, symbol FROM hafsql.pending_saving_withdraws_table WHERE from=$1 AND request_id=$2`,
-        [fromId, request_id],
-      )
-      if (pendingQ.rows.length < 1) {
-        continue
-      }
-      const { amount, symbol } = pendingQ.rows[0]
-      if (massiveSync) {
-        if (symbol === 'hive') {
-          fakeTable[fromId].hive_savings = new BigDenary(
-            fakeTable[fromId].hive_savings,
-          ).add(amount).toString()
-        } else {
-          fakeTable[fromId].hbd_savings = new BigDenary(
-            fakeTable[fromId].hbd_savings,
-          ).add(amount).toString()
-        }
-      } else {
-        await trx.queryObject(
-          `UPDATE hafsql.balances_table SET ${symbol}_savings = ${symbol}_savings + $1 WHERE account = $2`,
-          [amount, fromId],
-        )
-      }
-      await totalBalances(block_num, '-' + amount, `${symbol}_savings`, trx)
-      await insertHistory(fromId, block_num, trx)
+      await handleCancelTransferFromSavings(item, trx, block_num)
     } else if (type === 'fill_transfer_from_savings') {
-      // Remove the entry from the pendings table
-      const from = <string> savings[i].from
-      const request_id = <number> savings[i].request_id
-      const fromId = <number> await getUserId(from, trx)
-      await trx.queryObject(
-        `DELETE FROM hafsql.pending_saving_withdraws_table WHERE from=$1 AND request_id=$2`,
-        [fromId, request_id],
-      )
+      await handleFillTransferFromSavings(item, trx)
     } else if (type === 'interest') {
-      // Add interest into the hbd_savings balance of the "owner" account
-      // Includes only the interest added to the hbd_savings balance
-      const owner = <string> savings[i].owner
-      const interest = <string> savings[i].interest
-      const ownerId = <number> await getUserId(owner, trx)
-      if (massiveSync) {
-        fakeTable[ownerId].hbd_savings = new BigDenary(
-          fakeTable[ownerId].hbd_savings,
-        ).add(interest).toString()
-      } else {
-        await trx.queryObject(
-          `UPDATE hafsql.balances_table SET hbd_savings = hbd_savings + $1 WHERE account = $2`,
-          [interest.toString(), ownerId],
-        )
-      }
-      await totalBalances(block_num, interest, `hbd_savings`, trx)
-      await insertHistory(ownerId, block_num, trx)
+      await handleInterest(item, trx, block_num)
     }
   }
 }
@@ -627,13 +529,7 @@ const getBalance = async (account: number, trx: Transaction) => {
 }
 
 // only used during massiveSync
-const processFakeTable = async (blockRange: number[]) => {
-  if (!massiveSync) {
-    return
-  }
-  using client = await pool.connect()
-  const trx = client.createTransaction('hafsql_balances_sync')
-  await trx.begin()
+const processFakeTable = async (trx: Transaction) => {
   for (let i = 0; i < fakeTable.length; i++) {
     if (!fakeTable[i].updated) {
       continue
@@ -645,16 +541,6 @@ const processFakeTable = async (blockRange: number[]) => {
         WHERE account=$6`,
       [hive, hbd, vests, hive_savings, hbd_savings, account],
     )
-  }
-  await updateLastBlockNum('balances', blockRange[1], trx)
-  await trx.commit()
-
-  // If the above transaction fails and rolls back we can't rollback faketables
-  // so we have to do this after making sure the transaction is committed
-  for (let i = 0; i < fakeTable.length; i++) {
-    if (fakeTable[i].updated) {
-      fakeTable[i].updated = false
-    }
   }
 }
 
@@ -693,7 +579,13 @@ const clearHiveForkBalances = async (trx: Transaction) => {
   for (let i = 0; i < result.rows.length; i++) {
     const { account } = result.rows[i]
     const accountId = <number> await getUserId(account, trx)
+    const balances = await getBalance(accountId, trx)
     const hfNum = 41818752
+    await totalBalances(hfNum, '-' + balances.hbd, 'hbd', trx)
+    await totalBalances(hfNum, '-' + balances.hive, 'hive', trx)
+    await totalBalances(hfNum, '-' + balances.vests, 'vests', trx)
+    await totalBalances(hfNum, '-' + balances.hbd_savings, 'hbd_savings', trx)
+    await totalBalances(hfNum, '-' + balances.hive_savings, 'hive_savings', trx)
     if (massiveSync) {
       fakeTable[accountId].hive = '0'
       fakeTable[accountId].hbd = '0'
@@ -731,4 +623,153 @@ const consolidateTreasury = async (block_num: number, trx: Transaction) => {
     )
   }
   await insertHistory(accountId, block_num, trx)
+}
+
+const handleTransferToSavings = async (
+  item: Savings,
+  trx: Transaction,
+  block_num: number,
+) => {
+  // Add to the savings balance of the "to" account
+  const to = <string> item.to
+  const amount = <string> item.amount
+  const symbol = <'hive' | 'hbd'> item.symbol?.toLowerCase()
+  const toId = <number> await getUserId(to, trx)
+  if (massiveSync) {
+    if (symbol === 'hive') {
+      fakeTable[toId].hive_savings = new BigDenary(
+        fakeTable[toId].hive_savings,
+      ).add(amount).toString()
+    } else {
+      fakeTable[toId].hbd_savings = new BigDenary(
+        fakeTable[toId].hbd_savings,
+      ).add(amount).toString()
+    }
+    fakeTable[toId].updated = true
+  } else {
+    await trx.queryObject(
+      `UPDATE hafsql.balances_table SET ${symbol}_savings = ${symbol}_savings + $1 WHERE account = $2`,
+      [amount, toId],
+    )
+  }
+  await totalBalances(block_num, amount, `${symbol}_savings`, trx)
+  await insertHistory(toId, block_num, trx)
+}
+
+const handleTransferFromSavings = async (
+  item: Savings,
+  trx: Transaction,
+  block_num: number,
+) => {
+  // Deduct from the savings balance of the "from" account
+  const from = <string> item.from
+  const to = <string> item.to
+  const amount = <string> item.amount
+  const symbol = <'hive' | 'hbd'> item.symbol?.toLowerCase()
+  const request_id = item.request_id
+  const fromId = <number> await getUserId(from, trx)
+  const toId = <number> await getUserId(to, trx)
+  if (massiveSync) {
+    if (symbol === 'hive') {
+      fakeTable[fromId].hive_savings = new BigDenary(
+        fakeTable[fromId].hive_savings,
+      ).minus(amount).toString()
+    } else {
+      fakeTable[fromId].hbd_savings = new BigDenary(
+        fakeTable[fromId].hbd_savings,
+      ).minus(amount).toString()
+    }
+  } else {
+    await trx.queryObject(
+      `UPDATE hafsql.balances_table SET ${symbol}_savings = ${symbol}_savings - $1 WHERE account = $2`,
+      [amount, fromId],
+    )
+  }
+  // insert pending savings - shouldn't be that many rows to make things too slow
+  // if slow, have to bulk insert
+  await trx.queryObject(
+    `INSERT INTO hafsql.pending_saving_withdraws_table ("from", "to", request_id, amount, symbol) VALUES ($1, $2, $3, $4, $5)`,
+    [fromId, toId, request_id, amount, symbol],
+  )
+  await totalBalances(block_num, '-' + amount, `${symbol}_savings`, trx)
+  await insertHistory(fromId, block_num, trx)
+}
+
+const handleCancelTransferFromSavings = async (
+  item: Savings,
+  trx: Transaction,
+  block_num: number,
+) => {
+  // Add back to the savings balance of the "from" account
+  const from = <string> item.from
+  const request_id = item.request_id
+  const fromId = <number> await getUserId(from, trx)
+  const pendingQ = await trx.queryObject<PendingSavings>(
+    `SELECT amount, symbol FROM hafsql.pending_saving_withdraws_table WHERE "from"=$1 AND request_id=$2`,
+    [fromId, request_id],
+  )
+  if (pendingQ.rows.length < 1) {
+    return
+  }
+  const { amount, symbol } = pendingQ.rows[0]
+  if (massiveSync) {
+    if (symbol === 'hive') {
+      fakeTable[fromId].hive_savings = new BigDenary(
+        fakeTable[fromId].hive_savings,
+      ).add(amount).toString()
+    } else {
+      fakeTable[fromId].hbd_savings = new BigDenary(
+        fakeTable[fromId].hbd_savings,
+      ).add(amount).toString()
+    }
+  } else {
+    await trx.queryObject(
+      `UPDATE hafsql.balances_table SET ${symbol}_savings = ${symbol}_savings + $1 WHERE account = $2`,
+      [amount, fromId],
+    )
+  }
+  await trx.queryObject(
+    `DELETE FROM hafsql.pending_saving_withdraws_table WHERE "from"=$1 AND request_id=$2`,
+    [fromId, request_id],
+  )
+  await totalBalances(block_num, '-' + amount, `${symbol}_savings`, trx)
+  await insertHistory(fromId, block_num, trx)
+}
+
+const handleFillTransferFromSavings = async (
+  item: Savings,
+  trx: Transaction,
+) => {
+  // Remove the entry from the pendings table
+  const from = <string> item.from
+  const request_id = item.request_id
+  const fromId = await getUserId(from, trx)
+  await trx.queryObject(
+    `DELETE FROM hafsql.pending_saving_withdraws_table WHERE "from"=$1 AND request_id=$2`,
+    [fromId, request_id],
+  )
+}
+
+const handleInterest = async (
+  item: Savings,
+  trx: Transaction,
+  block_num: number,
+) => {
+  // Add interest into the hbd_savings balance of the "owner" account
+  // Includes only the interest added to the hbd_savings balance
+  const owner = <string> item.owner
+  const interest = <string> item.interest
+  const ownerId = <number> await getUserId(owner, trx)
+  if (massiveSync) {
+    fakeTable[ownerId].hbd_savings = new BigDenary(
+      fakeTable[ownerId].hbd_savings,
+    ).add(interest).toString()
+  } else {
+    await trx.queryObject(
+      `UPDATE hafsql.balances_table SET hbd_savings = hbd_savings + $1 WHERE account = $2`,
+      [interest.toString(), ownerId],
+    )
+  }
+  await totalBalances(block_num, interest, `hbd_savings`, trx)
+  await insertHistory(ownerId, block_num, trx)
 }
