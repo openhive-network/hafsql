@@ -6,5 +6,5 @@ export const cleanString = (input: string) => {
       output += input.charAt(i)
     }
   }
-  return output
+  return output.replace(/u0000/g, '')
 }
