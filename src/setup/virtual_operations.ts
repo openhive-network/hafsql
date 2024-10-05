@@ -62,7 +62,7 @@ export const setupVirtualOperationViews = async () => {
       ${amount(param('curators_vesting_payout'))} AS curators_vesting_payout,
       ${v2h(amount(param('curators_vesting_payout')))} AS curators_vesting_payout_hp,
       ${v2h(amount(param('curators_vesting_payout')), block('o.id'))} AS curators_vesting_payout_historical_hp,
-      ${param('payout_must_be_claimed')} payout_must_be_claimed,
+      ${param('payout_must_be_claimed')}::boolean AS payout_must_be_claimed,
       ${block('o.id')} as block_num
     FROM hive.operations o
     JOIN hive.blocks hb ON hb.num = ${block('o.id')}
@@ -80,7 +80,7 @@ export const setupVirtualOperationViews = async () => {
       ${v2h(amount(param('reward')), block('o.id'))} AS reward_historical_hp,
       ${param('author')} AS author,
       ${param('permlink')} AS permlink,
-      ${param('payout_must_be_claimed')} AS payout_must_be_claimed,
+      ${param('payout_must_be_claimed')}::boolean AS payout_must_be_claimed,
       ${block('o.id')} as block_num
     FROM hive.operations o
     JOIN hive.blocks hb ON hb.num = ${block('o.id')}
@@ -251,7 +251,7 @@ export const setupVirtualOperationViews = async () => {
       ${amount(param('vesting_payout'))} AS vesting_payout,
       ${v2h(amount(param('vesting_payout')))} AS vesting_payout_hp,
       ${v2h(amount(param('vesting_payout')), block('o.id'))} AS vesting_payout_historical_hp,
-      ${param('payout_must_be_claimed')} AS payout_must_be_claimed,
+      ${param('payout_must_be_claimed')}::boolean AS payout_must_be_claimed,
       ${block('o.id')} as block_num
     FROM hive.operations o
     JOIN hive.blocks hb ON hb.num = ${block('o.id')}
