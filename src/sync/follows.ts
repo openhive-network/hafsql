@@ -59,8 +59,7 @@ const getFollows = async (blockRange: number[]) => {
     `SELECT op_id, json, required_posting_auths FROM hafsql.op_custom_json
       WHERE id=$1 AND op_id >= hafsql.first_op_id_from_block_num($2)
       AND op_id <= hafsql.last_op_id_from_block_num($3)
-      AND CASE WHEN op_id > 25769795186065408 THEN hafsql.to_json("json")->>0 = 'follow' ELSE TRUE END
-      ORDER BY op_id ASC LIMIT $3`,
+      ORDER BY op_id ASC`,
     ['follow', blockRange[0], blockRange[1]],
   )
   client.release()
@@ -112,10 +111,6 @@ const validateCustomJson = async (customJson: CustomJsonFollow) => {
     return
   }
   if (typeof parsedJson[1] !== 'object') {
-    return
-  }
-  const keys = Object.keys(parsedJson[1])
-  if (keys.length !== 3) {
     return
   }
   if (
