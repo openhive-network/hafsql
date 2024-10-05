@@ -1,15 +1,18 @@
 {
-  "tasks": {
-    "dev": "deno run --watch src/main.ts",
-    "start": "deno run --allow-read --allow-env src/main.ts",
-    "format": "deno fmt"
-  },
-  "fmt": {
-    "useTabs": true,
-    "lineWidth": 80,
-    "indentWidth": 2,
-    "semiColons": false,
-    "singleQuote": true,
-    "include": ["src/"]
-  }
+	"tasks": {
+		"dev": "deno run --watch src/main.ts",
+		"start": "deno run --allow-read --allow-env src/main.ts",
+		"format": "deno fmt"
+	},
+	"fmt": {
+		"useTabs": true,
+		"lineWidth": 80,
+		"indentWidth": 2,
+		"semiColons": false,
+		"singleQuote": true,
+		"include": [
+			"src/"
+		]
+	},
+	"imports": {}
 }
