@@ -93,7 +93,7 @@ const insertData = async (
   await trx.begin()
   for (let i = 0; i < data.length; i++) {
     const { type } = data[i]
-    if (type === 'proposal') {
+    if (type === 'approval') {
       const { voter, approve } = data[i]
       // For TS typings have to do this way but surly will be valid
       const proposal_ids = data[i].proposal_ids || []
