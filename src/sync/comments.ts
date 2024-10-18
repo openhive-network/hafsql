@@ -90,7 +90,8 @@ const insertComments = async (comments: CommentOp[], blockRange: number[]) => {
 		}
 		await updateLastBlockNum('comments', blockRange[1], trx)
 		await trx.commit()
-	} catch (e) {
+		// deno-lint-ignore no-explicit-any
+	} catch (e: any) {
 		if (e.cause?.message === 'deadlock detected') {
 			console.log('deadlock comments')
 			await sleep(5000)
@@ -353,7 +354,8 @@ const insertDeletedComments = async (
 		}
 		await updateLastBlockNum('delete_comments', blockRange[1], trx)
 		await trx.commit()
-	} catch (e) {
+		// deno-lint-ignore no-explicit-any
+	} catch (e: any) {
 		// probably a deadlock - retry
 		if (e.cause?.message === 'deadlock detected') {
 			await sleep(5000)
