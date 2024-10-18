@@ -208,7 +208,7 @@ export const setupFunctions = async () => {
   // Return a range of 49999 block numbers e.g. [1, 50000]
   // Probably can increase - have to test
   await client.queryObject(
-    `CREATE OR REPLACE FUNCTION hafsql.get_next_block_range(text)
+    `CREATE OR REPLACE FUNCTION hafsql.get_next_block_range(text, int4 default 50000)
     RETURNS int4[]
     AS $$
     DECLARE
@@ -219,8 +219,8 @@ export const setupFunctions = async () => {
       SELECT last_block_num INTO STRICT last_num FROM hafsql.sync_data WHERE table_name = $1;
       RETURN
         CASE WHEN head_num > last_num THEN
-          CASE WHEN head_num >= last_num + 50000
-            THEN ARRAY[last_num + 1, last_num + 50000]
+          CASE WHEN head_num >= last_num + $2
+            THEN ARRAY[last_num + 1, last_num + $2]
             ELSE ARRAY[last_num + 1, head_num]
           END
         ELSE
@@ -235,7 +235,7 @@ export const setupFunctions = async () => {
     RETURNS NULL ON NULL INPUT;`,
   )
   await client.queryObject(
-    `COMMENT ON FUNCTION hafsql.get_next_block_range (text) IS
+    `COMMENT ON FUNCTION hafsql.get_next_block_range (text, int4) IS
     'Used by HafSQL to sync blocks';`,
   )
 
