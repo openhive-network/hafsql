@@ -1,5 +1,3 @@
-// hafsql.op_setwithdraw_vesting_route
-
 import { Transaction } from '../deps.ts'
 import { pool } from '../helpers/database.ts'
 import { getBlockRange } from '../helpers/functions/get_block_range.ts'
@@ -149,7 +147,7 @@ const getData = async (blockRange: number[]) => {
       ORDER BY op_id;`,
   )
   const setWithdrawVestingRoute = await client.queryObject<WithdrawRoute>(
-    `SELECT from_account, to_account, percent, auto_vest, op_id FROM hafsql.op_setwithdraw_vesting_route
+    `SELECT from_account, to_account, percent, auto_vest, op_id FROM hafsql.op_set_withdraw_vesting_route
       WHERE op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY op_id;`,
