@@ -91,6 +91,9 @@ const param = (param: string, jsonb = false): string => {
 	}
 	return `(body_binary::jsonb->'value'->>'${param}')`
 }
+const amount = (param: string) => {
+	return `hafsql.asset_amount(${param})`
+}
 
 // Indexes on hive.operations
 // The first ones are needed to sync so we create them first
@@ -132,14 +135,14 @@ export const hiveIndexes: {
 	// id - used in follows, reblogs, communities & rc_delegations sync
 	{
 		name: 'hafsql_id_opid_idx',
-		params: `(${param('id')}, hive.operation_id_to_type_id(id), id DESC)`,
+		params: `(${param('id')}, hive.operation_id_to_type_id(id), id)`,
 		ids: [opId.custom, opId.custom_json],
 		skip: false,
 	},
 	// voter - op_
 	{
 		name: 'hafsql_voter_idx',
-		params: `(${param('voter')}, hive.operation_id_to_type_id(id), id DESC)`,
+		params: `(${param('voter')}, hive.operation_id_to_type_id(id), id)`,
 		ids: [
 			opId.vote,
 			opId.update_proposal_votes,
@@ -176,7 +179,7 @@ export const hiveIndexes: {
 	// parent_author, parent_permlink
 	{
 		name: 'hafsql_parent_author_parent_permlink_idx',
-		params: `(${param('parent_author')}, ${param('parent_permlink')}, id DESC)`,
+		params: `(${param('parent_author')}, ${param('parent_permlink')})`,
 		ids: [opId.comment],
 		skip: false,
 	},
@@ -260,11 +263,8 @@ export const hiveIndexes: {
 			opId.account_witness_proxy,
 			opId.claim_reward_balance,
 			opId.account_update2,
-			opId.decline_voting_rights,
 			opId.return_vesting_delegation,
 			opId.changed_recovery_account,
-			opId.hardfork_hive,
-			opId.hardfork_hive_restore,
 			opId.expired_account_notification,
 			opId.proxy_cleared,
 		],
@@ -299,7 +299,7 @@ export const hiveIndexes: {
 	// orderid
 	{
 		name: 'hafsql_orderid_idx',
-		params: `(${param('orderid')}, hive.operation_id_to_type_id(id), id DESC)`,
+		params: `(${param('orderid')}, hive.operation_id_to_type_id(id))`,
 		ids: [
 			opId.limit_order_create,
 			opId.limit_order_cancel,
@@ -334,9 +334,7 @@ export const hiveIndexes: {
 	// new_account_name
 	{
 		name: 'hafsql_new_account_name_idx',
-		params: `(${
-			param('new_account_name')
-		}, hive.operation_id_to_type_id(id), id DESC)`,
+		params: `(${param('new_account_name')})`,
 		ids: [
 			opId.account_create,
 			opId.create_claimed_account,
@@ -348,23 +346,21 @@ export const hiveIndexes: {
 	// witness
 	{
 		name: 'hafsql_witness_idx',
-		params: `(${param('witness')}, id DESC)`,
+		params: `(${param('witness')})`,
 		ids: [opId.account_witness_vote],
 		skip: false,
 	},
 	// proxy
 	{
 		name: 'hafsql_proxy_idx',
-		params: `(${param('proxy')}, id DESC)`,
+		params: `(${param('proxy')})`,
 		ids: [opId.account_witness_proxy, opId.proxy_cleared],
 		skip: false,
 	},
 	// from_account
 	{
 		name: 'hafsql_from_account_idx',
-		params: `(${
-			param('from_account')
-		}, hive.operation_id_to_type_id(id), id DESC)`,
+		params: `(${param('from_account')}, hive.operation_id_to_type_id(id), id)`,
 		ids: [
 			opId.set_withdraw_vesting_route,
 			opId.fill_vesting_withdraw,
@@ -375,9 +371,7 @@ export const hiveIndexes: {
 	// to_account
 	{
 		name: 'hafsql_to_account_idx',
-		params: `(${
-			param('to_account')
-		}, hive.operation_id_to_type_id(id), id DESC)`,
+		params: `(${param('to_account')}, hive.operation_id_to_type_id(id), id)`,
 		ids: [
 			opId.set_withdraw_vesting_route,
 			opId.fill_vesting_withdraw,
@@ -388,14 +382,14 @@ export const hiveIndexes: {
 	// account_to_recover
 	{
 		name: 'hafsql_account_to_recover_idx',
-		params: `(${param('account_to_recover')}, id DESC)`,
+		params: `(${param('account_to_recover')})`,
 		ids: [opId.change_recovery_account],
 		skip: false,
 	},
 	// new_recovery_account
 	{
 		name: 'hafsql_new_recovery_account_idx',
-		params: `(${param('new_recovery_account')}, id DESC)`,
+		params: `(${param('new_recovery_account')})`,
 		ids: [
 			opId.request_account_recovery,
 			opId.recover_account,
@@ -413,7 +407,7 @@ export const hiveIndexes: {
 	// delegatee
 	{
 		name: 'hafsql_delegatee_idx',
-		params: `(${param('delegatee')}, id DESC)`,
+		params: `(${param('delegatee')})`,
 		ids: [opId.delegate_vesting_shares],
 		skip: false,
 	},
@@ -434,7 +428,7 @@ export const hiveIndexes: {
 	// current_orderid
 	{
 		name: 'hafsql_current_orderid_idx',
-		params: `(${param('current_orderid')}, id DESC)`,
+		params: `(${param('current_orderid')})`,
 		ids: [opId.fill_order],
 		skip: false,
 	},
@@ -448,7 +442,7 @@ export const hiveIndexes: {
 	// open_orderid
 	{
 		name: 'hafsql_open_orderid_idx',
-		params: `(${param('open_orderid')}, id DESC)`,
+		params: `(${param('open_orderid')})`,
 		ids: [opId.fill_order],
 		skip: false,
 	},
@@ -462,14 +456,14 @@ export const hiveIndexes: {
 	// producer
 	{
 		name: 'hafsql_producer_idx',
-		params: `(${param('producer')}, id DESC)`,
+		params: `(${param('producer')}, hive.operation_id_to_type_id(id), id DESC)`,
 		ids: [opId.producer_reward, opId.producer_missed],
 		skip: false,
 	},
 	// receiver
 	{
 		name: 'hafsql_receiver_idx',
-		params: `(${param('receiver')}, id DESC)`,
+		params: `(${param('receiver')}, hive.operation_id_to_type_id(id), id DESC)`,
 		ids: [opId.escrow_release, opId.create_proposal, opId.proposal_pay],
 		skip: false,
 	},
@@ -492,12 +486,19 @@ export const hiveIndexes: {
 		],
 		skip: false,
 	},
-	// hive.transactions trx_id
-	// {
-	// 	name: 'hafsql_trx_id_idx',
-	// 	params: `(encode(trx_hash, 'hex'::text))`,
-	// 	ids: [],
-	// 	skip: false,
-	// 	table: 'hive.transactions',
-	// },
+	// fee
+	{
+		name: 'hafsql_fee_idx',
+		params: `(${amount(param('fee'))}, hive.operation_id_to_type_id(id))`,
+		ids: [
+			opId.account_create,
+			opId.claim_account,
+			opId.account_create_with_delegation,
+			opId.escrow_transfer,
+			opId.proposal_fee,
+			opId.escrow_approved,
+			opId.escrow_rejected,
+		],
+		skip: false,
+	},
 ]
