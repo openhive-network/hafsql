@@ -81,7 +81,40 @@ export const createFollowsIndexes = async () => {
 }
 
 export const createAccountsIndexes = async () => {
-	// TODO
+	using client = await pool.connect()
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_creator_idx ON hafsql.accounts_table (creator);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_owner_idx ON hafsql.accounts_table USING gin (owner);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_active_idx ON hafsql.accounts_table USING gin (active);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_posting_idx ON hafsql.accounts_table USING gin (posting);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_memo_key_idx ON hafsql.accounts_table (memo_key);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_json_metadata_idx ON hafsql.accounts_table USING gin (json_metadata);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_posting_metadata_idx ON hafsql.accounts_table USING gin (posting_metadata);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_created_at_idx ON hafsql.accounts_table (created_at);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_recovery_idx ON hafsql.accounts_table (recovery);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_withdraw_routes_idx ON hafsql.accounts_table USING gin (withdraw_routes);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_proxy_idx ON hafsql.accounts_table (proxy);',
+	)
 }
 
 export const createHafsqlIndexes = async () => {
@@ -89,4 +122,8 @@ export const createHafsqlIndexes = async () => {
 	await client.queryObject(
 		'CREATE INDEX IF NOT EXISTS hafsql_reblogs_table_post_idx ON hafsql.reblogs_table USING btree (post);',
 	)
+}
+
+export const createOperationIndexes = async () => {
+	// TODO
 }
