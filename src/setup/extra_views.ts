@@ -207,8 +207,34 @@ export const setupExtraViews = async () => {
     (SELECT COALESCE(SUM(d.vests), 0) FROM hafsql.delegations d WHERE d.delegatee = x.name) AS incoming_vests,
     (SELECT COALESCE(SUM(d.hp_equivalent), 0) FROM hafsql.delegations d WHERE d.delegatee = x.name) AS incoming_hp,
     (SELECT COALESCE(SUM(d.vests), 0) FROM hafsql.delegations d WHERE d.delegator = x.name) AS outgoing_vests,
-    (SELECT COALESCE(SUM(d.hp_equivalent), 0) FROM hafsql.delegations d WHERE d.delegator = x.name) AS outgoing_hp
-    FROM hive.accounts x;`)
+    (SELECT COALESCE(SUM(d.hp_equivalent), 0) FROM hafsql.delegations d WHERE d.delegator = x.name) AS outgoing_hp,
+    creatort."name" AS creator,
+    ha.created_at,
+    ha."owner",
+    ha.active,
+    ha.posting,
+    ha.memo_key,
+    ha.json_metadata,
+    ha.posting_metadata,
+    ha.last_update,
+    ha.last_owner_update,
+    recoveryt."name" AS "recovery",
+    ha.reward_hive_balance,
+    ha.reward_hbd_balance,
+    ha.reward_vests_balance,
+    hafsql.vests_to_hive(ha.reward_vests_balance) AS reward_vests_balance_hp,
+    ha.next_vesting_withdrawal,
+    ha.to_withdraw,
+    ha.vesting_withdraw_rate,
+    ha.withdrawn,
+    ha.withdraw_routes,
+    (SELECT "name" FROM hive.accounts WHERE id = ha.proxy) AS proxy,
+    (SELECT SUM(amount) FROM hafsql.pending_saving_withdraws_table where "from"=x.id AND symbol='hive') AS pending_hive_savings_withdrawal,
+    (SELECT SUM(amount) FROM hafsql.pending_saving_withdraws_table where "from"=x.id AND symbol='hbd') AS pending_hbd_savings_withdrawal
+    FROM hive.accounts x, hafsql.accounts_table ha, hive.accounts creatort, hive.accounts recoveryt
+    WHERE x.id = ha.account
+    AND ha.creator = creatort.id
+    AND ha."recovery" = recoveryt.id;`)
 
   // Operations
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.operations
@@ -259,6 +285,17 @@ export const setupExtraViews = async () => {
     hafsql.vests_to_hive(x.vests) as hp_equivalent
     FROM hafsql.balances_history_table x
     JOIN hive.accounts a ON x.account=a.id;`)
+
+  // Total balances
+  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.total_balances
+  AS SELECT x.block_num,
+    x.hive,
+    x.hbd,
+    x.vests,
+    hafsql.vests_to_hive(x.vests, x.block_num) AS historical_hp,
+    x.hive_savings,
+    x.hbd_savings
+    FROM hafsql.total_balances_table x;`)
 }
 
 export const removeExtraViews = async () => {
@@ -284,5 +321,6 @@ export const removeExtraViews = async () => {
     hafsql.community_subs,
     hafsql.community_roles,
     hafsql.reputations,
-    hafsql.balances;`)
+    hafsql.balances,
+    hafsql.total_balances;`)
 }
