@@ -1,3 +1,5 @@
+import type { OperationNames } from './types.ts'
+
 // Total number of non-vops can change in hardforks
 const OPS = 49
 
@@ -96,4 +98,12 @@ export const opId = {
 	escrow_rejected: OPS + 41,
 	proxy_cleared: OPS + 42,
 	declined_voting_rights: OPS + 43,
+}
+
+export const getOpName = (op_type_id: number) => {
+	for (const [name, value] of Object.entries(opId)) {
+		if (value === op_type_id) {
+			return <OperationNames> name
+		}
+	}
 }
