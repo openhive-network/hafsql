@@ -1,3 +1,5 @@
+import { opId } from './operation_id.ts'
+
 export interface BlockRange {
 	block_range: [number, number] | null
 }
@@ -414,4 +416,14 @@ export interface AccountsData {
 		| 'claim_reward'
 		| 'withdraw_vesting'
 		| 'fill_vesting_withdraw'
+}
+
+export type OperationNames = keyof typeof opId
+// type OperationIds = typeof opId[OperationNames]
+
+export interface Operations {
+	id: bigint
+	body: { type: string; value: object }
+	op_type_id: number
+	created_at: string
 }
