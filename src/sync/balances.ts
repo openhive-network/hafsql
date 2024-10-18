@@ -144,7 +144,7 @@ const getData = async (blockRange: number[]) => {
       ORDER BY op_id;`,
   )
   const interestQ = await client.queryObject<Interests>(
-    `SELECT op_id, "owner", interest, block_num FROM hafsql.vo_interest_operation
+    `SELECT op_id, "owner", interest, block_num FROM hafsql.vo_interest
       WHERE is_saved_into_hbd_balance = false
       AND op_id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND op_id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
@@ -581,9 +581,9 @@ const clearHiveForkBalances = async (trx: Transaction) => {
     const accountId = <number> await getUserId(account, trx)
     const balances = await getBalance(accountId, trx)
     const hfNum = 41818752
-    await totalBalances(hfNum, '-' + balances.hbd, 'hbd', trx)
-    await totalBalances(hfNum, '-' + balances.hive, 'hive', trx)
-    await totalBalances(hfNum, '-' + balances.vests, 'vests', trx)
+    // await totalBalances(hfNum, '-' + balances.hbd, 'hbd', trx)
+    // await totalBalances(hfNum, '-' + balances.hive, 'hive', trx)
+    // await totalBalances(hfNum, '-' + balances.vests, 'vests', trx)
     await totalBalances(hfNum, '-' + balances.hbd_savings, 'hbd_savings', trx)
     await totalBalances(hfNum, '-' + balances.hive_savings, 'hive_savings', trx)
     if (massiveSync) {
