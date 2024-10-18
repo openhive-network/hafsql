@@ -1,3 +1,4 @@
+import { startAPI } from './api/start_api.ts'
 import { loadDotEnv } from './deps.ts'
 import { pool } from './helpers/database.ts'
 import { print } from './helpers/functions/print.ts'
@@ -12,6 +13,23 @@ import { setup } from './setup/setup.ts'
 
 // Load .env and .env.defaults
 await loadDotEnv({ export: true })
+
+const HAFSQL_ASCI = `
+
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║     ██╗  ██╗ █████╗ ███████╗███████╗ ██████╗ ██╗          ║
+║     ██║  ██║██╔══██╗██╔════╝██╔════╝██╔═══██╗██║          ║
+║     ███████║███████║█████╗  ███████╗██║   ██║██║          ║
+║     ██╔══██║██╔══██║██╔══╝  ╚════██║██║▄▄ ██║██║          ║
+║     ██║  ██║██║  ██║██║     ███████║╚██████╔╝███████╗     ║
+║     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚══════╝ ╚══▀▀═╝ ╚══════╝     ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+
+`
+
+console.log(HAFSQL_ASCI)
 
 // index and sync at the same time
 const isSyncing = {
@@ -91,6 +109,13 @@ const main = async () => {
 		createWorker('./sync/reputations.ts').postMessage('start')
 		print('[Main] Starting reputations worker 👷')
 	}
+
+	if (isSyncing.four === false) {
+		isSyncing.four = true
+		// operations
+		createWorker('./sync/operation_tables.ts').postMessage('start')
+		print('[Main] Starting operation tables worker 👷')
+	}
 }
 
 let once = false
@@ -118,6 +143,7 @@ const entryPoint = async () => {
 }
 
 entryPoint()
+// startAPI()
 
 // Log status of the sync every 30min
 const printStats = async () => {
