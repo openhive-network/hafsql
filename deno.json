@@ -1,8 +1,9 @@
 {
 	"tasks": {
-		"dev": "deno run --watch src/main.ts",
+		"dev": "deno run --watch --allow-read --allow-env --allow-net src/main.ts",
 		"start": "deno run --allow-read --allow-env src/main.ts",
-		"format": "deno fmt"
+		"format": "deno fmt",
+		"test": "deno run --watch --allow-read --allow-env --allow-net test.ts"
 	},
 	"fmt": {
 		"useTabs": true,
