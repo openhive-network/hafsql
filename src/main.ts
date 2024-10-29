@@ -1,15 +1,16 @@
 import { startAPI } from './api/start_api.ts'
 import { loadDotEnv } from './deps.ts'
-import { pool } from './helpers/database.ts'
-import { print } from './helpers/functions/print.ts'
-import { sleep } from './helpers/functions/sleep.ts'
-import { SyncData } from './helpers/types.ts'
+import { pool } from './app/helpers/database.ts'
+import { getBlockRange } from './app/helpers/functions/get_block_range.ts'
+import { print } from './app/helpers/functions/print.ts'
+import { sleep } from './app/helpers/functions/sleep.ts'
+import { SyncData } from './app/helpers/types.ts'
 import {
 	createHiveIndexes,
 	doesIndexExist,
 	hiveIndexes,
-} from './indexes/hive.ts'
-import { setup } from './setup/setup.ts'
+} from './app/indexes/hive.ts'
+import { setup } from './app/setup/setup.ts'
 
 // Load .env and .env.defaults
 await loadDotEnv({ export: true })
@@ -44,76 +45,79 @@ const main = async () => {
 	// op_type_id id
 	if (
 		isSyncing.one === false &&
-		await doesIndexExist('hafsql_hive_operations_op_type_id_id')
+		await doesIndexExist('hafsql_hive_operations_op_type_id_id') &&
+		!(await getBlockRange('operations'))
 	) {
 		isSyncing.one = true
 		// comments
-		createWorker('./sync/comments.ts').postMessage('start')
+		createWorker('./app/sync/comments.ts').postMessage('start')
 		print('[Main] Starting comments worker 👷‍')
 
 		// delegations
-		createWorker('./sync/delegations.ts').postMessage('start')
+		createWorker('./app/sync/delegations.ts').postMessage('start')
 		print('[Main] Starting HP delegations worker 👷')
 
 		// proposals
-		createWorker('./sync/proposals.ts').postMessage('start')
+		createWorker('./app/sync/proposals.ts').postMessage('start')
 		print('[Main] Starting proposal worker 👷')
 
 		// balances
-		createWorker('./sync/balances.ts').postMessage('start')
+		createWorker('./app/sync/balances.ts').postMessage('start')
 		print('[Main] Starting balances worker 👷')
 
 		// accounts
-		createWorker('./sync/accounts.ts').postMessage('start')
+		createWorker('./app/sync/accounts.ts').postMessage('start')
 		print('[Accounts] Starting accounts worker 👷')
 	}
 
 	// custom_json id
 	if (
 		isSyncing.two === false &&
-		await doesIndexExist('hafsql_id_opid_idx')
+		await doesIndexExist('hafsql_id_opid_idx') &&
+		!(await getBlockRange('operations'))
 	) {
 		isSyncing.two = true
 		// reblogs
-		createWorker('./sync/reblogs.ts').postMessage('start')
+		createWorker('./app/sync/reblogs.ts').postMessage('start')
 		print('[Main] Starting reblogs worker 👷')
 
 		// follows
-		createWorker('./sync/follows.ts').postMessage('start')
+		createWorker('./app/sync/follows.ts').postMessage('start')
 		print('[Main] Starting follows worker 👷')
 
 		// community_roles
-		createWorker('./sync/communities.ts').postMessage('start')
+		createWorker('./app/sync/communities.ts').postMessage('start')
 		print('[Main] Starting community roles worker 👷')
 
 		// rc_delegations
-		createWorker('./sync/rc_delegations.ts').postMessage('start')
+		createWorker('./app/sync/rc_delegations.ts').postMessage('start')
 		print('[Main] Starting RC delegations worker 👷')
 	}
 
 	// author permlink
 	if (
 		isSyncing.three === false &&
-		await doesIndexExist('hafsql_author_permlink_idx')
+		await doesIndexExist('hafsql_author_permlink_idx') &&
+		!(await getBlockRange('operations'))
 	) {
 		isSyncing.three = true
 		// paid_rewards
-		createWorker('./sync/paid_rewards.ts').postMessage('start')
+		createWorker('./app/sync/paid_rewards.ts').postMessage('start')
 		print('[Main] Starting paid_rewards worker 👷')
 
 		// pending_rewards
-		createWorker('./sync/pending_rewards.ts').postMessage('start')
+		createWorker('./app/sync/pending_rewards.ts').postMessage('start')
 		print('[Main] Starting pending_rewards worker 👷')
 
 		// reputations
-		createWorker('./sync/reputations.ts').postMessage('start')
+		createWorker('./app/sync/reputations.ts').postMessage('start')
 		print('[Main] Starting reputations worker 👷')
 	}
 
 	if (isSyncing.four === false) {
 		isSyncing.four = true
 		// operations
-		createWorker('./sync/operation_tables.ts').postMessage('start')
+		createWorker('./app/sync/operation_tables.ts').postMessage('start')
 		print('[Main] Starting operation tables worker 👷')
 	}
 }
@@ -155,21 +159,8 @@ const printStats = async () => {
 	const result = await client.queryObject<SyncData>(
 		`SELECT * FROM hafsql.sync_data;`,
 	)
-	const temp = 'Waiting for index creation ⏳'
-	const syncData = {
-		indexes: '',
-		delegations: temp,
-		rc_delegations: temp,
-		proposal_approvals: temp,
-		follows: temp,
-		comments: temp,
-		pending_rewards: temp,
-		paid_rewards: temp,
-		reblogs: temp,
-		communities: temp,
-		delete_comments: temp,
-		reputations: temp,
-	}
+	const temp = 'Waiting for operations & indexes ⏳'
+	const syncData: Record<string, string> = {}
 	for (let i = 0; i < result.rows.length; i++) {
 		const tableName = result.rows[i].table_name
 		const lastNum = result.rows[i].last_block_num
@@ -183,7 +174,7 @@ const printStats = async () => {
 		}
 		if (tableName === 'pending_rewards') {
 			if (lastNum === 0) {
-				syncData[tableName] = 'Waiting for comments to sync ⏳'
+				syncData[tableName] = 'Waiting for comments ⏳'
 			}
 		}
 	}
@@ -205,7 +196,14 @@ const format = (num: number) => {
 }
 
 const createWorker = (path: string) => {
-	return new Worker(import.meta.resolve(path), {
+	const worker = new Worker(import.meta.resolve(path), {
 		type: 'module',
 	})
+	worker.onerror = (e) => {
+		// TODO write to file
+		console.log(e.filename, 'At:', e.lineno)
+		console.log(e.message)
+		throw new Error(e.message)
+	}
+	return worker
 }
