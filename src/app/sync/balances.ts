@@ -1,11 +1,11 @@
 import { BigDenary, Transaction } from '../../deps.ts'
 import { balanceImpactingOps } from '../helpers/balance_impacting_ops.ts'
 import { pool } from '../helpers/database.ts'
-import { getBlockRange } from '../helpers/functions/get_block_range.ts'
-import { getUserId } from '../helpers/functions/get_user_id.ts'
-import { print } from '../helpers/functions/print.ts'
-import { sleep } from '../helpers/functions/sleep.ts'
-import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
+import { getBlockRange } from '../helpers/utils/get_block_range.ts'
+import { getUserId } from '../helpers/utils/get_user_id.ts'
+import { print } from '../helpers/utils/print.ts'
+import { sleep } from '../helpers/utils/sleep.ts'
+import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
 import { opId } from '../helpers/operation_id.ts'
 import {
   AllSymbols,
@@ -224,6 +224,7 @@ const handleNormalBalances = async (
   impactedBalances: ImpactedBalances[],
   trx: Transaction,
 ) => {
+  let lastNum = 0
   for (let i = 0; i < impactedBalances.length; i++) {
     const { account_name, asset_symbol_nai, block_num, op_type_id } =
       impactedBalances[i]
@@ -289,36 +290,38 @@ const handleNormalBalances = async (
       console.log('Non-normal NAI', impactedBalances[i])
     }
 
-    // if (impactsTotalBalances(op_type_id)) {
-    await totalBalances(block_num, amount.toString(), symbol, trx)
-    // }
+    if (impactsTotalBalances(op_type_id)) {
+      await totalBalances(block_num, amount.toString(), symbol, trx)
+    }
     await insertHistory(accountId, block_num, trx)
   }
 }
 
 const impactsTotalBalances = (op_type_id: number) => {
   switch (op_type_id) {
-    case opId.author_reward:
-    case opId.claim_account:
     case opId.account_create:
     case opId.account_create_with_delegation:
+    case opId.author_reward:
+    case opId.claim_account:
     case opId.claim_reward_balance:
+    case opId.collateralized_convert_immediate_conversion:
+    case opId.collateralized_convert:
+    case opId.comment_benefactor_reward:
+    case opId.convert:
     case opId.curation_reward:
     case opId.dhf_conversion:
     case opId.dhf_funding:
-    case opId.collateralized_convert:
     case opId.fill_collateralized_convert_request:
-    case opId.collateralized_convert_immediate_conversion:
-    case opId.convert:
     case opId.fill_convert_request:
     case opId.fill_transfer_from_savings:
-    case opId.transfer_to_savings:
     case opId.fill_vesting_withdraw:
+    case opId.hardfork_hive:
     case opId.interest:
     case opId.liquidity_reward:
     case opId.pow_reward:
     case opId.producer_reward:
     case opId.proposal_fee:
+    case opId.transfer_to_savings:
     case opId.transfer_to_vesting_completed:
       return true
     default:
@@ -577,10 +580,10 @@ const fillFakeTable = async () => {
 // hive.get_impacted_balances doesn't return the balances removed by Hive Fork at 41818752
 const clearHiveForkBalances = async (trx: Transaction) => {
   const result = await trx.queryObject<HardforkHive>(
-    `SELECT account, hbd_transferred, hive_transferred, vests_converted FROM hafsql.operation_hardfork_hive_table`,
+    `SELECT account, vests_converted, total_hive_from_vests FROM hafsql.operation_hardfork_hive_table`,
   )
   for (let i = 0; i < result.rows.length; i++) {
-    const { account } = result.rows[i]
+    const { account, vests_converted, total_hive_from_vests } = result.rows[i]
     const accountId = <number> await getUserId(account, trx)
     const balances = await getBalance(accountId, trx)
     const hfNum = 41818752
@@ -589,6 +592,8 @@ const clearHiveForkBalances = async (trx: Transaction) => {
     // await totalBalances(hfNum, '-' + balances.vests, 'vests', trx)
     await totalBalances(hfNum, '-' + balances.hbd_savings, 'hbd_savings', trx)
     await totalBalances(hfNum, '-' + balances.hive_savings, 'hive_savings', trx)
+    await totalBalances(hfNum, '-' + vests_converted, 'vests', trx)
+    // await totalBalances(hfNum, total_hive_from_vests, 'hive', trx)
     if (massiveSync) {
       fakeTable[accountId].hive = '0'
       fakeTable[accountId].hbd = '0'
