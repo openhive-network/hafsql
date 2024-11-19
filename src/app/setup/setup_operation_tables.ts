@@ -150,12 +150,12 @@ export const operationTables = {
     author: types.varchar,
     permlink: types.varchar,
   },
-  custom_json: {
-    // required_auths: types.jsonb,
-    // required_posting_auths: types.jsonb,
-    // custom_id: types.varchar,
-    // json: types.jsonb,
-  },
+  // custom_json: {
+  // required_auths: types.jsonb,
+  // required_posting_auths: types.jsonb,
+  // custom_id: types.varchar,
+  // json: types.jsonb,
+  // },
   comment_options: {
     author: types.varchar,
     permlink: types.varchar,
