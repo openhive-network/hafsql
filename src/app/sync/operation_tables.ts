@@ -1,9 +1,9 @@
 import { pool } from '../helpers/database.ts'
-import { print } from '../helpers/functions/print.ts'
-import { sleep } from '../helpers/functions/sleep.ts'
+import { print } from '../helpers/utils/print.ts'
+import { sleep } from '../helpers/utils/sleep.ts'
 import { type OperationNames, type Operations } from '../helpers/types.ts'
-import { getBlockRange } from '../helpers/functions/get_block_range.ts'
-import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
+import { getBlockRange } from '../helpers/utils/get_block_range.ts'
+import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
 import { getOpName, opId } from '../helpers/operation_id.ts'
 import type { Transaction } from '../../deps.ts'
 import type {
@@ -369,54 +369,54 @@ const bulkInsertData = async (
 }
 
 /****************************/
-const fillVote = async (ops: Operations[], trx: Transaction) => {
-  const ids = []
-  const voters = []
-  const authors = []
-  const permlinks = []
-  const weights = []
-  for (let i = 0; i < ops.length; i++) {
-    const value = <VoteOperation> ops[i].body.value
-    voters.push(value.voter)
-    authors.push(value.author)
-    permlinks.push(value.permlink)
-    weights.push(value.weight)
-    ids.push(ops[i].id)
-  }
-  await trx
-    .queryObject`INSERT INTO hafsql.operation_vote_table (id, voter, author, permlink, weight)
-      SELECT UNNEST(${ids}::int8[]), UNNEST(${voters}::text[]),
-      UNNEST(${authors}::text[]), UNNEST(${permlinks}::text[]), UNNEST(${weights}::int2[])
-      ON CONFLICT (id) DO NOTHING;`
-}
+// const fillVote = async (ops: Operations[], trx: Transaction) => {
+//   const ids = []
+//   const voters = []
+//   const authors = []
+//   const permlinks = []
+//   const weights = []
+//   for (let i = 0; i < ops.length; i++) {
+//     const value = <VoteOperation> ops[i].body.value
+//     voters.push(value.voter)
+//     authors.push(value.author)
+//     permlinks.push(value.permlink)
+//     weights.push(value.weight)
+//     ids.push(ops[i].id)
+//   }
+//   await trx
+//     .queryObject`INSERT INTO hafsql.operation_vote_table (id, voter, author, permlink, weight)
+//       SELECT UNNEST(${ids}::int8[]), UNNEST(${voters}::text[]),
+//       UNNEST(${authors}::text[]), UNNEST(${permlinks}::text[]), UNNEST(${weights}::int2[])
+//       ON CONFLICT (id) DO NOTHING;`
+// }
 
-const fillComment = async (ops: Operations[], trx: Transaction) => {
-  const ids = []
-  const authors = []
-  const permlinks = []
-  const parent_authors = []
-  const parent_permlinks = []
-  const titles = []
-  const bodys = []
-  const metadatas = []
-  for (let i = 0; i < ops.length; i++) {
-    const value = <CommentOperation> ops[i].body.value
-    authors.push(value.author)
-    permlinks.push(value.permlink)
-    parent_authors.push(value.parent_author)
-    parent_permlinks.push(value.parent_permlink)
-    titles.push(value.title)
-    bodys.push(value.body)
-    metadatas.push(value.json_metadata)
-    ids.push(ops[i].id)
-  }
-  await trx.queryObject`INSERT INTO hafsql.operation_comment_table
-    (id, author, permlink, parent_author, parent_permlink, title, body, json_metadata)
-    SELECT UNNEST(${ids}::int8[]), UNNEST(${authors}::text[]),
-    UNNEST(${permlinks}::text[]), UNNEST(${parent_authors}::text[]), UNNEST(${parent_permlinks}::text[]),
-    UNNEST(${titles}::text[]), UNNEST(${bodys}::text[]), hafsql.to_json(UNNEST(${metadatas}::text[]))
-    ON CONFLICT (id) DO NOTHING;`
-}
+// const fillComment = async (ops: Operations[], trx: Transaction) => {
+//   const ids = []
+//   const authors = []
+//   const permlinks = []
+//   const parent_authors = []
+//   const parent_permlinks = []
+//   const titles = []
+//   const bodys = []
+//   const metadatas = []
+//   for (let i = 0; i < ops.length; i++) {
+//     const value = <CommentOperation> ops[i].body.value
+//     authors.push(value.author)
+//     permlinks.push(value.permlink)
+//     parent_authors.push(value.parent_author)
+//     parent_permlinks.push(value.parent_permlink)
+//     titles.push(value.title)
+//     bodys.push(value.body)
+//     metadatas.push(value.json_metadata)
+//     ids.push(ops[i].id)
+//   }
+//   await trx.queryObject`INSERT INTO hafsql.operation_comment_table
+//     (id, author, permlink, parent_author, parent_permlink, title, body, json_metadata)
+//     SELECT UNNEST(${ids}::int8[]), UNNEST(${authors}::text[]),
+//     UNNEST(${permlinks}::text[]), UNNEST(${parent_authors}::text[]), UNNEST(${parent_permlinks}::text[]),
+//     UNNEST(${titles}::text[]), UNNEST(${bodys}::text[]), hafsql.to_json(UNNEST(${metadatas}::text[]))
+//     ON CONFLICT (id) DO NOTHING;`
+// }
 
 const fillTransfer = async (ops: Operations[], trx: Transaction) => {
   const ids = []
@@ -765,27 +765,27 @@ const fillDeleteComment = async (ops: Operations[], trx: Transaction) => {
     ON CONFLICT (id) DO NOTHING;`
 }
 
-const fillCustomJson = async (ops: Operations[], trx: Transaction) => {
-  const ids = []
-  const auths = []
-  const pauths = []
-  const cid = []
-  const jsons = []
-  for (let i = 0; i < ops.length; i++) {
-    const value = <CustomJsonOperation> ops[i].body.value
-    ids.push(ops[i].id)
-    auths.push(JSON.stringify(value.required_auths))
-    pauths.push(JSON.stringify(value.required_posting_auths))
-    cid.push(value.id)
-    jsons.push(value.json)
-  }
-  await trx.queryObject`INSERT INTO hafsql.operation_custom_json_table
-    (id, required_auths, required_posting_auths, custom_id, json)
-    SELECT UNNEST(${ids}::int8[]),
-    UNNEST(${auths}::jsonb[]), UNNEST(${pauths}::jsonb[]),
-    UNNEST(${cid}::text[]), hafsql.to_json(UNNEST(${jsons}::text[]))
-    ON CONFLICT (id) DO NOTHING;`
-}
+// const fillCustomJson = async (ops: Operations[], trx: Transaction) => {
+//   const ids = []
+//   const auths = []
+//   const pauths = []
+//   const cid = []
+//   const jsons = []
+//   for (let i = 0; i < ops.length; i++) {
+//     const value = <CustomJsonOperation> ops[i].body.value
+//     ids.push(ops[i].id)
+//     auths.push(JSON.stringify(value.required_auths))
+//     pauths.push(JSON.stringify(value.required_posting_auths))
+//     cid.push(value.id)
+//     jsons.push(value.json)
+//   }
+//   await trx.queryObject`INSERT INTO hafsql.operation_custom_json_table
+//     (id, required_auths, required_posting_auths, custom_id, json)
+//     SELECT UNNEST(${ids}::int8[]),
+//     UNNEST(${auths}::jsonb[]), UNNEST(${pauths}::jsonb[]),
+//     UNNEST(${cid}::text[]), hafsql.to_json(UNNEST(${jsons}::text[]))
+//     ON CONFLICT (id) DO NOTHING;`
+// }
 
 const fillCommentOptions = async (ops: Operations[], trx: Transaction) => {
   const ids = []
@@ -2093,41 +2093,41 @@ const fillConsolidateTreasuryBalance = async (
     ON CONFLICT (id) DO NOTHING;`
 }
 
-const fillEffectiveCommentVote = async (
-  ops: Operations[],
-  trx: Transaction,
-) => {
-  const ids = []
-  const voters = []
-  const authors = []
-  const permlinks = []
-  const weights = []
-  const rshares = []
-  const totalWeights = []
-  const pendings = []
-  for (let i = 0; i < ops.length; i++) {
-    const value = <EffectiveCommentVoteOperation> ops[i].body.value
-    ids.push(ops[i].id)
-    voters.push(value.voter)
-    authors.push(value.author)
-    permlinks.push(value.permlink)
-    weights.push(value.weight)
-    rshares.push(value.rshares)
-    totalWeights.push(value.total_vote_weight)
-    pendings.push(value.pending_payout)
-  }
-  await trx
-    .queryObject`INSERT INTO hafsql.operation_effective_comment_vote_table
-    (id, voter, author, permlink, weight, rshares, total_vote_weight,
-      pending_payout, pending_payout_symbol)
-    SELECT UNNEST(${ids}::int8[]),
-    UNNEST(${voters}::text[]), UNNEST(${authors}::text[]),
-    UNNEST(${permlinks}::text[]), UNNEST(${weights}::numeric[]),
-    UNNEST(${rshares}::numeric[]), UNNEST(${totalWeights}::numeric[]),
-    hafsql.asset_amount(UNNEST(${pendings}::text[])),
-    hafsql.asset_symbol(UNNEST(${pendings}::text[]))
-    ON CONFLICT (id) DO NOTHING;`
-}
+// const fillEffectiveCommentVote = async (
+//   ops: Operations[],
+//   trx: Transaction,
+// ) => {
+//   const ids = []
+//   const voters = []
+//   const authors = []
+//   const permlinks = []
+//   const weights = []
+//   const rshares = []
+//   const totalWeights = []
+//   const pendings = []
+//   for (let i = 0; i < ops.length; i++) {
+//     const value = <EffectiveCommentVoteOperation> ops[i].body.value
+//     ids.push(ops[i].id)
+//     voters.push(value.voter)
+//     authors.push(value.author)
+//     permlinks.push(value.permlink)
+//     weights.push(value.weight)
+//     rshares.push(value.rshares)
+//     totalWeights.push(value.total_vote_weight)
+//     pendings.push(value.pending_payout)
+//   }
+//   await trx
+//     .queryObject`INSERT INTO hafsql.operation_effective_comment_vote_table
+//     (id, voter, author, permlink, weight, rshares, total_vote_weight,
+//       pending_payout, pending_payout_symbol)
+//     SELECT UNNEST(${ids}::int8[]),
+//     UNNEST(${voters}::text[]), UNNEST(${authors}::text[]),
+//     UNNEST(${permlinks}::text[]), UNNEST(${weights}::numeric[]),
+//     UNNEST(${rshares}::numeric[]), UNNEST(${totalWeights}::numeric[]),
+//     hafsql.asset_amount(UNNEST(${pendings}::text[])),
+//     hafsql.asset_symbol(UNNEST(${pendings}::text[]))
+//     ON CONFLICT (id) DO NOTHING;`
+// }
 
 const fillIneffectiveDeleteComment = async (
   ops: Operations[],
