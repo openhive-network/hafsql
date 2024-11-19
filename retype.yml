@@ -1,0 +1,16 @@
+input: sql_docs
+output: public
+url: https://mahdiyari.gitlab.com/hafsql
+branding:
+  title: HafSQL
+  label: Docs
+  logo: logo.png
+links:
+- text: Getting Started
+  link: https://retype.com/guides/getting-started/
+footer:
+  copyright: "&copy; Copyright {{ year }}. All rights reserved."
+edit:
+  repo: gitlab.com/mahdiyari/hafsql
+  branch: main
+  base: /sql_docs
