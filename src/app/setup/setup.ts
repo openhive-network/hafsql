@@ -4,7 +4,7 @@ import { setupOperationTables } from './setup_operation_tables.ts'
 import {
 	removeOperationViews,
 	setupOperationViews,
-} from './setup_operations_views.ts'
+} from './setup_operation_views.ts'
 import { setupPublicUser } from './setup_public_user.ts'
 import { setupSchema } from './setup_schema.ts'
 import { setupTables } from './setup_tables.ts'
