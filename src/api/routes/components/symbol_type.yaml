@@ -1,0 +1,10 @@
+components:
+  schemas:
+    Symbol:
+      type: string
+      enum:
+        - hive
+        - hbd
+        - vests
+        - hive_savings
+        - hbd_savings
