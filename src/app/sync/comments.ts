@@ -1,6 +1,6 @@
 import { pool } from '../helpers/database.ts'
 import { DiffMatchPatch, Transaction } from '../../deps.ts'
-import { print } from '../helpers/functions/print.ts'
+import { print } from '../helpers/utils/print.ts'
 import {
 	AuthorPermlink,
 	CommentObj,
@@ -8,15 +8,15 @@ import {
 	DeletedComment,
 	RootAuthorPermlink,
 } from '../helpers/types.ts'
-import { sleep } from '../helpers/functions/sleep.ts'
+import { sleep } from '../helpers/utils/sleep.ts'
 import {
 	createCommentsIndexes,
 	createHafsqlIndexes,
 } from '../indexes/hafsql.ts'
-import { cleanString } from '../helpers/functions/clean_string.ts'
-import { getBlockRange } from '../helpers/functions/get_block_range.ts'
-import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
-import { getLastBlockNum } from '../helpers/functions/get_last_block_num.ts'
+import { cleanString } from '../helpers/utils/clean_string.ts'
+import { getBlockRange } from '../helpers/utils/get_block_range.ts'
+import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
+import { getLastBlockNum } from '../helpers/utils/get_last_block_num.ts'
 
 let started = false
 // Run this file in a separate worker thread than the main application
@@ -113,9 +113,8 @@ const insertComment = async (comment: CommentOp, trx: Transaction) => {
 	}
 	// new comments
 	const tags = extractTags(comment.json_metadata)
-	const metadata = isJsonString(comment.json_metadata)
-		? comment.json_metadata
-		: {}
+	// already validated in the view by hafsql.to_json()
+	const metadata = JSON.stringify(comment.json_metadata)
 
 	// Root of a post is itself
 	let rootAuthor = comment.author
@@ -164,9 +163,7 @@ const updateEditedComment = async (
 		value: string | object
 	}[] = []
 	const tags = extractTags(comment.json_metadata)
-	const metadata = isJsonString(comment.json_metadata)
-		? comment.json_metadata
-		: {}
+	const metadata = comment.json_metadata
 	if (tags.join() !== oldComment.tags.join()) {
 		params.push({ name: 'tags', value: JSON.stringify(tags) })
 	}
@@ -220,21 +217,19 @@ const getComment = async (
 }
 
 // Extract tags from metadata
-const extractTags = (jsonMetadata: string) => {
+// deno-lint-ignore no-explicit-any
+const extractTags = (parsedJson: any) => {
 	try {
 		const temp = []
-		if (typeof jsonMetadata === 'string' && jsonMetadata.length > 0) {
-			const parsedJson = JSON.parse(jsonMetadata)
-			if (Object.hasOwn(parsedJson, 'tags')) {
-				const tags = parsedJson.tags
-				if (Array.isArray(tags)) {
-					for (let i = 0; i < tags.length; i++) {
-						if (tags[i].length <= 24) {
-							temp.push(cleanString(tags[i]))
-						}
-						if (i > 10) {
-							break
-						}
+		if (Object.hasOwn(parsedJson, 'tags')) {
+			const tags = parsedJson.tags
+			if (Array.isArray(tags)) {
+				for (let i = 0; i < tags.length; i++) {
+					if (tags[i].length <= 24) {
+						temp.push(cleanString(tags[i]))
+					}
+					if (i > 10) {
+						break
 					}
 				}
 			}
