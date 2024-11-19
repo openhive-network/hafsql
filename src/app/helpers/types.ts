@@ -1,3 +1,4 @@
+import { BigDenary } from '../../deps.ts'
 import { opId } from './operation_id.ts'
 
 export interface BlockRange {
@@ -12,7 +13,7 @@ export interface CommentOp {
 	parent_permlink: string
 	title: string
 	body: string
-	json_metadata: string
+	json_metadata: object
 }
 export interface CommentObj {
 	id: number
@@ -182,14 +183,15 @@ export interface HardforkHive {
 	hbd_transferred: string
 	hive_transferred: string
 	vests_converted: string
+	total_hive_from_vests: string
 }
 
 export interface BalancesOnly {
-	hive: string
-	hbd: string
-	vests: string
-	hive_savings: string
-	hbd_savings: string
+	hive: BigDenary
+	hbd: BigDenary
+	vests: BigDenary
+	hive_savings: BigDenary
+	hbd_savings: BigDenary
 }
 
 export interface Balances extends BalancesOnly {
