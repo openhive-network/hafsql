@@ -1,16 +1,16 @@
 import { pool } from '../helpers/database.ts'
-import { print } from '../helpers/functions/print.ts'
-import { sleep } from '../helpers/functions/sleep.ts'
+import { print } from '../helpers/utils/print.ts'
+import { sleep } from '../helpers/utils/sleep.ts'
 import { CustomJson, ReblogsArray } from '../helpers/types.ts'
 import {
 	clearUsername,
 	validateAccountName,
-} from '../helpers/functions/validate_username.ts'
-import { getBlockRange } from '../helpers/functions/get_block_range.ts'
-import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
-import { getLastBlockNum } from '../helpers/functions/get_last_block_num.ts'
-import { getUserId } from '../helpers/functions/get_user_id.ts'
-import { getPostId } from '../helpers/functions/get_post_id.ts'
+} from '../helpers/utils/validate_username.ts'
+import { getBlockRange } from '../helpers/utils/get_block_range.ts'
+import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
+import { getLastBlockNum } from '../helpers/utils/get_last_block_num.ts'
+import { getUserId } from '../helpers/utils/get_user_id.ts'
+import { getPostId } from '../helpers/utils/get_post_id.ts'
 
 let started = false
 // Run this file in a separate worker thread than the main application
