@@ -12,6 +12,9 @@ export const createCommentsIndexes = async () => {
 		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_parent_author_parent_permlink_idx ON hafsql.comments_table USING btree (parent_author, parent_permlink);',
 	)
 	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_parent_permlink_idx ON hafsql.comments_table USING btree (parent_permlink);',
+	)
+	await client.queryObject(
 		"CREATE INDEX IF NOT EXISTS hafsql_comments_table_metadata_idx ON hafsql.comments_table USING btree ((metadata->>'content_type'));",
 	)
 	await client.queryObject(
@@ -24,7 +27,13 @@ export const createCommentsIndexes = async () => {
 		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_root_author_root_permlink_idx ON hafsql.comments_table USING btree (root_author, root_permlink);',
 	)
 	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_root_permlink_idx ON hafsql.comments_table USING btree (root_permlink);',
+	)
+	await client.queryObject(
 		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_author_id_idx ON hafsql.comments_table USING btree (author, id desc);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_category_idx ON hafsql.comments_table USING btree ((tags->>0), id);',
 	)
 }
 
@@ -68,6 +77,16 @@ export const createBalancesIndexes = async () => {
 	await client.queryObject(
 		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_vests_idx ON hafsql.balances_table USING btree (vests);',
 	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_hive_savings_idx ON hafsql.balances_table USING btree (hive_savings);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_hbd_savings_idx ON hafsql.balances_table USING btree (hbd_savings);',
+	)
+	await client.queryObject(
+		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_balances_idx ON hafsql.balances_table USING btree (hive, hbd, vests, hive_savings, hbd_savings);',
+	)
+	// history
 	await client.queryObject(
 		'CREATE INDEX IF NOT EXISTS hafsql_balances_history_table_vests_idx ON hafsql.balances_history_table USING btree (block_num);',
 	)
