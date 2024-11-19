@@ -1,8 +1,8 @@
 import { pool } from '../helpers/database.ts'
-import { getBlockRange } from '../helpers/functions/get_block_range.ts'
-import { print } from '../helpers/functions/print.ts'
-import { sleep } from '../helpers/functions/sleep.ts'
-import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
+import { getBlockRange } from '../helpers/utils/get_block_range.ts'
+import { print } from '../helpers/utils/print.ts'
+import { sleep } from '../helpers/utils/sleep.ts'
+import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
 import {
   ApprovalsAndExpired,
   ExpiredAccount,
