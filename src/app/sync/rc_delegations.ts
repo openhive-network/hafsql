@@ -1,19 +1,18 @@
-import { JSONBigInt } from '../../deps.ts'
+import { BigJSONparser } from '../../deps.ts'
 import { pool } from '../helpers/database.ts'
-import { print } from '../helpers/functions/print.ts'
-import { sleep } from '../helpers/functions/sleep.ts'
+import { print } from '../helpers/utils/print.ts'
+import { sleep } from '../helpers/utils/sleep.ts'
 import {
   RcCustomJson,
   RcDelegation,
   RcDelegationAppended,
 } from '../helpers/types.ts'
-import { clearUsername } from '../helpers/functions/validate_username.ts'
+import { clearUsername } from '../helpers/utils/validate_username.ts'
 import { createRCDelegationsIndexes } from '../indexes/hafsql.ts'
-import { getBlockRange } from '../helpers/functions/get_block_range.ts'
-import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
+import { getBlockRange } from '../helpers/utils/get_block_range.ts'
+import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
 
 // Need this to handle large RC numbers
-const JSONparser = JSONBigInt({ storeAsString: true }).parse
 
 let started = false
 // Run this file in a separate worker thread than the main application
@@ -77,7 +76,7 @@ const getRCDelegations = async (blockRange: number[]) => {
   for (let i = 0; i < result.rows.length; i++) {
     const rcDelegation = result.rows[i]
     try {
-      const parsedJson: RcDelegation = JSONparser(rcDelegation.json)
+      const parsedJson: RcDelegation = BigJSONparser(rcDelegation.json)
       if (!Array.isArray(parsedJson)) {
         continue
       }
