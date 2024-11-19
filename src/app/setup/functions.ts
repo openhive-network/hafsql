@@ -52,9 +52,15 @@ export const setupFunctions = async () => {
   await client.queryObject(`CREATE OR REPLACE FUNCTION hafsql.is_json(text)
     RETURNS bool
     AS $$
+    DECLARE
+      isjson boolean;
     BEGIN
-      RETURN $1::jsonb IS NOT NULL;
-    EXCEPTION WHEN SQLSTATE '22P02' THEN  -- invalid_text_representation
+      SELECT CASE
+        WHEN jsonb_typeof($1::jsonb) = 'string' THEN FALSE
+        WHEN jsonb_typeof($1::jsonb) = 'object' THEN TRUE
+        ELSE FALSE END INTO isjson;
+      RETURN isjson;
+    EXCEPTION WHEN OTHERS THEN
       RETURN false;
     END
     $$
@@ -63,6 +69,29 @@ export const setupFunctions = async () => {
     RETURNS NULL ON NULL INPUT;`)
   await client.queryObject(`COMMENT ON FUNCTION hafsql.is_json (text) IS
     'Test if input text is valid JSON. Returns true, false, or NULL on NULL input.';`)
+
+  // hafsql.to_json(text)
+  // Cast json string into JSONB - return {} on invalid json
+  await client.queryObject(`CREATE OR REPLACE FUNCTION hafsql.to_json(text)
+    RETURNS jsonb
+    AS $$
+    DECLARE
+      jsonified jsonb;
+    BEGIN
+      SELECT CASE WHEN hafsql.is_json($1) THEN $1::jsonb ELSE '{}'::jsonb END
+        INTO jsonified;
+      RETURN jsonified;
+    EXCEPTION WHEN OTHERS THEN
+      RETURN '{}'::jsonb;
+    END
+    $$
+    LANGUAGE plpgsql
+    IMMUTABLE
+    RETURNS NULL ON NULL INPUT;`)
+  await client.queryObject(
+    `COMMENT ON FUNCTION hafsql.to_json (text) IS
+    'Cast valid json TEXT into JSONB and return {} on invalid json string';`,
+  )
 
   // hafsql.vests_to_hive(numeric, int4 default NULL)
   // VESTS to HIVE equivalent
@@ -135,29 +164,6 @@ export const setupFunctions = async () => {
   await client.queryObject(`COMMENT ON FUNCTION hafsql.get_trx_id (int8) IS
     'Return trx_id from op_id';`)
 
-  // hafsql.to_json(text)
-  // Cast json string into JSONB - return {} on invalid json
-  await client.queryObject(`CREATE OR REPLACE FUNCTION hafsql.to_json(text)
-    RETURNS jsonb
-    AS $$
-    DECLARE
-      jsonified jsonb;
-    BEGIN
-      SELECT CASE WHEN hafsql.is_json($1) THEN $1::jsonb ELSE '{}'::jsonb END
-        INTO jsonified;
-      RETURN jsonified;
-    EXCEPTION WHEN OTHERS THEN
-      RETURN '{}'::jsonb;
-    END
-    $$
-    LANGUAGE plpgsql
-    IMMUTABLE
-    RETURNS NULL ON NULL INPUT;`)
-  await client.queryObject(
-    `COMMENT ON FUNCTION hafsql.to_json (text) IS
-    'Cast valid json TEXT into JSONB and return {} on invalid json string';`,
-  )
-
   // hafsql.last_op_id_from_block_num(int4)
   // Get highest op_id inside a block
   await client.queryObject(
@@ -206,7 +212,6 @@ export const setupFunctions = async () => {
 
   // hafsql.get_next_block_range(text)
   // Return a range of 49999 block numbers e.g. [1, 50000]
-  // Probably can increase - have to test
   await client.queryObject(
     `CREATE OR REPLACE FUNCTION hafsql.get_next_block_range(text, int4 default 50000)
     RETURNS int4[]
@@ -264,21 +269,21 @@ export const setupFunctions = async () => {
   // Get account balance - optionally at certain block_num
   await client.queryObject(
     `CREATE OR REPLACE FUNCTION hafsql.get_balance(int4, int4 default NULL)
-    RETURNS table (hive numeric, hbd numeric, vests numeric, hp numeric)
+    RETURNS table (hive numeric, hbd numeric, vests numeric, hp_equivalent numeric, hive_savings numeric, hbd_savings numeric)
     AS $$
     BEGIN
       CASE WHEN $2 is NULL THEN
         RETURN QUERY
-          (SELECT b.hive, b.hbd, b.vests, hafsql.vests_to_hive(b.vests) AS hp
+          (SELECT b.hive, b.hbd, b.vests, hafsql.vests_to_hive(b.vests) AS hp_equivalent, b.hive_savings, b.hbd_savings
           FROM hafsql.balances_table b WHERE b.account = $1);
       ELSE
 		CASE WHEN
 			(SELECT EXISTS(SELECT 1 FROM hafsql.balances_history_table b WHERE b.account = $1 AND b.block_num <= $2 LIMIT 1)) = true
 		THEN RETURN QUERY
-      (SELECT b.hive, b.hbd, b.vests, hafsql.vests_to_hive(b.vests, $2) AS hp
+      (SELECT b.hive, b.hbd, b.vests, hafsql.vests_to_hive(b.vests, $2) AS hp_equivalent, b.hive_savings, b.hbd_savings
       FROM hafsql.balances_history_table b WHERE b.account = $1 AND b.block_num <= $2
       ORDER BY b.block_num DESC LIMIT 1);
-		ELSE RETURN QUERY SELECT 0::numeric, 0::numeric, 0::numeric, 0::numeric;
+		ELSE RETURN QUERY SELECT 0::numeric, 0::numeric, 0::numeric, 0::numeric, 0::numeric, 0::numeric;
 		END CASE;
       END CASE;
     END
@@ -295,7 +300,7 @@ export const setupFunctions = async () => {
   // Get account balance - optionally at certain block_num
   await client.queryObject(
     `CREATE OR REPLACE FUNCTION hafsql.get_balance(text, int4 default NULL)
-    RETURNS table (hive numeric, hbd numeric, vests numeric, hp numeric)
+    RETURNS table (hive numeric, hbd numeric, vests numeric, hp_equivalent numeric, hive_savings numeric, hbd_savings numeric)
     AS $$
     DECLARE
       account int4;
