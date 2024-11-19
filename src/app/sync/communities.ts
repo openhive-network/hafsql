@@ -9,14 +9,14 @@ import {
 import {
   clearUsername,
   validateAccountName,
-} from '../helpers/functions/validate_username.ts'
-import { print } from '../helpers/functions/print.ts'
-import { sleep } from '../helpers/functions/sleep.ts'
+} from '../helpers/utils/validate_username.ts'
+import { print } from '../helpers/utils/print.ts'
+import { sleep } from '../helpers/utils/sleep.ts'
 import { createCommunitiesIndexes } from '../indexes/hafsql.ts'
-import { cleanString } from '../helpers/functions/clean_string.ts'
-import { getBlockRange } from '../helpers/functions/get_block_range.ts'
-import { updateLastBlockNum } from '../helpers/functions/update_last_block_num.ts'
-import { getUserId } from '../helpers/functions/get_user_id.ts'
+import { cleanString } from '../helpers/utils/clean_string.ts'
+import { getBlockRange } from '../helpers/utils/get_block_range.ts'
+import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
+import { getUserId } from '../helpers/utils/get_user_id.ts'
 
 const roles = {
   muted: -2,
