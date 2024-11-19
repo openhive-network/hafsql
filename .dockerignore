@@ -1,6 +1,5 @@
 node_modules
 npm-debug.log
 .vscode
-public/*
-!public
-!public/favicon.ico
+public
+retype.manifest
