@@ -1,5 +1,5 @@
 ---
-icon: quote
+icon: database
 order: 99
 ---
 
