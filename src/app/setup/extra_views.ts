@@ -76,6 +76,7 @@ export const setupExtraViews = async () => {
     CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) < '7 days' THEN (x.created + INTERVAL '7 days') - NOW() AT TIME ZONE 'UTC' ELSE '00:00:00.000' END AS remaining_till_cashout,
     CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) >= '7 days' THEN (x.created + INTERVAL '7 days') ELSE '1969-12-31 23:59:59' END AS last_payout,
     x.tags,
+    x.tags->>0 AS category,
     x.metadata AS json_metadata,
     x.root_author,
     x.root_permlink,
@@ -284,7 +285,7 @@ export const setupExtraViews = async () => {
     x.hive,
     x.hbd,
     x.vests,
-    hafsql.vests_to_hive(x.vests) as hp_equivalent,
+    hafsql.vests_to_hive(x.vests, x.block_num) as hp_equivalent,
     x.hive_savings,
     x.hbd_savings
     FROM hafsql.balances_history_table x
@@ -296,7 +297,7 @@ export const setupExtraViews = async () => {
     x.hive,
     x.hbd,
     x.vests,
-    hafsql.vests_to_hive(x.vests, x.block_num) AS historical_hp,
+    hafsql.vests_to_hive(x.vests, x.block_num) AS hp_equivalent,
     x.hive_savings,
     x.hbd_savings
     FROM hafsql.total_balances_table x;`)
