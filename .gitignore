@@ -1,6 +1,4 @@
 node_modules
 .env
-public/*
-!public
-!public/favicon.ico
+public
 retype.manifest
