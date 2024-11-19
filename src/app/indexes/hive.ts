@@ -1,6 +1,6 @@
 import { pool } from '../helpers/database.ts'
 import { opId } from '../helpers/operation_id.ts'
-import { print } from '../helpers/functions/print.ts'
+import { print } from '../helpers/utils/print.ts'
 
 export const createHiveIndexes = async () => {
 	using client = await pool.connect()
