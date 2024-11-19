@@ -1,9 +1,9 @@
 import { startAPI } from './api/start_api.ts'
 import { loadDotEnv } from './deps.ts'
 import { pool } from './app/helpers/database.ts'
-import { getBlockRange } from './app/helpers/functions/get_block_range.ts'
-import { print } from './app/helpers/functions/print.ts'
-import { sleep } from './app/helpers/functions/sleep.ts'
+import { getBlockRange } from './app/helpers/utils/get_block_range.ts'
+import { print } from './app/helpers/utils/print.ts'
+import { sleep } from './app/helpers/utils/sleep.ts'
 import { SyncData } from './app/helpers/types.ts'
 import {
 	createHiveIndexes,
@@ -49,25 +49,35 @@ const main = async () => {
 		!(await getBlockRange('operations'))
 	) {
 		isSyncing.one = true
-		// comments
-		createWorker('./app/sync/comments.ts').postMessage('start')
-		print('[Main] Starting comments worker 👷‍')
+		if (Deno.env.get('HAFSQL_COMMENTS') !== 'false') {
+			// comments
+			createWorker('./app/sync/comments.ts').postMessage('start')
+			print('[Main] Starting comments worker 👷‍')
+		}
 
-		// delegations
-		createWorker('./app/sync/delegations.ts').postMessage('start')
-		print('[Main] Starting HP delegations worker 👷')
+		if (Deno.env.get('HAFSQL_DELEGATIONS') !== 'false') {
+			// delegations
+			createWorker('./app/sync/delegations.ts').postMessage('start')
+			print('[Main] Starting HP delegations worker 👷')
+		}
 
-		// proposals
-		createWorker('./app/sync/proposals.ts').postMessage('start')
-		print('[Main] Starting proposal worker 👷')
+		if (Deno.env.get('HAFSQL_PROPOSALS') !== 'false') {
+			// proposals
+			createWorker('./app/sync/proposals.ts').postMessage('start')
+			print('[Main] Starting proposal worker 👷')
+		}
 
-		// balances
-		createWorker('./app/sync/balances.ts').postMessage('start')
-		print('[Main] Starting balances worker 👷')
+		if (Deno.env.get('HAFSQL_BALANCES') !== 'false') {
+			// balances
+			createWorker('./app/sync/balances.ts').postMessage('start')
+			print('[Main] Starting balances worker 👷')
+		}
 
-		// accounts
-		createWorker('./app/sync/accounts.ts').postMessage('start')
-		print('[Accounts] Starting accounts worker 👷')
+		if (Deno.env.get('HAFSQL_ACCOUNTS') !== 'false') {
+			// accounts
+			createWorker('./app/sync/accounts.ts').postMessage('start')
+			print('[Accounts] Starting accounts worker 👷')
+		}
 	}
 
 	// custom_json id
@@ -77,21 +87,32 @@ const main = async () => {
 		!(await getBlockRange('operations'))
 	) {
 		isSyncing.two = true
-		// reblogs
-		createWorker('./app/sync/reblogs.ts').postMessage('start')
-		print('[Main] Starting reblogs worker 👷')
+		if (
+			Deno.env.get('HAFSQL_REBLOGS') !== 'false' &&
+			Deno.env.get('HAFSQL_COMMENTS') !== 'false'
+		) {
+			// reblogs
+			createWorker('./app/sync/reblogs.ts').postMessage('start')
+			print('[Main] Starting reblogs worker 👷')
+		}
 
-		// follows
-		createWorker('./app/sync/follows.ts').postMessage('start')
-		print('[Main] Starting follows worker 👷')
+		if (Deno.env.get('HAFSQL_FOLLOWS') !== 'false') {
+			// follows
+			createWorker('./app/sync/follows.ts').postMessage('start')
+			print('[Main] Starting follows worker 👷')
+		}
 
-		// community_roles
-		createWorker('./app/sync/communities.ts').postMessage('start')
-		print('[Main] Starting community roles worker 👷')
+		if (Deno.env.get('HAFSQL_COMMUNITIES') !== 'false') {
+			// community_roles
+			createWorker('./app/sync/communities.ts').postMessage('start')
+			print('[Main] Starting community roles worker 👷')
+		}
 
-		// rc_delegations
-		createWorker('./app/sync/rc_delegations.ts').postMessage('start')
-		print('[Main] Starting RC delegations worker 👷')
+		if (Deno.env.get('HAFSQL_RC_DELEGATIONS') !== 'false') {
+			// rc_delegations
+			createWorker('./app/sync/rc_delegations.ts').postMessage('start')
+			print('[Main] Starting RC delegations worker 👷')
+		}
 	}
 
 	// author permlink
@@ -101,17 +122,27 @@ const main = async () => {
 		!(await getBlockRange('operations'))
 	) {
 		isSyncing.three = true
-		// paid_rewards
-		createWorker('./app/sync/paid_rewards.ts').postMessage('start')
-		print('[Main] Starting paid_rewards worker 👷')
+		if (
+			Deno.env.get('HAFSQL_REWARDS') !== 'false' &&
+			Deno.env.get('HAFSQL_COMMENTS') !== 'false'
+		) {
+			// paid_rewards
+			createWorker('./app/sync/paid_rewards.ts').postMessage('start')
+			print('[Main] Starting paid_rewards worker 👷')
 
-		// pending_rewards
-		createWorker('./app/sync/pending_rewards.ts').postMessage('start')
-		print('[Main] Starting pending_rewards worker 👷')
+			// pending_rewards
+			createWorker('./app/sync/pending_rewards.ts').postMessage('start')
+			print('[Main] Starting pending_rewards worker 👷')
+		}
 
-		// reputations
-		createWorker('./app/sync/reputations.ts').postMessage('start')
-		print('[Main] Starting reputations worker 👷')
+		if (
+			Deno.env.get('HAFSQL_REPUTATIONS') !== 'false' &&
+			Deno.env.get('HAFSQL_COMMENTS') !== 'false'
+		) {
+			// reputations
+			createWorker('./app/sync/reputations.ts').postMessage('start')
+			print('[Main] Starting reputations worker 👷')
+		}
 	}
 
 	if (isSyncing.four === false) {
