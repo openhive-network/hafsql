@@ -143,7 +143,7 @@ const getData = async (blockRange: number[]) => {
   using client = await pool.connect()
   const result = await client.queryObject<Operations>(
     `SELECT id, body_binary::jsonb AS body, hive.operation_id_to_type_id(id) AS op_type_id
-      FROM hive.operations
+      FROM hafd.operations
       WHERE id >= hafsql.first_op_id_from_block_num($1)
       AND id <= hafsql.last_op_id_from_block_num($2)
       AND hive.operation_id_to_type_id(id) NOT IN
