@@ -31,8 +31,8 @@ export const setupOperationViews = async () => {
       ${param('permlink')} AS "permlink",
       ${block('o.id')} AS "block_num",
       hafsql.get_trx_id(o.id) AS "trx_id"
-    FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
+    FROM hafd.operations o
+    JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = 0;`
   await client.queryObject(OpVote)
 
@@ -49,8 +49,8 @@ export const setupOperationViews = async () => {
     hafsql.to_json(${param('json_metadata')}) AS "json_metadata",
     ${block('o.id')} AS "block_num",
     hafsql.get_trx_id(o.id) AS "trx_id"
-    FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
+    FROM hafd.operations o
+    JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = 1;`
   await client.queryObject(OpComment)
 
@@ -64,8 +64,8 @@ export const setupOperationViews = async () => {
     ${param('json')} AS "json",
     ${block('o.id')} AS "block_num",
     hafsql.get_trx_id(o.id) AS "trx_id"
-    FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
+    FROM hafd.operations o
+    JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = 18;`
   await client.queryObject(OpCustomJson)
 
@@ -84,8 +84,8 @@ export const setupOperationViews = async () => {
       ${amount(param('pending_payout'))} AS pending_payout,
       ${symbol(param('pending_payout'))} AS pending_payout_symbol,
       ${block('o.id')} as block_num
-    FROM hive.operations o
-    JOIN hive.blocks hb ON hb.num = ${block('o.id')}
+    FROM hafd.operations o
+    JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 23;`
   await client.queryObject(VOEffectiveCommentVote)
 }
