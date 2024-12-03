@@ -3,7 +3,7 @@ import { pool } from '../helpers/database.ts'
 export const setupExtraViews = async () => {
   using client = await pool.connect()
   // Blocks
-  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.blocks
+  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.haf_blocks
   AS SELECT b.num AS block_num,
     b.created_at as "timestamp",
     b.producer_account_id as witness,
@@ -13,10 +13,10 @@ export const setupExtraViews = async () => {
     encode(b.prev, 'hex'::text) as prev,
     encode(b.witness_signature, 'hex'::text) as signature,
     encode(b.transaction_merkle_root, 'hex'::text) as transaction_merkle_root
-    FROM hive.blocks b;`)
+    FROM hafd.blocks b;`)
 
   // Transactions
-  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.transactions
+  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.haf_transactions
   AS SELECT x.block_num,
     x.trx_in_block,
     x.trx_hash,
@@ -24,8 +24,8 @@ export const setupExtraViews = async () => {
     x.ref_block_num,
     x.ref_block_prefix,
     x.expiration,
-    array_fill(encode(x.signature, 'hex'), array[1]) || array(select encode(tm.signature, 'hex') from hive.transactions_multisig tm where tm.trx_hash=x.trx_hash) as signatures
-    FROM hive.transactions x;`)
+    array_fill(encode(x.signature, 'hex'), array[1]) || array(select encode(tm.signature, 'hex') from hafd.transactions_multisig tm where tm.trx_hash=x.trx_hash) as signatures
+    FROM hafd.transactions x;`)
 
   // DynamicGlobalProperties
   await client.queryObject(
@@ -41,7 +41,7 @@ export const setupExtraViews = async () => {
     b.hbd_interest_rate::text as hbd_interest_rate,
     b.dhf_interval_ledger::text as dhf_interval_ledger,
     (b.total_vesting_shares::numeric / b.total_vesting_fund_hive::numeric)/1000 as vests_per_hive
-    FROM hive.blocks b;`,
+    FROM hafd.blocks b;`,
   )
 
   // Delegations
@@ -101,8 +101,8 @@ export const setupExtraViews = async () => {
     a.name AS account_name,
     b.name AS community_name
     FROM hafsql.community_subs_table c
-    JOIN hive.accounts a ON c.account=a.id
-    JOIN hive.accounts b ON c.community=b.id;`)
+    JOIN hafd.accounts a ON c.account=a.id
+    JOIN hafd.accounts b ON c.community=b.id;`)
 
   // Community Roles
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.community_roles
@@ -113,8 +113,8 @@ export const setupExtraViews = async () => {
     CASE WHEN c.role=-2 THEN 'muted' WHEN c.role=8 THEN 'owner' WHEN c.role=2 THEN 'member' WHEN c.role=4 THEN 'mod' WHEN c.role=6 THEN 'admin' ELSE 'guest' END AS role,
     c.title
     FROM hafsql.community_roles_table c
-    JOIN hive.accounts a ON c.account=a.id
-    JOIN hive.accounts b ON c.community=b.id;`)
+    JOIN hafd.accounts a ON c.account=a.id
+    JOIN hafd.accounts b ON c.community=b.id;`)
 
   // Blacklists
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.blacklists
@@ -123,8 +123,8 @@ export const setupExtraViews = async () => {
     a.name AS blacklister_name,
     b.name AS blacklisted_name
     FROM hafsql.blacklists_table x
-    JOIN hive.accounts a ON x.blacklister=a.id
-    JOIN hive.accounts b ON x.blacklisted=b.id;`)
+    JOIN hafd.accounts a ON x.blacklister=a.id
+    JOIN hafd.accounts b ON x.blacklisted=b.id;`)
 
   // Mutes
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.mutes
@@ -133,8 +133,8 @@ export const setupExtraViews = async () => {
     a.name AS muter_name,
     b.name AS muted_name
     FROM hafsql.mutes_table x
-    JOIN hive.accounts a ON x.muter=a.id
-    JOIN hive.accounts b ON x.muted=b.id;`)
+    JOIN hafd.accounts a ON x.muter=a.id
+    JOIN hafd.accounts b ON x.muted=b.id;`)
 
   // Blacklist Follows
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.blacklist_follows
@@ -143,8 +143,8 @@ export const setupExtraViews = async () => {
     a.name AS account_name,
     b.name AS blacklist_name
     FROM hafsql.blacklist_follows_table x
-    JOIN hive.accounts a ON x.account=a.id
-    JOIN hive.accounts b ON x.blacklist=b.id;`)
+    JOIN hafd.accounts a ON x.account=a.id
+    JOIN hafd.accounts b ON x.blacklist=b.id;`)
 
   // Mute Follows
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.mute_follows
@@ -153,8 +153,8 @@ export const setupExtraViews = async () => {
     a.name AS account_name,
     b.name AS mute_list_name
     FROM hafsql.mute_follows_table x
-    JOIN hive.accounts a ON x.account=a.id
-    JOIN hive.accounts b ON x.mute_list=b.id;`)
+    JOIN hafd.accounts a ON x.account=a.id
+    JOIN hafd.accounts b ON x.mute_list=b.id;`)
 
   // Follows
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.follows
@@ -163,8 +163,8 @@ export const setupExtraViews = async () => {
     a.name as follower_name,
     ab.name AS following_name
   FROM hafsql.follows_table x
-  JOIN hive.accounts a ON x.follower = a.id
-  JOIN hive.accounts ab ON x.following = ab.id;`)
+  JOIN hafd.accounts a ON x.follower = a.id
+  JOIN hafd.accounts ab ON x.following = ab.id;`)
 
   // Reblogs
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.reblogs
@@ -174,7 +174,7 @@ export const setupExtraViews = async () => {
     c.author,
     c.permlink
     FROM hafsql.reblogs_table x
-    JOIN hive.accounts a ON x.account = a.id
+    JOIN hafd.accounts a ON x.account = a.id
     JOIN hafsql.comments c ON c.id = x.post;`)
 
   // Proposal Approvlas
@@ -191,7 +191,7 @@ export const setupExtraViews = async () => {
     x.is_implicit,
     hafsql.parse_reputation(x.reputation) as rep
     FROM hafsql.reputations_table x
-    JOIN hive.accounts a ON x.account=a.id;`)
+    JOIN hafd.accounts a ON x.account=a.id;`)
 
   // Accounts
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.accounts
@@ -229,16 +229,16 @@ export const setupExtraViews = async () => {
     ha.vesting_withdraw_rate,
     ha.withdrawn,
     ha.withdraw_routes,
-    (SELECT "name" FROM hive.accounts WHERE id = ha.proxy) AS proxy,
+    (SELECT "name" FROM hafd.accounts WHERE id = ha.proxy) AS proxy,
     (SELECT SUM(amount) FROM hafsql.pending_saving_withdraws_table where "from"=x.id AND symbol='hive') AS pending_hive_savings_withdrawal,
     (SELECT SUM(amount) FROM hafsql.pending_saving_withdraws_table where "from"=x.id AND symbol='hbd') AS pending_hbd_savings_withdrawal
-    FROM hive.accounts x, hafsql.accounts_table ha, hive.accounts creatort, hive.accounts recoveryt
+    FROM hafd.accounts x, hafsql.accounts_table ha, hafd.accounts creatort, hafd.accounts recoveryt
     WHERE x.id = ha.account
     AND ha.creator = creatort.id
     AND ha."recovery" = recoveryt.id;`)
 
   // Operations
-  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.operations
+  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.haf_operations
   AS SELECT x.id,
     hive.operation_id_to_block_num(x.id) AS block_num,
     x.trx_in_block,
@@ -247,22 +247,22 @@ export const setupExtraViews = async () => {
     hb.created_at AS "timestamp",
     x.body_binary::jsonb as body,
     hafsql.get_trx_id(x.id) as included_trx_id
-    FROM hive.operations x
-    JOIN hive.blocks hb ON hb.num = hive.operation_id_to_block_num(x.id);`)
+    FROM hafd.operations x
+    JOIN hafd.blocks hb ON hb.num = hive.operation_id_to_block_num(x.id);`)
 
   // Operation Types
-  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.operation_types
+  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.haf_operation_types
   AS SELECT x.id,
     x.name,
     x.is_virtual 
-    FROM hive.operation_types x;`)
+    FROM hafd.operation_types x;`)
 
   // Applied Hardforks
-  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.applied_hardforks
+  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.haf_applied_hardforks
   AS SELECT x.hardfork_num,
     x.block_num,
     x.hardfork_vop_id
-    FROM hive.applied_hardforks x;`)
+    FROM hafd.applied_hardforks x;`)
 
   // Balances
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.balances
@@ -275,7 +275,7 @@ export const setupExtraViews = async () => {
     x.hive_savings,
     x.hbd_savings
     FROM hafsql.balances_table x
-    JOIN hive.accounts a ON x.account=a.id;`)
+    JOIN hafd.accounts a ON x.account=a.id;`)
 
   // Balances history
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.balances_history
@@ -289,7 +289,7 @@ export const setupExtraViews = async () => {
     x.hive_savings,
     x.hbd_savings
     FROM hafsql.balances_history_table x
-    JOIN hive.accounts a ON x.account=a.id;`)
+    JOIN hafd.accounts a ON x.account=a.id;`)
 
   // Total balances
   await client.queryObject(`CREATE OR REPLACE VIEW hafsql.total_balances
@@ -301,13 +301,23 @@ export const setupExtraViews = async () => {
     x.hive_savings,
     x.hbd_savings
     FROM hafsql.total_balances_table x;`)
+
+  // haf_account_operations
+  await client.queryObject(`CREATE OR REPLACE VIEW hafsql.haf_account_operations
+  AS SELECT
+    account_id,
+    a."name" AS account_name,
+    account_op_seq_no,
+    operation_id
+    FROM hafd.account_operations
+    join hafd.accounts a ON account_id = a.id;`)
 }
 
 export const removeExtraViews = async () => {
   using client = await pool.connect()
   await client.queryObject(`DROP VIEW IF EXISTS
-    hafsql.blocks,
-    hafsql.transactions,
+    hafsql.haf_blocks,
+    hafsql.haf_transactions,
     hafsql.dynamic_global_properties,
     hafsql.delegations,
     hafsql.rc_delegations,
@@ -320,12 +330,13 @@ export const removeExtraViews = async () => {
     hafsql.reblogs,
     hafsql.proposal_approvals,
     hafsql.accounts,
-    hafsql.operations,
-    hafsql.operation_types,
-    hafsql.applied_hardforks,
+    hafsql.haf_operations,
+    hafsql.haf_operation_types,
+    hafsql.haf_applied_hardforks,
     hafsql.community_subs,
     hafsql.community_roles,
     hafsql.reputations,
     hafsql.balances,
-    hafsql.total_balances;`)
+    hafsql.total_balances,
+    hafsql.haf_account_operations;`)
 }
