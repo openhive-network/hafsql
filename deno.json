@@ -1,10 +1,14 @@
 {
+	"version": "2.0.0-rc1",
 	"tasks": {
-		"dev": "deno run --watch --allow-read --allow-env --allow-net src/main.ts",
+		"dev": "deno run --watch --allow-read --allow-env --allow-net --allow-sys src/main.ts",
 		"start": "deno run --allow-read --allow-env src/main.ts",
 		"format": "deno fmt",
 		"test": "deno run --watch --allow-read --allow-env --allow-net test.ts",
-		"api": "deno run --watch --allow-read --allow-env --allow-net --allow-sys src/api/start_api.ts"
+		"api": "deno run --watch --allow-read --allow-env --allow-net --allow-sys src/api/start_api.ts",
+		"docs": "deno run --allow-read --allow-env --allow-net --allow-sys --allow-write sql_docs/helpers/operations_helper.ts",
+		"docs2": "deno run --allow-read --allow-env --allow-net --allow-sys --allow-write sql_docs/helpers/hafsql_tables_helper.ts",
+		"pre-docker-build": "deno install --entrypoint src/deps.ts && deno cache src/main.ts"
 	},
 	"fmt": {
 		"useTabs": true,
@@ -13,7 +17,8 @@
 		"semiColons": false,
 		"singleQuote": true,
 		"include": [
-			"src/"
+			"src/",
+			"./*.ts"
 		]
 	},
 	"imports": {
