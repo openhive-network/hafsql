@@ -7,13 +7,19 @@ Scaler for api docs (using danet)
 
 
 ### Documentation
-http://
+- [SQL Documentations](https://mahdiyari.gitlab.com/hafsql)
+- [API Documentations]()
 
 ***
 ## How to run
 
-The following command will start the HafSQL docker container and start the API on port 3000.  
+The following command will start the HafSQL docker container and serve the API and documentations on port 3000.  
 The container will check and wait for HAF to be ready before processing the data.
+```sh
+docker run -itd -p 3000:3000 --name hafsql mahdiyari/hafsql:latest
+```
+  
+To include [environment variables](#options):
 ```sh
 docker run -itd --env-file .env -p 3000:3000 --name hafsql mahdiyari/hafsql:latest
 ```
@@ -79,5 +85,9 @@ API documentation UI is in `/src/api/ui/scalar.ts`
 SQL views are located in `/src/app/setup/extra_views.ts` and `setup_operation_views.ts`  
   
 SQL functions are in `/src/app/setup/functions.ts`  
+
+Breaking schema changes must be handled in `src/upgrade.ts`  
+
+Version must be updated in `deno.json`
 
 Open issues for feedback or requests.
