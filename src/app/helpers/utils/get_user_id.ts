@@ -23,7 +23,7 @@ export const getUserId = async (username: string, trx?: Transaction) => {
       client = await pool.connect()
     }
     const getId = await client.queryObject<{ id: number }>(
-      'SELECT a.id FROM hive.accounts a WHERE a.name=$1',
+      'SELECT a.id FROM hafd.accounts a WHERE a.name=$1',
       [username],
     )
     if (!trx && client instanceof PoolClient) {
