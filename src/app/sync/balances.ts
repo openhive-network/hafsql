@@ -55,7 +55,7 @@ const syncBalances = async () => {
 }
 
 /**
- * Fill the balances table with the account ids from hive.accounts
+ * Fill the balances table with the account ids from hafd.accounts
  * And keep adding them on live sync
  */
 const prepareTable = async () => {
@@ -68,12 +68,12 @@ const prepareTable = async () => {
     lastAccount = lastAccountQ.rows[0].account
   }
   const lastNewAccountQ = await client.queryObject<{ id: number }>(
-    `SELECT id FROM hive.accounts ORDER BY id DESC LIMIT 1`,
+    `SELECT id FROM hafd.accounts ORDER BY id DESC LIMIT 1`,
   )
   const lastNewAccount = lastNewAccountQ.rows[0].id
   if (lastNewAccount > lastAccount) {
     await client.queryObject(
-      `INSERT INTO hafsql.balances_table (account) SELECT id FROM hive.accounts WHERE id > $1`,
+      `INSERT INTO hafsql.balances_table (account) SELECT id FROM hafd.accounts WHERE id > $1`,
       [lastAccount],
     )
   }
@@ -107,7 +107,7 @@ const getData = async (blockRange: number[]) => {
     query +=
       `\nSELECT (hive.get_impacted_balances(body_binary, id > 3889921816588623)).*, id,
         hive.operation_id_to_type_id(id) AS op_type_id,
-        hive.operation_id_to_block_num(id) AS block_num FROM hive.operations
+        hive.operation_id_to_block_num(id) AS block_num FROM hafd.operations
         WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
         AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
         AND hive.operation_id_to_type_id(id) = ${balanceImpactingOps[i]}`
