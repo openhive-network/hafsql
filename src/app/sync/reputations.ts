@@ -39,7 +39,7 @@ const syncReputations = async () => {
 }
 
 /**
- * Fill the reputations table with the account ids from hive.accounts
+ * Fill the reputations table with the account ids from hafd.accounts
  * And keep adding them on live sync
  */
 const prepareTable = async () => {
@@ -52,12 +52,12 @@ const prepareTable = async () => {
     lastAccount = lastAccountQ.rows[0].account
   }
   const lastNewAccountQ = await client.queryObject<{ id: number }>(
-    `SELECT id FROM hive.accounts ORDER BY id DESC LIMIT 1`,
+    `SELECT id FROM hafd.accounts ORDER BY id DESC LIMIT 1`,
   )
   const lastNewAccount = lastNewAccountQ.rows[0].id
   if (lastNewAccount > lastAccount) {
     await client.queryObject(
-      `INSERT INTO hafsql.reputations_table (account) SELECT id FROM hive.accounts WHERE id > $1`,
+      `INSERT INTO hafsql.reputations_table (account) SELECT id FROM hafd.accounts WHERE id > $1`,
       [lastAccount],
     )
   }
@@ -334,7 +334,7 @@ const fillCache = async () => {
 const getTimestamp = async (blockNum: number) => {
   using client = await pool.connect()
   const result = await client.queryObject<{ created_at: string }>(
-    `SELECT created_at FROM hive.blocks WHERE num=$1`,
+    `SELECT created_at FROM hafd.blocks WHERE num=$1`,
     [blockNum],
   )
   return new Date(result.rows[0].created_at + 'Z').getTime()
@@ -343,7 +343,7 @@ const getTimestamp = async (blockNum: number) => {
 const getBlockNum = async (timestamp: number) => {
   using client = await pool.connect()
   const result = await client.queryObject<{ num: number }>(
-    `SELECT num FROM hive.blocks WHERE created_at <= $1
+    `SELECT num FROM hafd.blocks WHERE created_at <= $1
       ORDER BY created_at DESC LIMIT 1`,
     [new Date(timestamp).toISOString()],
   )
