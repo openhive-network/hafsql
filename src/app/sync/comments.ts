@@ -65,7 +65,7 @@ const fillComments = async () => {
 	}
 }
 
-// Get comment operations from hive.operations
+// Get comment operations from hafd.operations
 const getComments = async (blockRange: number[]) => {
 	using client = await pool.connect()
 	const result = await client.queryObject<CommentOp>(
