@@ -169,7 +169,7 @@ const getTotalBalances = async (num: number, limit: number) => {
   using client = await pool.connect()
   const result = await client.queryObject(
     `SELECT *,
-      (SELECT timestamp FROM hafsql.blocks WHERE block_num=tb.block_num)
+      (SELECT timestamp FROM hafsql.haf_blocks WHERE block_num=tb.block_num)
       FROM hafsql.total_balances tb
       WHERE block_num
       ${limit < 0 && num !== MAX_NUM ? '> $1' : '< $1'}
