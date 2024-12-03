@@ -38,7 +38,7 @@ export const createHiveIndexes = async () => {
 		if (exists) {
 			continue
 		}
-		const table = hiveIndexes[i].table || 'hive.operations'
+		const table = hiveIndexes[i].table || 'hafd.operations'
 		await client.queryObject(
 			`CREATE INDEX CONCURRENTLY IF NOT EXISTS ${name} ON ${table} ${params} ${condition};`,
 		)
@@ -91,11 +91,8 @@ const param = (param: string, jsonb = false): string => {
 	}
 	return `(body_binary::jsonb->'value'->>'${param}')`
 }
-const amount = (param: string) => {
-	return `hafsql.asset_amount(${param})`
-}
 
-// Indexes on hive.operations
+// Indexes on hafd.operations
 // The first ones are needed to sync so we create them first
 export const hiveIndexes: {
 	name: string
