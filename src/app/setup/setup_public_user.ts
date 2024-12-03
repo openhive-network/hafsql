@@ -17,7 +17,7 @@ export const setupPublicUser = async () => {
 		'GRANT SELECT ON ALL TABLES IN SCHEMA hafsql TO hafsql_public;',
 	)
 	await client.queryObject(
-		'GRANT ALL ON FUNCTION hive._operation_to_jsonb TO hafsql_public;',
+		'GRANT ALL ON FUNCTION hafd._operation_to_jsonb TO hafsql_public;',
 	)
 	await client.queryObject(
 		'GRANT ALL ON FUNCTION hive.operation_id_to_block_num TO hafsql_public;',
