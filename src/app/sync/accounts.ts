@@ -55,7 +55,7 @@ const syncAccounts = async () => {
 }
 
 /**
- * Fill the accounts table with the account ids from hive.accounts
+ * Fill the accounts table with the account ids from hafd.accounts
  * And keep adding them on live sync
  */
 const prepareTable = async () => {
@@ -68,12 +68,12 @@ const prepareTable = async () => {
     lastAccount = lastAccountQ.rows[0].account
   }
   const lastNewAccountQ = await client.queryObject<{ id: number }>(
-    `SELECT id FROM hive.accounts ORDER BY id DESC LIMIT 1`,
+    `SELECT id FROM hafd.accounts ORDER BY id DESC LIMIT 1`,
   )
   const lastNewAccount = lastNewAccountQ.rows[0].id
   if (lastNewAccount > lastAccount) {
     await client.queryObject(
-      `INSERT INTO hafsql.accounts_table (account) SELECT id FROM hive.accounts WHERE id > $1`,
+      `INSERT INTO hafsql.accounts_table (account) SELECT id FROM hafd.accounts WHERE id > $1`,
       [lastAccount],
     )
   }
@@ -191,7 +191,7 @@ const getData = async (blockRange: number[]) => {
   // 13 weeks ago = 2620800 blocks ago
   // process only the last 13 weeks - older withdraws are already done at this point
   const headBlock = (await client.queryObject<{ block_num: number }>(
-    `SELECT block_num FROM hafsql.blocks ORDER BY block_num DESC LIMIT 1;`,
+    `SELECT block_num FROM hafsql.haf_blocks ORDER BY block_num DESC LIMIT 1;`,
   )).rows[0].block_num
   const weeksAgo13 = (headBlock - 2620800) || 0
   const withdrawVesting = await client.queryObject<WithdrawVesting>(
