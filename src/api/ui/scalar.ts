@@ -6,23 +6,23 @@ import { ApiParserOptions, openApi, Router } from '../../deps.ts'
 
 // @ts-ignore for some reason the default export is not detected correctly
 const spec = openApi({
-  include: ['src/api/ui/*', 'src/api/routes/*.ts', '**.yaml'],
+	include: ['src/api/ui/*', 'src/api/routes/*.ts', '**.yaml'],
 } as ApiParserOptions)
 
 export const scalar = new Router()
-  /**
-   * GET /openapi.json
-   * @summary OpenAPI definitions
-   * @description The OpenAPI definitions of the HafSQL APIs as JSON.
-   * @tag OpenAPI
-   * @response 200 - JSON
-   * @responseContent {object} 200.application/json
-   */
-  .get('/openapi.json', (context) => {
-    context.response.body = spec
-  })
-  .get('/', (context) => {
-    context.response.body = `
+	/**
+	 * GET /openapi.json
+	 * @summary OpenAPI definitions
+	 * @description The OpenAPI definitions of the HafSQL APIs as JSON.
+	 * @tag OpenAPI
+	 * @response 200 - JSON
+	 * @responseContent {object} 200.application/json
+	 */
+	.get('/openapi.json', (context) => {
+		context.response.body = spec
+	})
+	.get('/', (context) => {
+		context.response.body = `
     <!doctype html>
     <html>
       <head>
@@ -65,8 +65,7 @@ export const scalar = new Router()
         <header class="custom-header scalar-app">
           <a href="/#"><b>HafSQL APIs</b></a>
           <nav>
-            <a href="https://twitter.com/scalar">Twitter</a>
-            <a href="https://discord.gg/8HeZcRGPFS">Discord</a>
+            <a target="_blank" href="https://gitlab.com/mahdiyari/hafsql">GitLab</a>
           </nav>
         </header>
         <!-- Need a Custom Header? Check out this example https://codepen.io/scalarorg/pen/VwOXqam -->
@@ -91,10 +90,10 @@ export const scalar = new Router()
       </body>
     </html>
     `
-  })
-  .get('/favicon.ico', async (ctx) => {
-    await ctx.send({
-      root: Deno.cwd(),
-      index: `favicon.ico`,
-    })
-  })
+	})
+	.get('/favicon.ico', async (ctx) => {
+		await ctx.send({
+			root: Deno.cwd(),
+			index: `favicon.ico`,
+		})
+	})
