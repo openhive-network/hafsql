@@ -11,6 +11,7 @@ import {
 	hiveIndexes,
 } from './app/indexes/hive.ts'
 import { setup } from './app/setup/setup.ts'
+import { handleUpgrade } from './upgrade.ts'
 
 // Load .env and .env.defaults
 await loadDotEnv({ export: true })
@@ -31,6 +32,9 @@ const HAFSQL_ASCI = `
 `
 
 console.log(HAFSQL_ASCI)
+
+// check for possible upgrade actions
+await handleUpgrade()
 
 // index and sync at the same time
 const isSyncing = {
@@ -184,7 +188,7 @@ entryPoint()
 const printStats = async () => {
 	using client = await pool.connect()
 	const head = await client.queryObject<{ num: number }>(
-		`SELECT num FROM hive.blocks ORDER BY num DESC LIMIT 1;`,
+		`SELECT num FROM hafd.blocks ORDER BY num DESC LIMIT 1;`,
 	)
 	const headNum = head.rows[0].num
 	const result = await client.queryObject<SyncData>(
