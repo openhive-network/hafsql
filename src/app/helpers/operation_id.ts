@@ -1,7 +1,7 @@
 import type { OperationNames } from './types.ts'
 
 // Total number of non-vops can change in hardforks
-const OPS = 49
+export const OPS = 49
 
 export const opId = {
 	vote: 0,
