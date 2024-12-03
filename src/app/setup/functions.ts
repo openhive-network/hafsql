@@ -147,7 +147,7 @@ export const setupFunctions = async () => {
     DECLARE
       trxid text;
     BEGIN
-      SELECT t.trx_id FROM hafsql.operations o
+      SELECT t.trx_id FROM hafsql.haf_operations o
         JOIN hafsql.transactions t
           ON t.block_num = o.block_num
           AND t.trx_in_block = o.trx_in_block
@@ -171,7 +171,7 @@ export const setupFunctions = async () => {
     RETURNS int8
     AS $$
     BEGIN
-      RETURN (SELECT id FROM hive.operations
+      RETURN (SELECT id FROM hafd.operations
         WHERE hive.operation_id_to_block_num(id) = $1
         ORDER BY id DESC limit 1);
     EXCEPTION WHEN OTHERS THEN
@@ -194,7 +194,7 @@ export const setupFunctions = async () => {
     RETURNS int8
     AS $$
     BEGIN
-      RETURN (SELECT id FROM hive.operations
+      RETURN (SELECT id FROM hafd.operations
         WHERE hive.operation_id_to_block_num(id) = $1
         ORDER BY id ASC limit 1);
     EXCEPTION WHEN OTHERS THEN
@@ -220,7 +220,7 @@ export const setupFunctions = async () => {
       last_num int4;
       head_num int4;
     BEGIN
-      SELECT num INTO STRICT head_num FROM hive.blocks ORDER BY num DESC LIMIT 1;
+      SELECT num INTO STRICT head_num FROM hafd.blocks ORDER BY num DESC LIMIT 1;
       SELECT last_block_num INTO STRICT last_num FROM hafsql.sync_data WHERE table_name = $1;
       RETURN
         CASE WHEN head_num > last_num THEN
@@ -327,9 +327,9 @@ export const setupFunctions = async () => {
       opid int8;
     BEGIN
       CASE WHEN highest = FALSE THEN
-        SELECT o.id INTO opid FROM hafsql.operations o WHERE o.timestamp >= $1 ORDER BY o."timestamp", o.id LIMIT 1;
+        SELECT o.id INTO opid FROM hafsql.haf_operations o WHERE o.timestamp >= $1 ORDER BY o."timestamp", o.id LIMIT 1;
       ELSE
-        SELECT o.id INTO opid FROM hafsql.operations o WHERE o.timestamp >= $1 ORDER BY o."timestamp", o.id DESC LIMIT 1;
+        SELECT o.id INTO opid FROM hafsql.haf_operations o WHERE o.timestamp >= $1 ORDER BY o."timestamp", o.id DESC LIMIT 1;
       END CASE;
       RETURN opid;
     END
@@ -349,7 +349,7 @@ export const setupFunctions = async () => {
     RETURNS timestamp
     AS $$
     BEGIN
-      RETURN (SELECT timestamp FROM hafsql.operations WHERE id = operation_id);
+      RETURN (SELECT timestamp FROM hafsql.haf_operations WHERE id = operation_id);
     END
     $$
     LANGUAGE plpgsql
