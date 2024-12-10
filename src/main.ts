@@ -1,6 +1,4 @@
 import { startAPI } from './api/start_api.ts'
-import { loadDotEnv } from './deps.ts'
-import { pool } from './app/helpers/database.ts'
 import { getBlockRange } from './app/helpers/utils/get_block_range.ts'
 import { print } from './app/helpers/utils/print.ts'
 import { sleep } from './app/helpers/utils/sleep.ts'
@@ -12,9 +10,15 @@ import {
 } from './app/indexes/hive.ts'
 import { setup } from './app/setup/setup.ts'
 import { handleUpgrade } from './upgrade.ts'
+import { purgeHafSQL } from './purge.ts'
+import { query } from './app/helpers/database.ts'
 
-// Load .env and .env.defaults
-await loadDotEnv({ export: true })
+// Running hafsql with the argument `purge` will remove everything and exit
+if (Deno.args.includes('purge')) {
+	print('Running HafSQL with the `purge` command...')
+	await purgeHafSQL()
+	Deno.exit()
+}
 
 const HAFSQL_ASCI = `
 
@@ -32,9 +36,6 @@ const HAFSQL_ASCI = `
 `
 
 console.log(HAFSQL_ASCI)
-
-// check for possible upgrade actions
-await handleUpgrade()
 
 // index and sync at the same time
 const isSyncing = {
@@ -159,18 +160,20 @@ const main = async () => {
 
 let once = false
 const entryPoint = async () => {
-	using client = await pool.connect()
-	const result = await client.queryObject<{ is_ready: boolean }>(
+	const result = await query<{ is_ready: boolean }>(
 		'SELECT hive.is_instance_ready() AS is_ready;',
 	)
 	if (result.rows[0]?.is_ready) {
 		// Setup database - create views and tables
 		await setup()
+		// check for possible upgrade actions
+		await handleUpgrade()
+		startAPI()
 		print('[Main] Start creating indexes... ⏳')
 		createHiveIndexes()
 		setInterval(main, 5000)
 		setTimeout(printStats, 60000)
-		setInterval(printStats, 1800000)
+		setInterval(printStats, 600000)
 	} else {
 		if (!once) {
 			print('[Main] Waiting for HAF to be ready... ⏳')
@@ -182,20 +185,19 @@ const entryPoint = async () => {
 }
 
 entryPoint()
-// startAPI()
 
 // Log status of the sync every 30min
 const printStats = async () => {
-	using client = await pool.connect()
-	const head = await client.queryObject<{ num: number }>(
+	const head = await query<{ num: number }>(
 		`SELECT num FROM hafd.blocks ORDER BY num DESC LIMIT 1;`,
 	)
 	const headNum = head.rows[0].num
-	const result = await client.queryObject<SyncData>(
+	const result = await query<SyncData>(
 		`SELECT * FROM hafsql.sync_data;`,
 	)
 	const temp = 'Waiting for operations & indexes ⏳'
 	const syncData: Record<string, string> = {}
+	let allReady = true
 	for (let i = 0; i < result.rows.length; i++) {
 		const tableName = result.rows[i].table_name
 		const lastNum = result.rows[i].last_block_num
@@ -203,6 +205,7 @@ const printStats = async () => {
 		if (headNum - lastNum < 3) {
 			syncData[tableName] = `${format(lastNum)}/${format(headNum)} 🟢`
 		} else {
+			allReady = false
 			syncData[tableName] = lastNum > 0
 				? `${format(lastNum)}/${format(headNum)} 🟡`
 				: temp
@@ -222,7 +225,7 @@ const printStats = async () => {
 	}
 	syncData.indexes = `${counter}/${hiveIndexes.length}`
 	syncData.indexes += counter === hiveIndexes.length ? ` ✅` : ` ⏳`
-	print('Sync status:')
+	print(`Sync status: ${allReady ? 'live 🟢' : 'in progress ⏳'}`)
 	console.table(syncData)
 }
 
@@ -236,9 +239,10 @@ const createWorker = (path: string) => {
 	})
 	worker.onerror = (e) => {
 		// TODO write to file
+		console.log('Error in worker:', path)
+		console.log(e)
 		console.log(e.filename, 'At:', e.lineno)
-		console.log(e.message)
-		throw new Error(e.message)
+		throw e
 	}
 	return worker
 }
