@@ -1,12 +1,9 @@
-import { pool } from '../helpers/database.ts'
+import { query } from '../helpers/database.ts'
 
 export const setupFunctions = async () => {
-  // `using` so don't need to release the client
-  using client = await pool.connect()
-
-  // hafsql.asset_amount(text)
-  // Get the asset amount from the asset object
-  await client.queryObject(`CREATE OR REPLACE FUNCTION hafsql.asset_amount(text)
+	// hafsql.asset_amount(text)
+	// Get the asset amount from the asset object
+	await query(`CREATE OR REPLACE FUNCTION hafsql.asset_amount(text)
     RETURNS numeric
     AS $$
     DECLARE
@@ -21,12 +18,12 @@ export const setupFunctions = async () => {
     LANGUAGE plpgsql
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;`)
-  await client.queryObject(`COMMENT ON FUNCTION hafsql.asset_amount (text) IS
+	await query(`COMMENT ON FUNCTION hafsql.asset_amount (text) IS
     'Return the calculated amount(float) of an asset object like {"nai": "@@000000021", "amount": "2123", "precision": 3}';`)
 
-  // hafsql.asset_symbol(text)
-  // Get the asset symbol from the asset object
-  await client.queryObject(`CREATE OR REPLACE FUNCTION hafsql.asset_symbol(text)
+	// hafsql.asset_symbol(text)
+	// Get the asset symbol from the asset object
+	await query(`CREATE OR REPLACE FUNCTION hafsql.asset_symbol(text)
     RETURNS text
     AS $$
     DECLARE
@@ -44,12 +41,12 @@ export const setupFunctions = async () => {
     LANGUAGE plpgsql
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;`)
-  await client.queryObject(`COMMENT ON FUNCTION hafsql.asset_symbol (text) IS
+	await query(`COMMENT ON FUNCTION hafsql.asset_symbol (text) IS
     'Return the symbol(text) of an asset object like {"nai": "@@000000021", "amount": "2123", "precision": 3}';`)
 
-  // hafsql.is_json(text)
-  // Check if the string is valid json
-  await client.queryObject(`CREATE OR REPLACE FUNCTION hafsql.is_json(text)
+	// hafsql.is_json(text)
+	// Check if the string is valid json
+	await query(`CREATE OR REPLACE FUNCTION hafsql.is_json(text)
     RETURNS bool
     AS $$
     DECLARE
@@ -67,12 +64,12 @@ export const setupFunctions = async () => {
     LANGUAGE plpgsql
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;`)
-  await client.queryObject(`COMMENT ON FUNCTION hafsql.is_json (text) IS
+	await query(`COMMENT ON FUNCTION hafsql.is_json (text) IS
     'Test if input text is valid JSON. Returns true, false, or NULL on NULL input.';`)
 
-  // hafsql.to_json(text)
-  // Cast json string into JSONB - return {} on invalid json
-  await client.queryObject(`CREATE OR REPLACE FUNCTION hafsql.to_json(text)
+	// hafsql.to_json(text)
+	// Cast json string into JSONB - return {} on invalid json
+	await query(`CREATE OR REPLACE FUNCTION hafsql.to_json(text)
     RETURNS jsonb
     AS $$
     DECLARE
@@ -88,15 +85,15 @@ export const setupFunctions = async () => {
     LANGUAGE plpgsql
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;`)
-  await client.queryObject(
-    `COMMENT ON FUNCTION hafsql.to_json (text) IS
+	await query(
+		`COMMENT ON FUNCTION hafsql.to_json (text) IS
     'Cast valid json TEXT into JSONB and return {} on invalid json string';`,
-  )
+	)
 
-  // hafsql.vests_to_hive(numeric, int4 default NULL)
-  // VESTS to HIVE equivalent
-  await client.queryObject(
-    `CREATE OR REPLACE FUNCTION hafsql.vests_to_hive(numeric, int4 default NULL)
+	// hafsql.vests_to_hive(numeric, int4 default NULL)
+	// VESTS to HIVE equivalent
+	await query(
+		`CREATE OR REPLACE FUNCTION hafsql.vests_to_hive(numeric, int4 default NULL)
     RETURNS numeric(15, 3)
     AS $$
     DECLARE
@@ -115,16 +112,16 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE;`,
-  )
-  await client.queryObject(
-    `COMMENT ON FUNCTION hafsql.vests_to_hive (numeric, int4) IS
+	)
+	await query(
+		`COMMENT ON FUNCTION hafsql.vests_to_hive (numeric, int4) IS
     'Return HIVE equivalent of the VESTS optionally at certain block_num';`,
-  )
+	)
 
-  // hafsql.rc_to_hive(numeric, int4 default NULL)
-  // RC to HIVE equivalent
-  await client.queryObject(
-    `CREATE OR REPLACE FUNCTION hafsql.rc_to_hive(numeric, int4 default NULL)
+	// hafsql.rc_to_hive(numeric, int4 default NULL)
+	// RC to HIVE equivalent
+	await query(
+		`CREATE OR REPLACE FUNCTION hafsql.rc_to_hive(numeric, int4 default NULL)
     RETURNS numeric(15, 3)
     AS $$
     BEGIN
@@ -133,15 +130,15 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE;`,
-  )
-  await client.queryObject(
-    `COMMENT ON FUNCTION hafsql.rc_to_hive (numeric, int4) IS
+	)
+	await query(
+		`COMMENT ON FUNCTION hafsql.rc_to_hive (numeric, int4) IS
     'Return HIVE equivalent of the RC optionally at certain block_num';`,
-  )
+	)
 
-  // hafsql.get_trx_id(int8)
-  // Get trx_id from op_id
-  await client.queryObject(`CREATE OR REPLACE FUNCTION hafsql.get_trx_id(int8)
+	// hafsql.get_trx_id(int8)
+	// Get trx_id from op_id
+	await query(`CREATE OR REPLACE FUNCTION hafsql.get_trx_id(int8)
     RETURNS text
     AS $$
     DECLARE
@@ -161,13 +158,13 @@ export const setupFunctions = async () => {
     LANGUAGE plpgsql
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;`)
-  await client.queryObject(`COMMENT ON FUNCTION hafsql.get_trx_id (int8) IS
+	await query(`COMMENT ON FUNCTION hafsql.get_trx_id (int8) IS
     'Return trx_id from op_id';`)
 
-  // hafsql.last_op_id_from_block_num(int4)
-  // Get highest op_id inside a block
-  await client.queryObject(
-    `CREATE OR REPLACE FUNCTION hafsql.last_op_id_from_block_num(int4)
+	// hafsql.last_op_id_from_block_num(int4)
+	// Get highest op_id inside a block
+	await query(
+		`CREATE OR REPLACE FUNCTION hafsql.last_op_id_from_block_num(int4)
     RETURNS int8
     AS $$
     BEGIN
@@ -181,16 +178,16 @@ export const setupFunctions = async () => {
     LANGUAGE plpgsql
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;`,
-  )
-  await client.queryObject(
-    `COMMENT ON FUNCTION hafsql.last_op_id_from_block_num (int4) IS
+	)
+	await query(
+		`COMMENT ON FUNCTION hafsql.last_op_id_from_block_num (int4) IS
     'Get highest op_id inside a block';`,
-  )
+	)
 
-  // hafsql.first_op_id_from_block_num(int4)
-  // Get lowest op_id inside a block
-  await client.queryObject(
-    `CREATE OR REPLACE FUNCTION hafsql.first_op_id_from_block_num(int4)
+	// hafsql.first_op_id_from_block_num(int4)
+	// Get lowest op_id inside a block
+	await query(
+		`CREATE OR REPLACE FUNCTION hafsql.first_op_id_from_block_num(int4)
     RETURNS int8
     AS $$
     BEGIN
@@ -204,16 +201,16 @@ export const setupFunctions = async () => {
     LANGUAGE plpgsql
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;`,
-  )
-  await client.queryObject(
-    `COMMENT ON FUNCTION hafsql.first_op_id_from_block_num (int4) IS
+	)
+	await query(
+		`COMMENT ON FUNCTION hafsql.first_op_id_from_block_num (int4) IS
     'Get lowest op_id inside a block';`,
-  )
+	)
 
-  // hafsql.get_next_block_range(text)
-  // Return a range of 49999 block numbers e.g. [1, 50000]
-  await client.queryObject(
-    `CREATE OR REPLACE FUNCTION hafsql.get_next_block_range(text, int4 default 50000)
+	// hafsql.get_next_block_range(text)
+	// Return a range of 49999 block numbers e.g. [1, 50000]
+	await query(
+		`CREATE OR REPLACE FUNCTION hafsql.get_next_block_range(text, int4 default 50000)
     RETURNS int4[]
     AS $$
     DECLARE
@@ -238,15 +235,15 @@ export const setupFunctions = async () => {
     LANGUAGE plpgsql
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;`,
-  )
-  await client.queryObject(
-    `COMMENT ON FUNCTION hafsql.get_next_block_range (text, int4) IS
+	)
+	await query(
+		`COMMENT ON FUNCTION hafsql.get_next_block_range (text, int4) IS
     'Used by HafSQL to sync blocks';`,
-  )
+	)
 
-  // hafsql.parse_reputation(int8)
-  await client.queryObject(
-    `CREATE OR REPLACE FUNCTION hafsql.parse_reputation(int8)
+	// hafsql.parse_reputation(int8)
+	await query(
+		`CREATE OR REPLACE FUNCTION hafsql.parse_reputation(int8)
     RETURNS numeric(6, 2)
     AS $$
     BEGIN
@@ -259,16 +256,16 @@ export const setupFunctions = async () => {
     LANGUAGE plpgsql
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;`,
-  )
-  await client.queryObject(
-    `COMMENT ON FUNCTION hafsql.parse_reputation (int8) IS
+	)
+	await query(
+		`COMMENT ON FUNCTION hafsql.parse_reputation (int8) IS
     'Parse large reputation number into user friendly number';`,
-  )
+	)
 
-  // hafsql.get_balance(int4, int4 default NULL)
-  // Get account balance - optionally at certain block_num
-  await client.queryObject(
-    `CREATE OR REPLACE FUNCTION hafsql.get_balance(int4, int4 default NULL)
+	// hafsql.get_balance(int4, int4 default NULL)
+	// Get account balance - optionally at certain block_num
+	await query(
+		`CREATE OR REPLACE FUNCTION hafsql.get_balance(int4, int4 default NULL)
     RETURNS table (hive numeric, hbd numeric, vests numeric, hp_equivalent numeric, hive_savings numeric, hbd_savings numeric)
     AS $$
     BEGIN
@@ -290,16 +287,16 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE;`,
-  )
-  await client.queryObject(
-    `COMMENT ON FUNCTION hafsql.get_balance (int4, int4) IS
+	)
+	await query(
+		`COMMENT ON FUNCTION hafsql.get_balance (int4, int4) IS
     'Get account balance - optionally at certain block_num including the historical hp equivalent';`,
-  )
+	)
 
-  // hafsql.get_balance(text, int4 default NULL)
-  // Get account balance - optionally at certain block_num
-  await client.queryObject(
-    `CREATE OR REPLACE FUNCTION hafsql.get_balance(text, int4 default NULL)
+	// hafsql.get_balance(text, int4 default NULL)
+	// Get account balance - optionally at certain block_num
+	await query(
+		`CREATE OR REPLACE FUNCTION hafsql.get_balance(text, int4 default NULL)
     RETURNS table (hive numeric, hbd numeric, vests numeric, hp_equivalent numeric, hive_savings numeric, hbd_savings numeric)
     AS $$
     DECLARE
@@ -311,16 +308,16 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE;`,
-  )
-  await client.queryObject(
-    `COMMENT ON FUNCTION hafsql.get_balance (text, int4) IS
+	)
+	await query(
+		`COMMENT ON FUNCTION hafsql.get_balance (text, int4) IS
     'Get account balance - optionally at certain block_num including the historical hp equivalent';`,
-  )
+	)
 
-  // hafsql.id_from_timestamp(timestamp, boolean default FALSE)
-  // Get the lowest/highest id from timestamp
-  await client.queryObject(
-    `CREATE OR REPLACE FUNCTION hafsql.id_from_timestamp(timestamptz, highest boolean default FALSE)
+	// hafsql.id_from_timestamp(timestamp, boolean default FALSE)
+	// Get the lowest/highest id from timestamp
+	await query(
+		`CREATE OR REPLACE FUNCTION hafsql.id_from_timestamp(timestamptz, highest boolean default FALSE)
     RETURNS int8
     AS $$
     DECLARE
@@ -336,16 +333,16 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE;`,
-  )
-  await client.queryObject(
-    `COMMENT ON FUNCTION hafsql.id_from_timestamp (timestamptz, boolean) IS
+	)
+	await query(
+		`COMMENT ON FUNCTION hafsql.id_from_timestamp (timestamptz, boolean) IS
     'Return lowest op_id from timestamp / highest op_id when second param is true';`,
-  )
+	)
 
-  // hafsql.get_timestamp(operation_id int8)
-  // Get timestamp from operation_id
-  await client.queryObject(
-    `CREATE OR REPLACE FUNCTION hafsql.get_timestamp(operation_id int8)
+	// hafsql.get_timestamp(operation_id int8)
+	// Get timestamp from operation_id
+	await query(
+		`CREATE OR REPLACE FUNCTION hafsql.get_timestamp(operation_id int8)
     RETURNS timestamp
     AS $$
     BEGIN
@@ -354,9 +351,9 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE;`,
-  )
-  await client.queryObject(
-    `COMMENT ON FUNCTION hafsql.get_timestamp (int8) IS
+	)
+	await query(
+		`COMMENT ON FUNCTION hafsql.get_timestamp (int8) IS
     'Get timestamp of an operation from operation_id';`,
-  )
+	)
 }
