@@ -13,27 +13,44 @@ Scaler for api docs (using danet)
 ***
 ## How to run
 
+### Option 1: If you already have HAF running
 The following command will start the HafSQL docker container and serve the API and documentations on port 3000.  
-The container will check and wait for HAF to be ready before processing the data.
-```sh
-docker run -itd -p 3000:3000 --name hafsql mahdiyari/hafsql:latest
-```
-  
+The container will check and wait for HAF to be ready before processing the data.  
+
 To include [environment variables](#options):
 ```sh
+cp .env.defaults .env
 docker run -itd --env-file .env -p 3000:3000 --name hafsql mahdiyari/hafsql:latest
+```
+Make sure the IP address on `HAFSQL_PGHOST` is correct. You can find the correct IP address by:
+```sh
+docker inspect \
+  -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' container_name_or_id
 ```
 
 > Note: HafSQL needs `haf_admin` pg_hba entry. Example:
 ```
 host haf_block_log all 172.0.0.0/8 trust
 ```
-Don't worry about the pg_hba entry unless you get an error about it.
+
+
+### Option 2: Run only HAF + HafSQL
+The following docker compose repository will setup both HAF and HafSQL with one command:  
+[HAF Dockers](https://gitlab.com/mahdiyari/haf_dockers)
+
+## Uninstall
+To remove HafSQL just provide the `purge` argument:
+```sh
+docker run -it --rm --env-file .env mahdiyari/hafsql:latest purge
+```
+It will remove everything related to HafSQL and exit.
 
 
 ### Requirements
-400GB of compressed storage space (ZFS LZ4)
-8GB of free RAM
+HafSQL:  
+400GB of compressed storage space (ZFS LZ4)  
+8GB of free RAM  
+  
 
 ### Options
 The following environment variables are available as described in `.env.defaults`.
@@ -77,17 +94,13 @@ HAFSQL_PUBLICUSER=true
 ```
 
 ## Development
-APIs are located in `/src/api/routes`  
-New APIs must be imported in `/src/api/mod.ts`  
-
-API documentation UI is in `/src/api/ui/scalar.ts`  
+- APIs are located in `/src/api/routes`  
+- New APIs must be imported in `/src/api/mod.ts`  
+- API documentation UI is in `/src/api/ui/scalar.ts`  
+- SQL views are located in `/src/app/setup/extra_views.ts` and `setup_operation_views.ts`  
+- SQL functions are in `/src/app/setup/functions.ts`  
+- Breaking schema changes must be handled in `src/upgrade.ts`  
+- Version must be updated in `deno.json`  
+- SQL docs are built by gitlab - just edit md files in `sql_docs`  
   
-SQL views are located in `/src/app/setup/extra_views.ts` and `setup_operation_views.ts`  
-  
-SQL functions are in `/src/app/setup/functions.ts`  
-
-Breaking schema changes must be handled in `src/upgrade.ts`  
-
-Version must be updated in `deno.json`
-
 Open issues for feedback or requests.
