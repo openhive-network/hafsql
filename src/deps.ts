@@ -1,19 +1,20 @@
 // All external dependencies go here for easier maintenance
 
+// @deno-types="npm:@types/pg"
+import pg from 'npm:pg'
+export const Pool = pg.Pool
+export type { PoolClient } from 'npm:pg'
+import '@std/dotenv/load'
+// export { BigDenary } from 'https://deno.land/x/bigdenary@1.0.0/mod.ts'
+// @deno-types="https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/big.js/index.d.ts"
+export { Big } from 'big.js'
 export {
-  Pool,
-  PoolClient,
-  Transaction,
-} from 'https://deno.land/x/postgres@v0.19.3/mod.ts'
-export { load as loadDotEnv } from '@std/dotenv'
-export { BigDenary } from 'https://deno.land/x/bigdenary@1.0.0/mod.ts'
-export {
-  Application,
-  Context,
-  isHttpError,
-  Router,
-  Status,
-  STATUS_TEXT,
+	Application,
+	Context,
+	isHttpError,
+	Router,
+	Status,
+	STATUS_TEXT,
 } from '@oak/oak'
 export { oakCors } from '@tajpouria/cors'
 import openapi, { ParserOptions } from 'oa-parser'
