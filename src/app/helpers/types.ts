@@ -1,4 +1,4 @@
-import { BigDenary } from '../../deps.ts'
+import { Big } from '../../deps.ts'
 import { opId } from './operation_id.ts'
 
 export interface BlockRange {
@@ -61,6 +61,7 @@ export interface PaidComments extends DeletedComment {
 export interface RootAuthorPermlink {
 	root_author: string
 	root_permlink: string
+	category: string
 }
 
 export interface Delegations {
@@ -170,7 +171,7 @@ export interface SyncData {
 
 export interface ImpactedBalances {
 	account_name: string
-	amount: bigint
+	amount: string
 	asset_precision: number
 	asset_symbol_nai: number
 	id: bigint
@@ -187,11 +188,11 @@ export interface HardforkHive {
 }
 
 export interface BalancesOnly {
-	hive: BigDenary
-	hbd: BigDenary
-	vests: BigDenary
-	hive_savings: BigDenary
-	hbd_savings: BigDenary
+	hive: Big
+	hbd: Big
+	vests: Big
+	hive_savings: Big
+	hbd_savings: Big
 }
 
 export interface Balances extends BalancesOnly {
