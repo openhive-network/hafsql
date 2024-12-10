@@ -1,16 +1,15 @@
-import { pool } from '../helpers/database.ts'
+import { query } from '../helpers/database.ts'
 
 export const setupTables = async () => {
-	const client = await pool.connect()
 	// Sync data
-	await client.queryObject(`CREATE TABLE IF NOT EXISTS hafsql.sync_data (
+	await query(`CREATE TABLE IF NOT EXISTS hafsql.sync_data (
     table_name varchar NOT NULL,
     last_block_num int4 NOT NULL DEFAULT 0,
     CONSTRAINT hafsql_sync_data_un UNIQUE (table_name)
   );`)
 
 	// Delegations
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.delegations_table (
       delegator varchar NOT NULL,
       delegatee varchar NOT NULL,
@@ -21,7 +20,7 @@ export const setupTables = async () => {
 	)
 
 	// RC Delegations
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.rc_delegations_table (
       delegator varchar NOT NULL,
       delegatee varchar NOT NULL,
@@ -31,7 +30,7 @@ export const setupTables = async () => {
 	)
 
 	// Proposal Approvals
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.proposal_approvals_table (
       id int4 NOT NULL,
       voter varchar NOT NULL,
@@ -40,14 +39,14 @@ export const setupTables = async () => {
 	)
 
 	// Blacklists
-	await client.queryObject(`CREATE TABLE IF NOT EXISTS hafsql.blacklists_table (
+	await query(`CREATE TABLE IF NOT EXISTS hafsql.blacklists_table (
     blacklister int4 NOT NULL,
     blacklisted int4 NOT NULL,
     CONSTRAINT hafsql_blacklists_table_un UNIQUE (blacklister, blacklisted)
   );`)
 
 	// Blacklist Follows
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.blacklist_follows_table (
       account int4 NOT NULL,
       blacklist int4 NOT NULL,
@@ -56,14 +55,14 @@ export const setupTables = async () => {
 	)
 
 	// Mute
-	await client.queryObject(`CREATE TABLE IF NOT EXISTS hafsql.mutes_table (
+	await query(`CREATE TABLE IF NOT EXISTS hafsql.mutes_table (
     muter int4 NOT NULL,
     muted int4 NOT NULL,
     CONSTRAINT hafsql_mutes_table_un UNIQUE (muter, muted)
   );`)
 
 	// Mute Follows
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.mute_follows_table (
       account int4 NOT NULL,
       mute_list int4 NOT NULL,
@@ -72,21 +71,21 @@ export const setupTables = async () => {
 	)
 
 	// Reblogs
-	await client.queryObject(`CREATE TABLE IF NOT EXISTS hafsql.reblogs_table (
+	await query(`CREATE TABLE IF NOT EXISTS hafsql.reblogs_table (
     account int4 NOT NULL,
     post int8 NOT NULL,
     CONSTRAINT hafsql_reblogs_table_un UNIQUE (account, post)
   );`)
 
 	// Follows
-	await client.queryObject(`CREATE TABLE IF NOT EXISTS hafsql.follows_table (
+	await query(`CREATE TABLE IF NOT EXISTS hafsql.follows_table (
     follower int4 NOT NULL,
     following int4 NOT NULL,
     CONSTRAINT hafsql_follows_table_un UNIQUE (follower, following)
   );`)
 
 	// Comments
-	await client.queryObject(`CREATE TABLE IF NOT EXISTS hafsql.comments_table (
+	await query(`CREATE TABLE IF NOT EXISTS hafsql.comments_table (
     id serial4 NOT NULL,
     title varchar NULL,
     body varchar NULL,
@@ -95,6 +94,7 @@ export const setupTables = async () => {
     permlink varchar NOT NULL,
     parent_author varchar NOT NULL,
     parent_permlink varchar NOT NULL,
+    category varchar NOT NULL,
     metadata jsonb NULL,
     created timestamp NOT NULL,
     last_edited timestamp NULL,
@@ -112,7 +112,7 @@ export const setupTables = async () => {
   );`)
 
 	// Community Roles
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.community_roles_table (
       account int4 NOT NULL,
       community int4 NOT NULL,
@@ -123,7 +123,7 @@ export const setupTables = async () => {
 	)
 
 	// Community Subs
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.community_subs_table (
       account int4 NOT NULL,
       community int4 NOT NULL,
@@ -132,7 +132,7 @@ export const setupTables = async () => {
 	)
 
 	// Reputations
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.reputations_table (
       account int4 NOT NULL,
       reputation int8 NOT NULL DEFAULT 0,
@@ -142,7 +142,7 @@ export const setupTables = async () => {
 	)
 
 	// Balances
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.balances_table (
       account int4 NOT NULL,
       hive numeric(21, 3) NOT NULL DEFAULT 0,
@@ -155,7 +155,7 @@ export const setupTables = async () => {
 	)
 
 	// Balances_history
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.balances_history_table (
       account int4 NOT NULL,
       block_num int4 NOT NULL,
@@ -169,7 +169,7 @@ export const setupTables = async () => {
 	)
 
 	// Total_balances
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.total_balances_table (
       block_num int4 NOT NULL,
       hive numeric(21, 3) NOT NULL DEFAULT 0,
@@ -182,7 +182,7 @@ export const setupTables = async () => {
 	)
 
 	// Pending saving withdraws
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.pending_saving_withdraws_table (
       "from" int4 NOT NULL,
       "to" int4 NOT NULL,
@@ -194,7 +194,7 @@ export const setupTables = async () => {
 	)
 
 	// Accounts
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.accounts_table (
       account int4 NOT NULL,
       creator int4,
@@ -221,7 +221,7 @@ export const setupTables = async () => {
     );`,
 	)
 
-	await client.queryObject(
+	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.version (
       name varchar,
       version varchar,
@@ -229,13 +229,10 @@ export const setupTables = async () => {
     );`,
 	)
 
-	client.release()
-
 	await setupSyncDataTable()
 }
 
 const setupSyncDataTable = async () => {
-	using client = await pool.connect()
 	const tableNames = [
 		'delegations',
 		'rc_delegations',
@@ -254,7 +251,7 @@ const setupSyncDataTable = async () => {
 	]
 	for (let i = 0; i < tableNames.length; i++) {
 		const name = tableNames[i]
-		const data = await client.queryObject(
+		const data = await query(
 			'SELECT table_name FROM hafsql.sync_data WHERE table_name = $1',
 			[name],
 		)
@@ -263,7 +260,7 @@ const setupSyncDataTable = async () => {
 			// if (name === 'reblogs') {
 			//   lastNum = 4568614
 			// }
-			await client.queryObject(
+			await query(
 				'INSERT INTO hafsql.sync_data(table_name, last_block_num) VALUES($1, $2)',
 				[name, lastNum],
 			)
