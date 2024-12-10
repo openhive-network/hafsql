@@ -7,6 +7,7 @@ import { ApiParserOptions, openApi, Router } from '../../deps.ts'
 // @ts-ignore for some reason the default export is not detected correctly
 const spec = openApi({
 	include: ['src/api/ui/*', 'src/api/routes/*.ts', '**.yaml'],
+	verbose: false,
 } as ApiParserOptions)
 
 export const scalar = new Router()
