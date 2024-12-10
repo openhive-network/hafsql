@@ -1,28 +1,27 @@
-import { pool } from '../helpers/database.ts'
+import { query } from '../helpers/database.ts'
 
 const param = (param: string, jsonb = false) => {
-  if (jsonb) {
-    return `(o.body_binary::jsonb->'value'->'${param}')`
-  }
-  return `(o.body_binary::jsonb->'value'->>'${param}')`
+	if (jsonb) {
+		return `(o.body_binary::jsonb->'value'->'${param}')`
+	}
+	return `(o.body_binary::jsonb->'value'->>'${param}')`
 }
 const amount = (param: string) => {
-  return `hafsql.asset_amount(${param})`
+	return `hafsql.asset_amount(${param})`
 }
 const symbol = (param: string) => {
-  return `hafsql.asset_symbol(${param})`
+	return `hafsql.asset_symbol(${param})`
 }
 const block = (id: string) => {
-  return `hive.operation_id_to_block_num(${id})`
+	return `hive.operation_id_to_block_num(${id})`
 }
 
 const OPs = 49
 
 // Create views for the operations that don't have tables
 export const setupOperationViews = async () => {
-  using client = await pool.connect()
-  // No dedicated table
-  const OpVote = `CREATE OR REPLACE VIEW hafsql.operation_vote_view
+	// No dedicated table
+	const OpVote = `CREATE OR REPLACE VIEW hafsql.operation_vote_view
     AS SELECT o.id,
       hb.created_at AS "timestamp",
       ${param('voter')} AS "voter",
@@ -34,10 +33,10 @@ export const setupOperationViews = async () => {
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = 0;`
-  await client.queryObject(OpVote)
+	await query(OpVote)
 
-  // No dedicated table
-  const OpComment = `CREATE OR REPLACE VIEW hafsql.operation_comment_view
+	// No dedicated table
+	const OpComment = `CREATE OR REPLACE VIEW hafsql.operation_comment_view
   AS SELECT o.id,
     hb.created_at AS "timestamp",
     ${param('author')} AS "author",
@@ -52,10 +51,10 @@ export const setupOperationViews = async () => {
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = 1;`
-  await client.queryObject(OpComment)
+	await query(OpComment)
 
-  // No dedicated table
-  const OpCustomJson = `CREATE OR REPLACE VIEW hafsql.operation_custom_json_view
+	// No dedicated table
+	const OpCustomJson = `CREATE OR REPLACE VIEW hafsql.operation_custom_json_view
   AS SELECT o.id,
     hb.created_at AS "timestamp",
     ${param('required_auths', true)} AS "required_auths",
@@ -67,12 +66,12 @@ export const setupOperationViews = async () => {
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = 18;`
-  await client.queryObject(OpCustomJson)
+	await query(OpCustomJson)
 
-  // +23
-  // No dedicated table
-  const VOEffectiveCommentVote =
-    `CREATE OR REPLACE VIEW hafsql.operation_effective_comment_vote_view
+	// +23
+	// No dedicated table
+	const VOEffectiveCommentVote =
+		`CREATE OR REPLACE VIEW hafsql.operation_effective_comment_vote_view
     AS SELECT o.id,
       hb.created_at AS "timestamp",
       ${param('voter')} AS voter,
@@ -87,16 +86,15 @@ export const setupOperationViews = async () => {
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
     WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 23;`
-  await client.queryObject(VOEffectiveCommentVote)
+	await query(VOEffectiveCommentVote)
 }
 
 export const removeOperationViews = async () => {
-  using client = await pool.connect()
-  const dropViews = `DROP VIEW IF EXISTS
+	const dropViews = `DROP VIEW IF EXISTS
     hafsql.operation_vote_view,
     hafsql.operation_comment_view,
     hafsql.operation_custom_json_view,
     hafsql.operation_effective_comment_vote_view
     CASCADE;`
-  await client.queryObject(dropViews)
+	await query(dropViews)
 }
