@@ -1,17 +1,16 @@
-import { pool } from '../helpers/database.ts'
+import { query } from '../helpers/database.ts'
 import { opId } from '../helpers/operation_id.ts'
 import { print } from '../helpers/utils/print.ts'
 
 export const createHiveIndexes = async () => {
-	using client = await pool.connect()
 	// Kill all running queries by hafsql
-	await client.queryObject(
+	await query(
 		`SELECT pg_cancel_backend(sa.pid) FROM pg_catalog.pg_stat_activity sa WHERE sa.application_name=$1 AND sa.query LIKE $2`,
 		['hafsql', 'CREATE%'],
 	)
 	const invalidIndexes = await getInvalidIndexes()
 	invalidIndexes.forEach(async (index) => {
-		await client.queryObject(`DROP INDEX hive.${index};`)
+		await query(`DROP INDEX hive.${index};`)
 	})
 	for (let i = 0; i < hiveIndexes.length; i++) {
 		const name = hiveIndexes[i].name
@@ -39,7 +38,7 @@ export const createHiveIndexes = async () => {
 			continue
 		}
 		const table = hiveIndexes[i].table || 'hafd.operations'
-		await client.queryObject(
+		await query(
 			`CREATE INDEX CONCURRENTLY IF NOT EXISTS ${name} ON ${table} ${params} ${condition};`,
 		)
 		print(`[Indexes] Index ${name} done! ✅`)
@@ -51,8 +50,7 @@ export const createHiveIndexes = async () => {
  * Return true if the index was created
  */
 export const doesIndexExist = async (name: string) => {
-	using client = await pool.connect()
-	const result = await client.queryObject<{ indisvalid: boolean }>(
+	const result = await query<{ indisvalid: boolean }>(
 		`SELECT i.indisvalid
 			FROM pg_index i
 			JOIN pg_class c ON c.oid = i.indrelid
@@ -67,8 +65,7 @@ export const doesIndexExist = async (name: string) => {
 }
 
 const getInvalidIndexes = async () => {
-	using client = await pool.connect()
-	const result = await client.queryObject<{ relname: string }>(`SELECT c.relname
+	const result = await query<{ relname: string }>(`SELECT c.relname
 		FROM pg_catalog.pg_class c, pg_catalog.pg_namespace n, pg_catalog.pg_index i
 		WHERE  (i.indisvalid = false OR i.indisready = false) AND
 			i.indexrelid = c.oid AND c.relnamespace = n.oid AND
