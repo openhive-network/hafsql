@@ -9,6 +9,11 @@ The listed views also have corresponding tables but are not listed here. It is r
 
 ***
 
+<!-- To get the columns and their type: -->
+<!-- SELECT column_name, udt_name
+    FROM information_schema.columns
+    WHERE table_schema = 'hafsql' 
+    AND table_name = $1 -->
 
 ### 1. accounts
 ```sql
@@ -75,11 +80,11 @@ Indexes on: `(blacklister_*, blacklisted_*)`
 SELECT * FROM hafsql.comments
 LIMIT 1
 ```
-|id|title|body|author|permlink|parent_author|parent_permlink|created|last_edited|cashout_time|remaining_till_cashout|last_payout|tags|category|json_metadata|root_author|root_permlink|pending_payout_value|author_rewards|author_rewards_in_hive|total_payout_value|curator_payout_value|beneficiary_payout_value|beneficiaries|max_accepted_payout|percent_hbd|allow_votes|allow_curation_rewards|deleted|
-|--|-----|----|------|--------|-------------|---------------|-------|-----------|------------|----------------------|-----------|----|--------|-------------|-----------|-------------|--------------------|--------------|----------------------|------------------|--------------------|------------------------|-------------|-------------------|-----------|-----------|----------------------|-------|
-|int4|varchar|varchar|varchar|varchar|varchar|varchar|timestamp|timestamp|timestamp|interval|timestamp|jsonb|text|jsonb|varchar|varchar|numeric|numeric|numeric|numeric|numeric|numeric|text|numeric|int2|bool|bool|bool|
+|id|title|body|author|permlink|parent_author|parent_permlink|category|created|last_edited|cashout_time|remaining_till_cashout|last_payout|tags|category|json_metadata|root_author|root_permlink|pending_payout_value|author_rewards|author_rewards_in_hive|total_payout_value|curator_payout_value|beneficiary_payout_value|beneficiaries|max_accepted_payout|percent_hbd|allow_votes|allow_curation_rewards|deleted|
+|--|-----|----|------|--------|-------------|---------------|--------|-------|-----------|------------|----------------------|-----------|----|--------|-------------|-----------|-------------|--------------------|--------------|----------------------|------------------|--------------------|------------------------|-------------|-------------------|-----------|-----------|----------------------|-------|
+|int4|varchar|varchar|varchar|varchar|varchar|varchar|varchar|timestamp|timestamp|timestamp|interval|timestamp|jsonb|text|jsonb|varchar|varchar|numeric|numeric|numeric|numeric|numeric|numeric|text|numeric|int2|bool|bool|bool|
 
-Indexes on: `(id)` | `(author, permlink)` | `(root_author, root_permlink)` | `(root_permlink)` | `(author, id)` | `(((tags ->> 0)), id)` | `(pending_payout_value)` | `(tags)` | `(parent_author, parent_permlink)` | `(parent_permlink)` | `(((metadata ->> 'content_type'::text)))` | `(created)` | `(author, created)`
+Indexes on: `(id)` | `(author, permlink)` | `(root_author, root_permlink)` | `(root_permlink)` | `(author, id)` | `(category, id)` | `(pending_payout_value)` | `(tags)` | `(parent_author, parent_permlink)` | `(parent_permlink)` | `(((metadata ->> 'content_type'::text)))` | `(created)` | `(author, created)`
 
 ***
 ### 7. community_roles
