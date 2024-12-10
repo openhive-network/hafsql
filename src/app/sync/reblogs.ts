@@ -1,4 +1,3 @@
-import { pool } from '../helpers/database.ts'
 import { print } from '../helpers/utils/print.ts'
 import { sleep } from '../helpers/utils/sleep.ts'
 import { CustomJson, ReblogsArray } from '../helpers/types.ts'
@@ -11,6 +10,7 @@ import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
 import { getLastBlockNum } from '../helpers/utils/get_last_block_num.ts'
 import { getUserId } from '../helpers/utils/get_user_id.ts'
 import { getPostId } from '../helpers/utils/get_post_id.ts'
+import { query, transaction } from '../helpers/database.ts'
 
 let started = false
 // Run this file in a separate worker thread than the main application
@@ -63,8 +63,7 @@ const getReblogs = async (blockRange: number[]) => {
 	// block 5999998 - op_id 25769795186065408
 	// Before this ^ objects were valid but after it has to be array
 	// Postgres doesn't like OR, IN(), =ANY() so we use UNION ALL
-	const client = await pool.connect()
-	const result = await client.queryObject<CustomJson>(
+	const result = await query<CustomJson>(
 		`(SELECT id, json, required_posting_auths, custom_id FROM hafsql.operation_custom_json_view
 			WHERE custom_id = 'follow'
 			AND id >= hafsql.first_op_id_from_block_num($1)
@@ -77,7 +76,6 @@ const getReblogs = async (blockRange: number[]) => {
 		ORDER BY id ASC`,
 		[blockRange[0], blockRange[1]],
 	)
-	client.release()
 	const length = result.rows.length
 	if (length < 1) {
 		return []
@@ -163,26 +161,24 @@ const insertReblogs = async (
 	reblogsArray: ReblogsArray[],
 	blockRange: number[],
 ) => {
-	using client = await pool.connect()
-	const trx = client.createTransaction('reblogs_sync')
-	await trx.begin()
-	for (let i = 0; i < reblogsArray.length; i++) {
-		const { account, post, remove } = reblogsArray[i]
-		if (!remove) {
-			await trx.queryObject(
-				`INSERT INTO hafsql.reblogs_table (account, post) VALUES ($1, $2)
-    			ON CONFLICT ON CONSTRAINT hafsql_reblogs_table_un DO NOTHING;`,
-				[account, post],
-			)
-		} else {
-			await trx.queryObject(
-				'DELETE FROM hafsql.reblogs_table WHERE account=$1 AND post=$2;',
-				[account, post],
-			)
+	await transaction(async (client) => {
+		for (let i = 0; i < reblogsArray.length; i++) {
+			const { account, post, remove } = reblogsArray[i]
+			if (!remove) {
+				await client.query(
+					`INSERT INTO hafsql.reblogs_table (account, post) VALUES ($1, $2)
+						ON CONFLICT ON CONSTRAINT hafsql_reblogs_table_un DO NOTHING;`,
+					[account, post],
+				)
+			} else {
+				await client.query(
+					'DELETE FROM hafsql.reblogs_table WHERE account=$1 AND post=$2;',
+					[account, post],
+				)
+			}
 		}
-	}
-	await updateLastBlockNum('reblogs', blockRange[1], trx)
-	await trx.commit()
+		await updateLastBlockNum('reblogs', blockRange[1], client)
+	})
 }
 
 const isJsonString = (str: string) => {
