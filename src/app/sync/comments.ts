@@ -1,5 +1,4 @@
-import { pool } from '../helpers/database.ts'
-import { DiffMatchPatch, Transaction } from '../../deps.ts'
+import { DiffMatchPatch } from '../../deps.ts'
 import { print } from '../helpers/utils/print.ts'
 import {
 	AuthorPermlink,
@@ -17,6 +16,7 @@ import { cleanString } from '../helpers/utils/clean_string.ts'
 import { getBlockRange } from '../helpers/utils/get_block_range.ts'
 import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
 import { getLastBlockNum } from '../helpers/utils/get_last_block_num.ts'
+import { customClient, query, transaction } from '../helpers/database.ts'
 
 let started = false
 // Run this file in a separate worker thread than the main application
@@ -67,8 +67,7 @@ const fillComments = async () => {
 
 // Get comment operations from hafd.operations
 const getComments = async (blockRange: number[]) => {
-	using client = await pool.connect()
-	const result = await client.queryObject<CommentOp>(
+	const result = await query<CommentOp>(
 		`SELECT "timestamp", author, permlink, parent_author, parent_permlink, title, body, json_metadata
       FROM hafsql.operation_comment_view
 			WHERE id >= hafsql.first_op_id_from_block_num($1)
@@ -81,34 +80,31 @@ const getComments = async (blockRange: number[]) => {
 
 // Create a transaction then insert or update comments
 const insertComments = async (comments: CommentOp[], blockRange: number[]) => {
-	using client = await pool.connect()
-	// use transaction to speed up inserts
-	const trx = client.createTransaction('hafsql_comments_sync')
-	await trx.begin()
 	try {
-		for (let i = 0; i < comments.length; i++) {
-			await insertComment(comments[i], trx)
-		}
-		await updateLastBlockNum('comments', blockRange[1], trx)
-		await trx.commit()
+		await transaction(async (client) => {
+			for (let i = 0; i < comments.length; i++) {
+				await insertComment(comments[i], client)
+			}
+			await updateLastBlockNum('comments', blockRange[1], client)
+		})
 		// deno-lint-ignore no-explicit-any
 	} catch (e: any) {
-		if (e.cause?.message === 'deadlock detected') {
+		if (e.message === 'deadlock detected') {
 			console.log('deadlock comments')
 			await sleep(5000)
 			return insertComments(comments, blockRange)
 		} else {
 			print(e)
-			throw new Error(e)
+			throw e
 		}
 	}
 }
 
-const insertComment = async (comment: CommentOp, trx: Transaction) => {
-	const oldComment = await getComment(comment.author, comment.permlink, trx)
+const insertComment = async (comment: CommentOp, client: customClient) => {
+	const oldComment = await getComment(comment.author, comment.permlink, client)
 	if (oldComment !== null) {
 		// edited comments
-		await updateEditedComment(comment, oldComment, trx)
+		await updateEditedComment(comment, oldComment, client)
 		return
 	}
 	// new comments
@@ -119,23 +115,25 @@ const insertComment = async (comment: CommentOp, trx: Transaction) => {
 	// Root of a post is itself
 	let rootAuthor = comment.author
 	let rootPermlink = comment.permlink
+	let category = comment.parent_permlink
 	if (
 		typeof comment.parent_author === 'string' &&
 		comment.parent_author.length > 0
 	) {
 		// if there is a parent, grab its roots
-		const result = await trx.queryObject<RootAuthorPermlink>(
-			`SELECT root_author, root_permlink
+		const result = await client.query<RootAuthorPermlink>(
+			`SELECT root_author, root_permlink, category
 				FROM hafsql.comments_table WHERE author=$1 and permlink=$2`,
 			[comment.parent_author, comment.parent_permlink],
 		)
 		rootAuthor = result.rows[0].root_author
 		rootPermlink = result.rows[0].root_permlink
+		category = result.rows[0].category
 	}
-	await trx.queryObject(
+	await client.query(
 		`INSERT INTO hafsql.comments_table
-      (title, body, tags, author, permlink, parent_author, parent_permlink, metadata, created, root_author, root_permlink)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      (title, body, tags, author, permlink, parent_author, parent_permlink, metadata, created, root_author, root_permlink, category)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
 		[
 			comment.title,
 			comment.body,
@@ -148,6 +146,7 @@ const insertComment = async (comment: CommentOp, trx: Transaction) => {
 			comment.timestamp,
 			rootAuthor,
 			rootPermlink,
+			category,
 		],
 	)
 }
@@ -156,7 +155,7 @@ const insertComment = async (comment: CommentOp, trx: Transaction) => {
 const updateEditedComment = async (
 	comment: CommentOp,
 	oldComment: CommentObj,
-	trx: Transaction,
+	client: customClient,
 ) => {
 	const params: {
 		name: string
@@ -193,7 +192,7 @@ const updateEditedComment = async (
 			addedQuery += `,`
 		}
 	})
-	await trx.queryObject(
+	await client.query(
 		`UPDATE hafsql.comments_table SET ${addedQuery}
       WHERE id=${oldComment.id}`,
 		queryParams,
@@ -204,9 +203,9 @@ const updateEditedComment = async (
 const getComment = async (
 	author: string,
 	permlink: string,
-	trx: Transaction,
+	client: customClient,
 ) => {
-	const result = await trx.queryObject<CommentObj>(
+	const result = await client.query<CommentObj>(
 		'SELECT id, title, body, tags, metadata FROM hafsql.comments_table WHERE author=$1 AND permlink=$2',
 		[author, permlink],
 	)
@@ -240,14 +239,14 @@ const extractTags = (parsedJson: any) => {
 	}
 }
 
-const isJsonString = (str: string) => {
-	try {
-		JSON.parse(str)
-	} catch (_e) {
-		return false
-	}
-	return true
-}
+// const isJsonString = (str: string) => {
+// 	try {
+// 		JSON.parse(str)
+// 	} catch (_e) {
+// 		return false
+// 	}
+// 	return true
+// }
 
 // Apply edits to the body of the post/comment
 const patchBody = (oldBody: string, newBody: string) => {
@@ -290,8 +289,7 @@ const fillDeleted = async () => {
 // Comments that didn't get deleted despite having a delete operation
 let notDeletedComments: AuthorPermlink[] = []
 const getIneffectiveDeleteComments = async () => {
-	using client = await pool.connect()
-	const result = await client.queryObject<AuthorPermlink>(
+	const result = await query<AuthorPermlink>(
 		'SELECT author, permlink FROM hafsql.operation_ineffective_delete_comment_table',
 	)
 	if (result.rows.length > 0) {
@@ -300,7 +298,6 @@ const getIneffectiveDeleteComments = async () => {
 }
 
 const getDeletedComments = async (blockRange: number[]) => {
-	using client = await pool.connect()
 	const end = await getLastBlockNum('comments')
 	// Always lag behind the comments_table indexing
 	if (blockRange[0] > end) {
@@ -311,7 +308,7 @@ const getDeletedComments = async (blockRange: number[]) => {
 	if (blockRange[1] > end) {
 		blockRange[1] = end
 	}
-	const result = await client.queryObject<DeletedComment>(
+	const result = await query<DeletedComment>(
 		`SELECT id, author, permlink FROM hafsql.operation_delete_comment_table
       WHERE id >= hafsql.first_op_id_from_block_num($1)
 			AND id <= hafsql.last_op_id_from_block_num($2)
@@ -325,40 +322,38 @@ const insertDeletedComments = async (
 	deletedCms: DeletedComment[],
 	blockRange: number[],
 ) => {
-	using client = await pool.connect()
-	const trx = client.createTransaction('deleted_comments_sync')
 	try {
-		await trx.begin()
-		for (let i = 0; i < deletedCms.length; i++) {
-			const { author, permlink } = deletedCms[i]
-			let notDeleted = false
-			for (let k = 0; k < notDeletedComments.length; k++) {
-				if (
-					author === notDeletedComments[k].author &&
-					permlink === notDeletedComments[k].permlink
-				) {
-					notDeleted = true
+		await transaction(async (client) => {
+			for (let i = 0; i < deletedCms.length; i++) {
+				const { author, permlink } = deletedCms[i]
+				let notDeleted = false
+				for (let k = 0; k < notDeletedComments.length; k++) {
+					if (
+						author === notDeletedComments[k].author &&
+						permlink === notDeletedComments[k].permlink
+					) {
+						notDeleted = true
+					}
 				}
+				if (notDeleted) {
+					continue
+				}
+				await client.query(
+					'UPDATE hafsql.comments_table SET deleted=true WHERE author=$1 AND permlink=$2;',
+					[author, permlink],
+				)
 			}
-			if (notDeleted) {
-				continue
-			}
-			await trx.queryObject(
-				'UPDATE hafsql.comments_table SET deleted=true WHERE author=$1 AND permlink=$2;',
-				[author, permlink],
-			)
-		}
-		await updateLastBlockNum('delete_comments', blockRange[1], trx)
-		await trx.commit()
+			await updateLastBlockNum('delete_comments', blockRange[1], client)
+		})
 		// deno-lint-ignore no-explicit-any
 	} catch (e: any) {
 		// probably a deadlock - retry
-		if (e.cause?.message === 'deadlock detected') {
+		if (e.message === 'deadlock detected') {
 			await sleep(5000)
 			return insertDeletedComments(deletedCms, blockRange)
 		} else {
 			print(e)
-			throw new Error(e)
+			throw e
 		}
 	}
 }
