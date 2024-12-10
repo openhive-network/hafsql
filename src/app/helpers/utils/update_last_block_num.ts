@@ -1,13 +1,12 @@
-import { PoolClient } from '../../../deps.ts'
-import { Transaction } from '../../../deps.ts'
+import { customClient, query } from '../database.ts'
 
 export const updateLastBlockNum = async (
-  table: string,
-  blockNum: number,
-  trx: Transaction | PoolClient,
+	table: string,
+	blockNum: number,
+	client: customClient = { query },
 ) => {
-  await trx.queryObject(
-    'UPDATE hafsql.sync_data SET last_block_num=$1 WHERE table_name=$2;',
-    [blockNum, table],
-  )
+	await client.query(
+		'UPDATE hafsql.sync_data SET last_block_num=$1 WHERE table_name=$2;',
+		[blockNum, table],
+	)
 }
