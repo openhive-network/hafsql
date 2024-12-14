@@ -68,9 +68,6 @@ HAF is running on PostgreSQL and all the PostgreSQL clients will connect and wor
 It is available for Windows, Linux, and Mac for free.  
 Recommendation would be to use DBeaver for testing your queries before implementing them in your code.
 
-#### NodeJS
-[:icon-link-external: node-postgres](https://node-postgres.com/) - Solid library with a lot of features
-
-#### Deno
-[:icon-link-external: deno-postgres](https://deno.land/x/postgres) - HafSQL is built using this library  
-Regular npm packages such as [:icon-link-external: node-postgres](https://node-postgres.com/) should also work fine.
+#### NodeJS and Deno
+[:icon-link-external: node-postgres](https://node-postgres.com/)  
+[:icon-link-external: deno-postgres](https://deno.land/x/postgres)  
