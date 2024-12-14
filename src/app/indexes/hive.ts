@@ -10,7 +10,7 @@ export const createHiveIndexes = async () => {
 	)
 	const invalidIndexes = await getInvalidIndexes()
 	invalidIndexes.forEach(async (index) => {
-		await query(`DROP INDEX CONCURRENTLY IF EXISTS hafd.${index};`)
+		await query(`DROP INDEX CONCURRENTLY hafd.${index};`)
 	})
 	for (let i = 0; i < hiveIndexes.length; i++) {
 		const name = hiveIndexes[i].name
