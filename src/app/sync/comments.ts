@@ -239,15 +239,6 @@ const extractTags = (parsedJson: any) => {
 	}
 }
 
-// const isJsonString = (str: string) => {
-// 	try {
-// 		JSON.parse(str)
-// 	} catch (_e) {
-// 		return false
-// 	}
-// 	return true
-// }
-
 // Apply edits to the body of the post/comment
 const patchBody = (oldBody: string, newBody: string) => {
 	try {
