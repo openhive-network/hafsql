@@ -5,7 +5,6 @@ import {
 	removeOperationViews,
 	setupOperationViews,
 } from './setup_operation_views.ts'
-import { setupPublicUser } from './setup_public_user.ts'
 import { setupSchema } from './setup_schema.ts'
 import { setupTables } from './setup_tables.ts'
 
@@ -26,8 +25,4 @@ export const setup = async (): Promise<void> => {
 	await setupOperationViews()
 
 	await setupExtraViews()
-
-	if (Deno.env.get('HAFSQL_PUBLICUSER') === 'true') {
-		await setupPublicUser()
-	}
 }
