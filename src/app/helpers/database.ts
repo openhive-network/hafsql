@@ -1,5 +1,9 @@
-import { QueryResultRow } from 'npm:@types/pg'
-import { Pool } from '../../deps.ts'
+import {
+	Pool,
+	QueryArrayConfig,
+	QueryArrayResult,
+	QueryResultRow,
+} from '../../deps.ts'
 
 // Lazy loaded per worker
 const POOL_SIZE = Number(Deno.env.get('HAFSQL_PGPOOLSIZE')) || 5
@@ -31,6 +35,16 @@ export const query = <T extends QueryResultRow>(
 ) => {
 	const { queryString, params } = parseTemplateLiteralText(strings, values)
 	return pool.query<T>(queryString, params)
+}
+
+export const queryArray = (
+	strings: TemplateStringsArray | string,
+	...values: any[]
+) => {
+	const { queryString, params } = parseTemplateLiteralText(strings, values)
+	return pool.query(
+		{ text: queryString, values: params, rowMode: 'array' },
+	)
 }
 
 export type customClient = {
