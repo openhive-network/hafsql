@@ -80,7 +80,8 @@ export const scalar = new Router()
           var configuration = {
             theme: 'bluePlanet',
             favicon: '/favicon.ico',
-            hideModels: true
+            hideModels: true,
+            hideClientButton: true,
           }
 
           document.getElementById('api-reference').dataset.configuration =
