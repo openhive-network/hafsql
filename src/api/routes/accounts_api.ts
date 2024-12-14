@@ -1,4 +1,4 @@
-import { query } from '../../app/helpers/database.ts'
+import { query, queryArray } from '../../app/helpers/database.ts'
 import { BigJSONparser, BigJSONstringifier, Router } from '../../deps.ts'
 import { userExists } from '../helpers/user_exists.ts'
 import { validateNames } from '../helpers/validate_names.ts'
@@ -131,7 +131,7 @@ export const accountsAPI = new Router()
 	 * @description Search accounts by their public key (memo, posting, active, and owner)
 	 * @tag Accounts
 	 * @pathParam {string} key - Public key
-	 * e.g. STM7U2ecB3gEwfrLMQtfVkCN8z3kPmXtDH3HSmLgrbsFpV6UXEwKE
+	 * e.g. STM5tp5hWbGLL1R3tMVsgYdYxLPyAQFdKoYFbT2hcWUmrU42p1MQC
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
 	 * @response 404 - No items found
@@ -214,7 +214,7 @@ export const accountsAPI = new Router()
 // Otherwise will need try-catch on every single endpoint to release the client on errors
 
 const getAccounts = async (startId: number, limit: number) => {
-	const result = await query(
+	const result = await queryArray(
 		`SELECT name FROM hafsql.accounts WHERE
     id ${limit < 0 && startId !== -1 ? '<$1' : '>$1'}
     ORDER BY id ${limit < 0 ? 'DESC' : 'ASC'}
@@ -241,7 +241,7 @@ const getByCreator = async (
 	startId: number,
 	limit: number,
 ) => {
-	const result = await query(
+	const result = await queryArray(
 		`SELECT name FROM hafsql.accounts
         WHERE creator=$1 
         AND ${limit < 0 && startId !== -1 ? 'id < $2' : 'id > $2'}
@@ -257,7 +257,7 @@ const getByRecovery = async (
 	startId: number,
 	limit: number,
 ) => {
-	const result = await query(
+	const result = await queryArray(
 		`SELECT name FROM hafsql.accounts
         WHERE recovery=$1 AND ${
 			limit < 0 && startId !== -1 ? 'id < $2' : 'id > $2'
@@ -271,7 +271,7 @@ const getByRecovery = async (
 
 const getByKey = async (key: string) => {
 	const keyJson = JSON.stringify({ key_auths: [[key]] })
-	const result = await query(
+	const result = await queryArray(
 		`SELECT DISTINCT(name) FROM
       (SELECT name, id FROM hafsql.accounts
       WHERE posting @> $1::jsonb
@@ -296,7 +296,7 @@ const getByAuthority = async (
 	limit: number,
 ) => {
 	const authJson = JSON.stringify({ account_auths: [[username]] })
-	const result = await query(
+	const result = await queryArray(
 		`SELECT DISTINCT(name) FROM
         (SELECT name, id FROM hafsql.accounts
         WHERE posting @> $1::jsonb
@@ -311,8 +311,10 @@ const getByAuthority = async (
 }
 
 const getByProxy = async (username: string) => {
-	const result = await query(
-		`SELECT name FROM hafsql.accounts WHERE proxy=$1`,
+	const result = await queryArray(
+		`SELECT name FROM hafsql.accounts WHERE 
+			id IN (SELECT account FROM hafsql.accounts_table WHERE
+				proxy=(SELECT id FROM hafd.accounts WHERE name=$1))`,
 		[username],
 	)
 	return result.rows
