@@ -1,0 +1,17 @@
+image: node:latest
+
+before_script:
+  - npm install retypeapp --global
+
+stages:
+  - deploy
+
+pages:
+  stage: deploy
+  script:
+  - retype build
+  artifacts:
+    paths:
+    - public/
+  only:
+  - main

@@ -1,0 +1,19 @@
+input: sql_docs
+output: public
+exclude:
+  - "excluded"
+  - "helpers"
+url: https://mahdiyari.gitlab.com/hafsql
+branding:
+  title: HafSQL
+  label: Docs
+  logo: logo.png
+links:
+- text: GitLab
+  link: https://gitlab.com/mahdiyari/hafsql
+footer:
+  copyright: "&copy; Copyright {{ year }}. All rights reserved."
+edit:
+  repo: gitlab.com/mahdiyari/hafsql
+  branch: main
+  base: /sql_docs

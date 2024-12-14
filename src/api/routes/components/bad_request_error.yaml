@@ -1,0 +1,15 @@
+components:
+  schemas:
+    BadRequest:
+      type: object
+      properties:
+        status:
+          type: number
+        error:
+          type: string
+        message:
+          type: string
+      example:
+        status: 400
+        error: 'Bad Request'
+        message: 'Invalid request value'

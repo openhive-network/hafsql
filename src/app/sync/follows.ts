@@ -1,0 +1,388 @@
+import { print } from '../helpers/utils/print.ts'
+import { sleep } from '../helpers/utils/sleep.ts'
+import { CustomJsonFollow, Follows } from '../helpers/types.ts'
+import {
+	clearUsername,
+	validateAccountName,
+} from '../helpers/utils/validate_username.ts'
+import { getBlockRange } from '../helpers/utils/get_block_range.ts'
+import { getUserId } from '../helpers/utils/get_user_id.ts'
+import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
+import { createFollowsIndexes } from '../indexes/hafsql.ts'
+import { customClient, query, transaction } from '../helpers/database.ts'
+
+let started = false
+// Run this file in a separate worker thread than the main application
+// Start when receiving a command "start"
+// @ts-ignore: lack of types in deno
+self.onmessage = (e: MessageEvent) => {
+	if (e.data === 'start') {
+		if (!started) {
+			started = true
+			print('[Follows] Start massive sync... ⏳')
+			syncFollows()
+		}
+	}
+}
+
+let firstRun = true
+const syncFollows = async () => {
+	const intervalTime = 250
+	if (firstRun) {
+		firstRun = false
+		await fillFollows()
+		print('[Follows] Massive sync done ✅')
+		await createFollowsIndexes()
+		print('[Follows] Switched to live sync 🟢')
+		await sleep(intervalTime)
+	}
+	await fillFollows()
+	await sleep(intervalTime)
+	syncFollows()
+}
+
+const fillFollows = async () => {
+	let blockRange = await getBlockRange('follows')
+	while (blockRange) {
+		const follows = await getFollows(blockRange)
+		await insertFollows(follows, blockRange)
+		blockRange = await getBlockRange('follows')
+	}
+}
+
+const getFollows = async (blockRange: number[]) => {
+	// block 5999998 - op_id 25769795186065408
+	const result = await query<CustomJsonFollow>(
+		`SELECT id, json, required_posting_auths FROM hafsql.operation_custom_json_view
+      WHERE custom_id=$1
+      AND id >= hafsql.first_op_id_from_block_num($2)
+      AND id <= hafsql.last_op_id_from_block_num($3)
+      ORDER BY id ASC`,
+		['follow', blockRange[0], blockRange[1]],
+	)
+	if (result.rows.length <= 0) {
+		return []
+	}
+	// Validating custom json
+	const followsArray = []
+	for (let i = 0; i < result.rows.length; i++) {
+		const customJson = result.rows[i]
+		try {
+			const isValid = await validateCustomJson(customJson)
+			if (!isValid) {
+				continue
+			}
+			followsArray.push({
+				follower: isValid.ids.follower,
+				following: isValid.ids.following,
+				what: isValid.what,
+				id: customJson.id,
+			})
+		} catch (_e) {
+			// bad json
+			continue
+		}
+	}
+	return followsArray
+}
+
+const validateCustomJson = async (customJson: CustomJsonFollow) => {
+	let parsedJson: [
+		string,
+		{ follower: string; following: string[]; what: string[] },
+	] = JSON.parse(customJson.json)
+	const postingAuths = customJson.required_posting_auths
+	if (!Array.isArray(parsedJson)) {
+		if (
+			typeof parsedJson !== 'object' ||
+			customJson.id > BigInt('25769795186065408')
+		) {
+			return
+		}
+		parsedJson = ['follow', parsedJson]
+	}
+	if (parsedJson.length !== 2) {
+		return
+	}
+	if (parsedJson[0] !== 'follow') {
+		return
+	}
+	if (typeof parsedJson[1] !== 'object') {
+		return
+	}
+	if (
+		!Object.hasOwn(parsedJson[1], 'follower') ||
+		!Object.hasOwn(parsedJson[1], 'following') ||
+		!Object.hasOwn(parsedJson[1], 'what')
+	) {
+		return
+	}
+	const { follower, what } = parsedJson[1]
+	let { following } = parsedJson[1]
+	if (!Array.isArray(following)) {
+		following = [following]
+	}
+	if (validateAccountName(clearUsername(follower))) {
+		return
+	}
+	if (postingAuths[0] !== clearUsername(follower)) {
+		return
+	}
+	if (!Array.isArray(what) || what.length > 1) {
+		return
+	}
+	const ids = await getIds(follower, following, what)
+
+	if (!ids) {
+		return
+	}
+	return { ids, what }
+}
+
+const getIds = async (
+	follower: string,
+	following: string[],
+	what: string[],
+) => {
+	const followingsArray = []
+	const ids = {
+		follower: 0,
+		following: [0],
+	}
+	const followerId = await getUserId(follower)
+	if (!followerId) {
+		return
+	}
+	ids.follower = followerId
+	for (let i = 0; i < following.length; i++) {
+		if (validateAccountName(clearUsername(following[i]))) {
+			continue
+		}
+		if (follower === following[i]) {
+			continue
+		}
+		const followingId = await getUserId(following[i])
+		if (!followingId) {
+			continue
+		}
+		followingsArray.push(followingId)
+	}
+	if (followingsArray.length < 1 && !what[0].includes('reset_')) {
+		return
+	}
+	ids.following = followingsArray
+	return ids
+}
+
+const insertFollows = async (follows: Follows[], blockRange: number[]) => {
+	await transaction(async (client) => {
+		for (let i = 0; i < follows.length; i++) {
+			const item = follows[i]
+			if (item.what.length === 0) {
+				await unfollowUnmute(item, client)
+				continue
+			}
+			const what = item.what[0]
+			switch (what) {
+				case 'blacklist':
+					await blacklist(item, client)
+					break
+				case 'unblacklist':
+					await unblacklist(item, client)
+					break
+				case 'follow_blacklist':
+					await followBlacklist(item, client)
+					break
+				case 'unfollow_blacklist':
+					await unfollowBlacklist(item, client)
+					break
+				case 'follow_muted':
+					await followMuted(item, client)
+					break
+				case 'unfollow_muted':
+					await unfollowMuted(item, client)
+					break
+				case 'follow':
+				case 'blog':
+					await follow(item, client)
+					break
+				case 'ignore':
+					await mute(item, client)
+					break
+				case 'reset_blacklist':
+					await resetBlacklist(item, client)
+					break
+				case 'reset_following_list':
+					await resetFollowingList(item, client)
+					break
+				case 'reset_muted_list':
+					await resetMutedList(item, client)
+					break
+				case 'reset_follow_blacklist':
+					await resetFollowBlacklist(item, client)
+					break
+				case 'reset_follow_muted_list':
+					await resetFollowMutedList(item, client)
+					break
+				case 'reset_all_lists':
+					await resetAllLists(item, client)
+					break
+				default:
+					break
+			}
+		}
+		await updateLastBlockNum('follows', blockRange[1], client)
+	})
+}
+
+const blacklist = async (item: Follows, client: customClient) => {
+	const { follower, following } = item
+	for (let i = 0; i < following.length; i++) {
+		await client.query(
+			`INSERT INTO hafsql.blacklists_table (blacklister, blacklisted)
+          VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_blacklists_table_un
+          DO NOTHING;`,
+			[follower, following[i]],
+		)
+	}
+}
+const unblacklist = async (item: Follows, client: customClient) => {
+	const { follower, following } = item
+	for (let i = 0; i < following.length; i++) {
+		await client.query(
+			`DELETE FROM hafsql.blacklists_table
+          WHERE blacklister=$1 AND blacklisted=$2;`,
+			[follower, following[i]],
+		)
+	}
+}
+const followBlacklist = async (item: Follows, client: customClient) => {
+	const { follower, following } = item
+	for (let i = 0; i < following.length; i++) {
+		await client.query(
+			`INSERT INTO hafsql.blacklist_follows_table (account, blacklist)
+          VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_blacklist_follows_table_un
+          DO NOTHING;`,
+			[follower, following[i]],
+		)
+	}
+}
+const unfollowBlacklist = async (item: Follows, client: customClient) => {
+	const { follower, following } = item
+	for (let i = 0; i < following.length; i++) {
+		await client.query(
+			`DELETE FROM hafsql.blacklist_follows_table
+        WHERE account=$1 AND blacklist=$2;`,
+			[follower, following[i]],
+		)
+	}
+}
+const followMuted = async (item: Follows, client: customClient) => {
+	const { follower, following } = item
+	for (let i = 0; i < following.length; i++) {
+		await client.query(
+			`INSERT INTO hafsql.mute_follows_table (account, mute_list)
+        VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_mute_follows_table_un
+        DO NOTHING;`,
+			[follower, following[i]],
+		)
+	}
+}
+const unfollowMuted = async (item: Follows, client: customClient) => {
+	const { follower, following } = item
+	for (let i = 0; i < following.length; i++) {
+		await client.query(
+			`DELETE FROM hafsql.mute_follows_table
+        WHERE account=$1 AND mute_list=$2;`,
+			[follower, following[i]],
+		)
+	}
+}
+
+const follow = async (item: Follows, client: customClient) => {
+	const { follower, following } = item
+	for (let i = 0; i < following.length; i++) {
+		await client.query(
+			`INSERT INTO hafsql.follows_table (follower, following)
+        VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_follows_table_un
+        DO NOTHING;`,
+			[follower, following[i]],
+		)
+	}
+}
+
+const mute = async (item: Follows, client: customClient) => {
+	const { follower, following } = item
+	for (let i = 0; i < following.length; i++) {
+		await client.query(
+			`INSERT INTO hafsql.mutes_table (muter, muted)
+        VALUES ($1, $2) ON CONFLICT ON CONSTRAINT hafsql_mutes_table_un
+        DO NOTHING;`,
+			[follower, following[i]],
+		)
+	}
+}
+
+const unfollowUnmute = async (item: Follows, client: customClient) => {
+	const { follower, following } = item
+	for (let i = 0; i < following.length; i++) {
+		await client.query(
+			`DELETE FROM hafsql.follows_table
+        WHERE follower=$1 AND following=$2;`,
+			[follower, following[i]],
+		)
+		await client.query(
+			`DELETE FROM hafsql.mutes_table
+        WHERE muter=$1 AND muted=$2;`,
+			[follower, following[i]],
+		)
+	}
+}
+
+const resetBlacklist = async (item: Follows, client: customClient) => {
+	await client.query(
+		`DELETE FROM hafsql.blacklists_table
+    WHERE blacklister=$1;`,
+		[item.follower],
+	)
+}
+
+const resetFollowingList = async (item: Follows, client: customClient) => {
+	await client.query(
+		`DELETE FROM hafsql.follows_table
+    WHERE follower=$1;`,
+		[item.follower],
+	)
+}
+
+const resetMutedList = async (item: Follows, client: customClient) => {
+	await client.query(
+		`DELETE FROM hafsql.mutes_table
+    WHERE muter=$1;`,
+		[item.follower],
+	)
+}
+
+const resetFollowBlacklist = async (item: Follows, client: customClient) => {
+	await client.query(
+		`DELETE FROM hafsql.blacklist_follows_table
+    WHERE account=$1;`,
+		[item.follower],
+	)
+}
+
+const resetFollowMutedList = async (item: Follows, client: customClient) => {
+	await client.query(
+		`DELETE FROM hafsql.mute_follows_table
+    WHERE account=$1;`,
+		[item.follower],
+	)
+}
+
+const resetAllLists = async (item: Follows, client: customClient) => {
+	await resetBlacklist(item, client)
+	await resetFollowingList(item, client)
+	await resetMutedList(item, client)
+	await resetFollowBlacklist(item, client)
+	await resetFollowMutedList(item, client)
+}

@@ -1,0 +1,13 @@
+tags:
+  - name: OpenAPI
+    description: API definitions
+  - name: Accounts
+    description: 'APIs that search and return hive accounts'
+  - name: Balances
+    description: 'APIs that return balance information'
+  - name: Follows
+    description: 'APIs that return followers related information'
+  - name: Blacklists
+    description: 'APIs that return blacklists related information'
+  - name: Mutes
+    description: 'APIs that return mutes related information'
