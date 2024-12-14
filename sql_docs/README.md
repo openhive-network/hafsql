@@ -8,7 +8,7 @@ This documentation is hosted on https://mahdiyari.gitlab.io/hafsql
 
 ### Connection settings
 The "official" public HafSQL/HAF database:
-> host: `hafsql.mahdiyari.info`  
+> host: `hafsql-sql.mahdiyari.info`  
 port: `5432`  
 database: `haf_block_log`  
 user: `hafsql_public`  
