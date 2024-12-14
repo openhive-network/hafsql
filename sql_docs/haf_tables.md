@@ -31,7 +31,7 @@ SELECT * FROM hafsql.haf_applied_hardforks
 Indexes on: `(block_num)` | `(hardfork_num)`
 
 ***
-# 3. haf_blocks
+### 3. haf_blocks
 ```sql
 SELECT * FROM hafsql.haf_blocks
 LIMIT 1
@@ -43,7 +43,7 @@ LIMIT 1
 Indexes on: `(timestamp)` | `(witness)` | `(block_num)`
 
 ***
-# 4. haf_operation_types
+### 4. haf_operation_types
 ```sql
 SELECT * FROM hafsql.haf_operation_types
 ```
@@ -54,7 +54,7 @@ SELECT * FROM hafsql.haf_operation_types
 Indexes on: `(id)` | `(name)`
 
 ***
-# 5. haf_operations
+### 5. haf_operations
 ```sql
 SELECT * FROM haf_operations
 LIMIT 1
@@ -66,7 +66,7 @@ LIMIT 1
 Indexes on: `(block_num, id)` | `(block_num, trx_in_block, op_type_id)` | `(op_type_id, block_num)` | `(id)` | `(op_type_id, id)`
 
 ***
-# 6. haf_transactions
+### 6. haf_transactions
 ```sql
 SELECT * FROM haf_transactions
 LIMIT 1
