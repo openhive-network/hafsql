@@ -1,14 +1,9 @@
-Environment variables can be passed by `.env` file when building the docker image or by `--env` when running the container. `--env` will override the variables provided with `.env` file.
-
-
-
-Retype for docs
-Scaler for api docs (using danet)
-
+# HafSQL
+This version is compatible with HAF 1.27.6rc9 - For production wait for HAF 1.27.6
 
 ### Documentation
 - [SQL Documentations](https://mahdiyari.gitlab.com/hafsql)
-- [API Documentations]()
+- API Documentations: [hafsql-api](https://hafsql-api.mahdiyari.info) - Any node running HafSQL will serve them
 
 ***
 ## How to run
@@ -20,6 +15,8 @@ The container will check and wait for HAF to be ready before processing the data
 To include [environment variables](#options):
 ```sh
 cp .env.defaults .env
+# Edit .env
+# Then
 docker run -itd --env-file .env -p 3000:3000 --name hafsql mahdiyari/hafsql:latest
 ```
 Make sure the IP address on `HAFSQL_PGHOST` is correct. You can find the correct IP address by:
