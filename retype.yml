@@ -3,14 +3,14 @@ output: public
 exclude:
   - "excluded"
   - "helpers"
-url: https://mahdiyari.gitlab.com/hafsql
+url: https://mahdiyari.gitlab.io/hafsql
 branding:
   title: HafSQL
   label: Docs
   logo: logo.png
 links:
-- text: GitLab
-  link: https://gitlab.com/mahdiyari/hafsql
+  - text: GitLab
+    link: https://gitlab.com/mahdiyari/hafsql
 footer:
   copyright: "&copy; Copyright {{ year }}. All rights reserved."
 edit:

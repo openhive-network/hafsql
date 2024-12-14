@@ -2,7 +2,7 @@
 This version is compatible with HAF 1.27.6rc9 - For production wait for HAF 1.27.6
 
 ### Documentation
-- [SQL Documentations](https://mahdiyari.gitlab.com/hafsql)
+- [SQL Documentations](https://mahdiyari.gitlab.io/hafsql/)
 - API Documentations: [hafsql-api](https://hafsql-api.mahdiyari.info) - Any node running HafSQL will serve them
 
 ***

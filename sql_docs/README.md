@@ -4,7 +4,7 @@ order: 100
 ---
 
 # Getting Started
-This documentation is hosted on https://mahdiyari.gitlab.com/hafsql
+This documentation is hosted on https://mahdiyari.gitlab.io/hafsql
 
 ### Connection settings
 The "official" public HafSQL/HAF database:
