@@ -1,4 +1,5 @@
 import { query } from '../helpers/database.ts'
+import { print } from '../helpers/utils/print.ts'
 
 export const setupPublicUser = async () => {
 	const role = await query(
@@ -29,5 +30,5 @@ export const setupPublicUser = async () => {
 	await query(
 		'ALTER USER hafsql_public SET search_path TO hafsql, public;',
 	)
-	console.log('hafsql_public user setup done')
+	print('[Main] hafsql_public user setup done')
 }
