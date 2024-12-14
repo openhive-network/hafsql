@@ -1,4 +1,4 @@
-import { query } from '../../app/helpers/database.ts'
+import { query, queryArray } from '../../app/helpers/database.ts'
 import { BigJSONparser, BigJSONstringifier, Router } from '../../deps.ts'
 import { validateNames } from '../helpers/validate_names.ts'
 import { validateSearchParams } from '../helpers/validate_search_params.ts'
@@ -10,7 +10,7 @@ export const mutesAPI = new Router()
 	 * @summary Muting accounts
 	 * @description Returns list of accounts who have muted a certain username.
 	 * @tag Mutes
-	 * @pathParam {string} username - Account name e.g. mahdiyari
+	 * @pathParam {string} username - Account name e.g. dantheman
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
 	 * @response 404 - No items found
@@ -36,7 +36,7 @@ export const mutesAPI = new Router()
 	 * @summary Muted accounts
 	 * @description Returns list of accounts muted by a certain username.
 	 * @tag Mutes
-	 * @pathParam {string} username - Account name e.g. mahdiyari
+	 * @pathParam {string} username - Account name e.g. dantheman
 	 * @queryParam {integer} [start] - Username used for pagination
 	 * @queryParam {integer} [limit=100] - Max number of returned items -
 	 * Can be negative for going backwards and to reverse the sorting<br/>
@@ -90,7 +90,7 @@ export const mutesAPI = new Router()
 
 // Helper functions
 const getMuting = async (username: string) => {
-	const result = await query(
+	const result = await queryArray(
 		`SELECT muter_name FROM hafsql.mutes
       WHERE muted_name = $1`,
 		[username],
@@ -103,7 +103,7 @@ const getMuted = async (
 	startId: number,
 	limit: number,
 ) => {
-	const result = await query(
+	const result = await queryArray(
 		`SELECT muted_name FROM hafsql.mutes
       WHERE muter_name = $1
       AND muted_id ${limit < 0 && startId !== -1 ? '< $2' : '> $2'}
@@ -115,7 +115,7 @@ const getMuted = async (
 }
 
 const getMutedLists = async (username: string) => {
-	const result = await query(
+	const result = await queryArray(
 		`SELECT mute_list_name FROM hafsql.mute_follows
       WHERE account_name = $1`,
 		[username],
