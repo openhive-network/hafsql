@@ -12,6 +12,7 @@ export const setupPublicUser = async () => {
 		)
 	}
 	await query('GRANT USAGE ON SCHEMA hafsql TO hafsql_public;')
+	await query('GRANT USAGE ON SCHEMA hive TO hafsql_public;')
 	await query(
 		'GRANT SELECT ON ALL TABLES IN SCHEMA hafsql TO hafsql_public;',
 	)
