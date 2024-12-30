@@ -168,7 +168,7 @@ export const setupFunctions = async () => {
     RETURNS int8
     AS $$
     BEGIN
-      RETURN (SELECT id FROM hafd.operations
+      RETURN (SELECT id FROM hafsql.haf_operations
         WHERE hive.operation_id_to_block_num(id) = $1
         ORDER BY id DESC limit 1);
     EXCEPTION WHEN OTHERS THEN
@@ -191,7 +191,7 @@ export const setupFunctions = async () => {
     RETURNS int8
     AS $$
     BEGIN
-      RETURN (SELECT id FROM hafd.operations
+      RETURN (SELECT id FROM hafsql.haf_operations
         WHERE hive.operation_id_to_block_num(id) = $1
         ORDER BY id ASC limit 1);
     EXCEPTION WHEN OTHERS THEN
@@ -217,7 +217,7 @@ export const setupFunctions = async () => {
       last_num int4;
       head_num int4;
     BEGIN
-      SELECT num INTO STRICT head_num FROM hafd.blocks ORDER BY num DESC LIMIT 1;
+      SELECT block_num INTO STRICT head_num FROM hafsql.haf_blocks ORDER BY block_num DESC LIMIT 1;
       SELECT last_block_num INTO STRICT last_num FROM hafsql.sync_data WHERE table_name = $1;
       RETURN
         CASE WHEN head_num > last_num THEN
