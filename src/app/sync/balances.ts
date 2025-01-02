@@ -599,8 +599,10 @@ const handleTransferFromSavings = async (
 	}
 	// insert pending savings - shouldn't be that many rows to make things too slow
 	// if slow, have to bulk insert
+	// TODO: Remove the on conflict later
 	await client.query(
-		`INSERT INTO hafsql.pending_saving_withdraws_table ("from", "to", request_id, amount, symbol) VALUES ($1, $2, $3, $4, $5)`,
+		`INSERT INTO hafsql.pending_saving_withdraws_table ("from", "to", request_id, amount, symbol) VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT ON CONSTRAINT hafsql_pending_saving_withdraws_table_un DO NOTHING`,
 		[fromId, toId, request_id, amount, symbol],
 	)
 	await insertHistory(fromId, block_num, client)
