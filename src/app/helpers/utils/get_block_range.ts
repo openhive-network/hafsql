@@ -14,6 +14,9 @@ export const getBlockRange = async (
 		return null
 	}
 	const rangeArray = blockRangeQ.rows[0].block_range
+	if (!Array.isArray(rangeArray)) {
+		return null
+	}
 	if (table === 'operations') {
 		return rangeArray
 	}
