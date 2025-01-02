@@ -2,7 +2,7 @@ import { Big } from '../../deps.ts'
 import { opId } from './operation_id.ts'
 
 export interface BlockRange {
-	block_range: [number, number] | null
+	block_range: [number, number]
 }
 
 export interface CommentOp {
