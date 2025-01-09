@@ -145,9 +145,9 @@ SELECT hafd.operation_id_to_type_id(390044641782666816)
 -- 64
 ```
 ***
-### hafsql.op_position(id int8)
+### hafd.operation_id_to_pos(id int8)
 Get position of the operation in the block from operation id.
 ```sql
-SELECT hafsql.op_position(390044641782666816)
+SELECT hafd.operation_id_to_pos(390044641782666816)
 -- 22
 ```
