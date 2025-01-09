@@ -1,12 +1,16 @@
 # HafSQL
-This version is compatible with HAF 1.27.6rc9 - For production wait for HAF 1.27.6
+This version is compatible with HAF 1.27.7rc16 - For production wait for stable release
 
-### Documentation
+## Documentation
 - [SQL Documentations](https://mahdiyari.gitlab.io/hafsql/)
+- - Public HafSQL node information is in the above documentation
 - API Documentations: [hafsql-api](https://hafsql-api.mahdiyari.info) - Any node running HafSQL will serve them
+- - The above URL is also an API endpoint
+- [Docker compose yaml files](https://gitlab.com/mahdiyari/haf_dockers)
 
 ***
 ## How to run
+
 
 ### Option 1: If you already have HAF running
 The following command will start the HafSQL docker container and serve the API and documentations on port 3000.  
