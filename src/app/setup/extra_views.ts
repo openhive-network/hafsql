@@ -239,15 +239,15 @@ export const setupExtraViews = async () => {
 	// Operations
 	await query(`CREATE OR REPLACE VIEW hafsql.haf_operations
   AS SELECT x.id,
-    hive.operation_id_to_block_num(x.id) AS block_num,
+    hafsql.block_num(x.id) AS block_num,
     x.trx_in_block,
     x.op_pos,
-    hive.operation_id_to_type_id(x.id) AS op_type_id,
+    hafsql.op_type_id(x.id) AS op_type_id,
     hb.created_at AS "timestamp",
     x.body_binary::jsonb as body,
     hafsql.get_trx_id(x.id) as included_trx_id
     FROM hafd.operations x
-    JOIN hafd.blocks hb ON hb.num = hive.operation_id_to_block_num(x.id);`)
+    JOIN hafd.blocks hb ON hb.num = hafsql.block_num(x.id);`)
 
 	// Operation Types
 	await query(`CREATE OR REPLACE VIEW hafsql.haf_operation_types

@@ -1,9 +1,4 @@
-import {
-	Pool,
-	QueryArrayConfig,
-	QueryArrayResult,
-	QueryResultRow,
-} from '../../deps.ts'
+import { Pool, QueryResultRow } from '../../deps.ts'
 
 // Lazy loaded per worker
 const POOL_SIZE = Number(Deno.env.get('HAFSQL_PGPOOLSIZE')) || 5

@@ -140,11 +140,11 @@ export const fillOperationTables = async () => {
 
 const getData = async (blockRange: number[]) => {
 	const result = await query<Operations>(
-		`SELECT id, body_binary::jsonb AS body, hive.operation_id_to_type_id(id) AS op_type_id
+		`SELECT id, body_binary::jsonb AS body, hafsql.op_type_id(id) AS op_type_id
       FROM hafd.operations
       WHERE id >= hafsql.first_op_id_from_block_num($1)
       AND id <= hafsql.last_op_id_from_block_num($2)
-      AND hive.operation_id_to_type_id(id) NOT IN
+      AND hafsql.op_type_id(id) NOT IN
       (${opId.vote}, ${opId.comment}, ${opId.custom_json}, ${opId.effective_comment_vote})
       ORDER BY id ASC`,
 		[blockRange[0], blockRange[1]],

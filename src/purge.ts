@@ -14,6 +14,11 @@ export const purgeHafSQL = async () => {
 			`DROP INDEX CONCURRENTLY IF EXISTS ${hiveIndexes[i].name}`,
 		)
 	}
+	try {
+		await query('DROP OWNED BY hafsql_public CASCADE')
+	} catch (_e) {
+		//
+	}
 	await query('DROP ROLE IF EXISTS hafsql_public')
 	print('Purge done.')
 }

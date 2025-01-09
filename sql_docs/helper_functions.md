@@ -131,16 +131,23 @@ SELECT hafsql.get_timestamp(390044641782666816)
 -- 2024-11-19 06:12:24.000
 ```
 ***
-### hive.operation_id_to_block_num(id int8)
+### hafsql.block_num(id int8)
 Get block_num from operation id.
 ```sql
-SELECT hive.operation_id_to_block_num(390044641782666816)
+SELECT hafsql.block_num(390044641782666816)
 -- 90814345
 ```
 ***
-### hive.operation_id_to_type_id(id int8)
+### hafsql.op_type_id(id int8)
 Get op_type_id (type of the operation) from operation id.
 ```sql
-SELECT hive.operation_id_to_type_id(390044641782666816)
+SELECT hafsql.op_type_id(390044641782666816)
 -- 64
+```
+***
+### hafsql.op_position(id int8)
+Get position of the operation in the block from operation id.
+```sql
+SELECT hafsql.op_position(390044641782666816)
+-- 22
 ```
