@@ -13,7 +13,7 @@ const symbol = (param: string) => {
 	return `hafsql.asset_symbol(${param})`
 }
 const block = (id: string) => {
-	return `hive.operation_id_to_block_num(${id})`
+	return `hafsql.block_num(${id})`
 }
 
 const OPs = 49
@@ -32,7 +32,7 @@ export const setupOperationViews = async () => {
       hafsql.get_trx_id(o.id) AS "trx_id"
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
-    WHERE hive.operation_id_to_type_id(o.id) = 0;`
+    WHERE hafsql.op_type_id(o.id) = 0;`
 	await query(OpVote)
 
 	// No dedicated table
@@ -50,7 +50,7 @@ export const setupOperationViews = async () => {
     hafsql.get_trx_id(o.id) AS "trx_id"
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
-    WHERE hive.operation_id_to_type_id(o.id) = 1;`
+    WHERE hafsql.op_type_id(o.id) = 1;`
 	await query(OpComment)
 
 	// No dedicated table
@@ -65,7 +65,7 @@ export const setupOperationViews = async () => {
     hafsql.get_trx_id(o.id) AS "trx_id"
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
-    WHERE hive.operation_id_to_type_id(o.id) = 18;`
+    WHERE hafsql.op_type_id(o.id) = 18;`
 	await query(OpCustomJson)
 
 	// +23
@@ -85,7 +85,7 @@ export const setupOperationViews = async () => {
       ${block('o.id')} as block_num
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
-    WHERE hive.operation_id_to_type_id(o.id) = ${OPs} + 23;`
+    WHERE hafsql.op_type_id(o.id) = ${OPs} + 23;`
 	await query(VOEffectiveCommentVote)
 }
 

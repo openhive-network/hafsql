@@ -105,11 +105,11 @@ const getData = async (blockRange: number[]) => {
 		// 3889921816588623 = hf1
 		queryStr +=
 			`\nSELECT (hive.get_impacted_balances(body_binary, id > 3889921816588623)).*, id,
-        hive.operation_id_to_type_id(id) AS op_type_id,
-        hive.operation_id_to_block_num(id) AS block_num FROM hafd.operations
+        hafsql.op_type_id(id) AS op_type_id,
+        hafsql.block_num(id) AS block_num FROM hafd.operations
         WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
         AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
-        AND hive.operation_id_to_type_id(id) = ${balanceImpactingOps[i]}`
+        AND hafsql.op_type_id(id) = ${balanceImpactingOps[i]}`
 		if (i === balanceImpactingOps.length - 1) {
 			queryStr += '\nORDER BY id ASC'
 		}
@@ -118,31 +118,31 @@ const getData = async (blockRange: number[]) => {
 	const impactedBalances = result.rows
 	// Savings
 	const ottsQ = await query<TransferToSavings>(
-		`SELECT id, from_account, to_account, amount, symbol, hive.operation_id_to_block_num(id) AS block_num FROM hafsql.operation_transfer_to_savings_table otts
+		`SELECT id, from_account, to_account, amount, symbol, hafsql.block_num(id) AS block_num FROM hafsql.operation_transfer_to_savings_table otts
       WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY id;`,
 	)
 	const otfsQ = await query<TransferFromSavings>(
-		`SELECT id, from_account, to_account, amount, symbol, request_id, hive.operation_id_to_block_num(id) AS block_num FROM hafsql.operation_transfer_from_savings_table otfs 
+		`SELECT id, from_account, to_account, amount, symbol, request_id, hafsql.block_num(id) AS block_num FROM hafsql.operation_transfer_from_savings_table otfs 
       WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY id;`,
 	)
 	const octfsQ = await query<CancelFromTransfer>(
-		`SELECT id, from_account, request_id, hive.operation_id_to_block_num(id) AS block_num FROM hafsql.operation_cancel_transfer_from_savings_table octfs
+		`SELECT id, from_account, request_id, hafsql.block_num(id) AS block_num FROM hafsql.operation_cancel_transfer_from_savings_table octfs
       WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY id;`,
 	)
 	const vftfsQ = await query<FillFromTransfer>(
-		`SELECT id, from_account, request_id, hive.operation_id_to_block_num(id) AS block_num FROM hafsql.operation_fill_transfer_from_savings_table vftfs 
+		`SELECT id, from_account, request_id, hafsql.block_num(id) AS block_num FROM hafsql.operation_fill_transfer_from_savings_table vftfs 
       WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY id;`,
 	)
 	const interestQ = await query<Interests>(
-		`SELECT id, owner, interest, hive.operation_id_to_block_num(id) AS block_num FROM hafsql.operation_interest_table
+		`SELECT id, owner, interest, hafsql.block_num(id) AS block_num FROM hafsql.operation_interest_table
       WHERE is_saved_into_hbd_balance = false
       AND id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
