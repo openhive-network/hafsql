@@ -1,57 +1,6 @@
 import { query } from '../helpers/database.ts'
 
 export const setupFunctions = async () => {
-	// hafsql.block_num(operation_id int8)
-	await query(
-		`CREATE OR REPLACE FUNCTION hafsql.block_num(operation_id int8)
-    RETURNS int4
-    AS $$
-    BEGIN
-      RETURN operation_id >> 32;
-    END
-    $$
-    LANGUAGE plpgsql
-    IMMUTABLE;`,
-	)
-	await query(
-		`COMMENT ON FUNCTION hafsql.block_num (int8) IS
-    'Get block_num from operation_id';`,
-	)
-
-	// hafsql.op_type_id(operation_id int8)
-	await query(
-		`CREATE OR REPLACE FUNCTION hafsql.op_type_id(operation_id int8)
-    RETURNS int4
-    AS $$
-    BEGIN
-      RETURN operation_id & 0xFF;
-    END
-    $$
-    LANGUAGE plpgsql
-    IMMUTABLE;`,
-	)
-	await query(
-		`COMMENT ON FUNCTION hafsql.op_type_id (int8) IS
-    'Get op_type_id from operation_id';`,
-	)
-
-	// hafsql.op_position(operation_id int8)
-	await query(
-		`CREATE OR REPLACE FUNCTION hafsql.op_position(operation_id int8)
-    RETURNS int4
-    AS $$
-    BEGIN
-      RETURN ( operation_id >> 8 ) & 0xFFFFFF;
-    END
-    $$
-    LANGUAGE plpgsql
-    IMMUTABLE;`,
-	)
-	await query(
-		`COMMENT ON FUNCTION hafsql.op_position (int8) IS
-    'Get operation position in block from operation_id';`,
-	)
-
 	// hafsql.asset_amount(text)
 	// Get the asset amount from the asset object
 	await query(`CREATE OR REPLACE FUNCTION hafsql.asset_amount(text)
@@ -220,7 +169,7 @@ export const setupFunctions = async () => {
     AS $$
     BEGIN
       RETURN (SELECT id FROM hafsql.haf_operations
-        WHERE hafsql.block_num(id) = $1
+        WHERE hafd.operation_id_to_block_num(id) = $1
         ORDER BY id DESC limit 1);
     EXCEPTION WHEN OTHERS THEN
       RETURN NULL;
@@ -243,7 +192,7 @@ export const setupFunctions = async () => {
     AS $$
     BEGIN
       RETURN (SELECT id FROM hafsql.haf_operations
-        WHERE hafsql.block_num(id) = $1
+        WHERE hafd.operation_id_to_block_num(id) = $1
         ORDER BY id ASC limit 1);
     EXCEPTION WHEN OTHERS THEN
       RETURN NULL;
