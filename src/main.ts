@@ -21,6 +21,14 @@ if (Deno.args.includes('purge')) {
 	Deno.exit()
 }
 
+// Development argument for api only
+if (Deno.args.includes('api_only')) {
+	print('Running HafSQL with the `api_only` command...')
+	await startAPI()
+	// wait here 270 hours - should be enough for development
+	await sleep(1000000000)
+}
+
 // Just because
 console.log(`
 
@@ -122,24 +130,28 @@ const format = (num: number) => {
 // Wait for hafsql to be ready before setting up hafsql_public user
 if (Deno.env.get('HAFSQL_PUBLICUSER') === 'true') {
 	const publicUserInterval = setInterval(async () => {
-		const isHafReady = await query<{ is_ready: boolean }>(
-			'SELECT hive.is_instance_ready() AS is_ready;',
-		)
-		if (!isHafReady.rows[0]?.is_ready) {
-			return
+		try {
+			const isHafReady = await query<{ is_ready: boolean }>(
+				'SELECT hive.is_instance_ready() AS is_ready;',
+			)
+			if (!isHafReady.rows[0]?.is_ready) {
+				return
+			}
+			const head = await query<{ num: number }>(
+				`SELECT num FROM hafd.blocks ORDER BY num DESC LIMIT 1;`,
+			)
+			const headNum = head.rows[0].num
+			const result = await query<{ not_synced_yet: number }>(
+				`SELECT COUNT(1) AS not_synced_yet FROM hafsql.sync_data WHERE last_block_num < $1`,
+				[headNum - 3],
+			)
+			if (result.rows[0].not_synced_yet > 0) {
+				return
+			}
+			clearInterval(publicUserInterval)
+			await setupPublicUser()
+		} catch (_e) {
+			// In some rare cases can run before tables are created
 		}
-		const head = await query<{ num: number }>(
-			`SELECT num FROM hafd.blocks ORDER BY num DESC LIMIT 1;`,
-		)
-		const headNum = head.rows[0].num
-		const result = await query<{ not_synced_yet: number }>(
-			`SELECT COUNT(1) AS not_synced_yet FROM hafsql.sync_data WHERE last_block_num < $1`,
-			[headNum - 3],
-		)
-		if (result.rows[0].not_synced_yet > 0) {
-			return
-		}
-		clearInterval(publicUserInterval)
-		await setupPublicUser()
 	}, 10000)
 }

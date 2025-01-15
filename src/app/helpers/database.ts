@@ -13,6 +13,7 @@ const pool = new Pool(
 		port: PG_PORT,
 		database: PG_DATABASE,
 		user: PG_USER,
+		password: PG_USER === 'hafsql_public' ? PG_USER : undefined,
 		application_name: 'hafsql',
 		max: POOL_SIZE,
 		idle_in_transaction_session_timeout: 600000,

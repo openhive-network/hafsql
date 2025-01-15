@@ -12,7 +12,12 @@ import { query } from '../app/helpers/database.ts'
 let HAF_STATUS = 'unkown'
 
 export const startAPI = async () => {
-	await checkHafStatus()
+	if (!Deno.args.includes('api_only')) {
+		await checkHafStatus()
+	} else {
+		// mark haf ready when in development
+		HAF_STATUS = 'ready'
+	}
 	const app = new Application()
 	app.use(async (ctx, next) => {
 		try {
@@ -45,11 +50,25 @@ export const startAPI = async () => {
 		.use(apiRouter.routes())
 
 	// app.addEventListener('error', (e) => {
-	// console.log(e.error)
+	// 	console.log(e.error)
 	// })
 
 	app.use(oakCors())
 	app.use(router.routes())
+
+	// Handle unhandled responses by the routes
+	app.use((ctx, next) => {
+		const status = ctx.response.status
+		if (status === 404) {
+			// route not implemented
+			ctx.response.body = {
+				status,
+				error: STATUS_TEXT[status],
+				message: 'Method/Route not implemented',
+			}
+		}
+		next()
+	})
 
 	app.listen({ port: 3000 })
 	print('[API] API started on port 3000')
@@ -79,4 +98,7 @@ const checkHafStatus = async () => {
 	clearInterval(statusInterval)
 }
 
-const statusInterval = setInterval(checkHafStatus, 60000)
+let statusInterval: number
+if (!Deno.args.includes('api_only')) {
+	statusInterval = setInterval(checkHafStatus, 60000)
+}

@@ -26,7 +26,7 @@ const types = {
 	int8: 'int8',
 	hive_ammount: 'numeric(21, 3)',
 	vests_ammount: 'numeric(27, 6)',
-	timestamp: 'timestamp',
+	timestamp: 'timestamptz',
 	boolean: 'boolean',
 	rshares: 'numeric(27)',
 }

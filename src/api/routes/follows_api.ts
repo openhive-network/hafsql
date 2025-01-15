@@ -1,4 +1,4 @@
-import { query, queryArray } from '../../app/helpers/database.ts'
+import { queryArray } from '../../app/helpers/database.ts'
 import { BigJSONparser, BigJSONstringifier, Router } from '../../deps.ts'
 import { validateNames } from '../helpers/validate_names.ts'
 import { validateSearchParams } from '../helpers/validate_search_params.ts'

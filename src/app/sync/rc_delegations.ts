@@ -57,7 +57,7 @@ export const fillRCDelegations = async () => {
 
 const getRCDelegations = async (blockRange: number[]) => {
 	const result = await query<RcCustomJson>(
-		`SELECT json FROM hafsql.operation_custom_json_view
+		`SELECT json, timestamp FROM hafsql.operation_custom_json_view
     WHERE custom_id=$1
     AND id >= hafsql.first_op_id_from_block_num($2)
     AND id <= hafsql.last_op_id_from_block_num($3)
@@ -73,6 +73,7 @@ const getRCDelegations = async (blockRange: number[]) => {
 	const delegationsArray = []
 	for (let i = 0; i < result.rows.length; i++) {
 		const rcDelegation = result.rows[i]
+		const timestamp = rcDelegation.timestamp
 		try {
 			const parsedJson: RcDelegation = BigJSONparser(rcDelegation.json)
 			if (!Array.isArray(parsedJson)) {
@@ -84,13 +85,16 @@ const getRCDelegations = async (blockRange: number[]) => {
 			if (Array.isArray(parsedJson[0])) {
 				// multiple delegations
 				for (let k = 0; k < parsedJson.length; k++) {
-					const delegation = extractRCDelegationFromArray(parsedJson[k])
+					const delegation = extractRCDelegationFromArray(
+						parsedJson[k],
+						timestamp,
+					)
 					if (delegation !== null) {
 						delegationsArray.push(delegation)
 					}
 				}
 			} else {
-				const delegation = extractRCDelegationFromArray(parsedJson)
+				const delegation = extractRCDelegationFromArray(parsedJson, timestamp)
 				if (delegation !== null) {
 					delegationsArray.push(delegation)
 				}
@@ -102,7 +106,7 @@ const getRCDelegations = async (blockRange: number[]) => {
 	return delegationsArray
 }
 
-const extractRCDelegationFromArray = (arr: RcDelegation) => {
+const extractRCDelegationFromArray = (arr: RcDelegation, timestamp: string) => {
 	if (arr[0] !== 'delegate_rc' && arr[0] !== 0) {
 		return null
 	}
@@ -116,6 +120,7 @@ const extractRCDelegationFromArray = (arr: RcDelegation) => {
 		from,
 		delegatees,
 		max_rc,
+		timestamp,
 	}
 }
 
@@ -125,7 +130,7 @@ const insertRCDelegations = async (
 ) => {
 	await transaction(async (client) => {
 		for (let i = 0; i < delegations.length; i++) {
-			const { max_rc } = delegations[i]
+			const { max_rc, timestamp } = delegations[i]
 			const from = clearUsername(delegations[i].from)
 			const delegatees = [...new Set(delegations[i].delegatees)]
 			for (let k = 0; k < delegatees.length; k++) {
@@ -138,10 +143,10 @@ const insertRCDelegations = async (
 					)
 				} else {
 					await client.query(
-						`INSERT INTO hafsql.rc_delegations_table (delegator, delegatee, rc)
-							VALUES ($1, $2, $3) ON CONFLICT ON CONSTRAINT hafsql_rc_delegations_table_un
-							DO UPDATE SET rc=$3;`,
-						[from, delegatee, max_rc],
+						`INSERT INTO hafsql.rc_delegations_table (delegator, delegatee, rc, timestamp)
+							VALUES ($1, $2, $3, $4) ON CONFLICT ON CONSTRAINT hafsql_rc_delegations_table_un
+							DO UPDATE SET rc=$3, timestamp=$4;`,
+						[from, delegatee, max_rc, timestamp],
 					)
 				}
 			}

@@ -74,6 +74,7 @@ export interface Delegations {
 
 export interface RcCustomJson {
 	json: string
+	timestamp: string
 }
 
 export interface RcDelegationParams {
@@ -92,6 +93,7 @@ export interface RcDelegationAppended {
 	from: string
 	delegatees: string[]
 	max_rc: string | number
+	timestamp: string
 }
 
 export interface CustomJsonFollow {
