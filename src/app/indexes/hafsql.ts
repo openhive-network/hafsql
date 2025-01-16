@@ -38,13 +38,19 @@ export const createCommentsIndexes = async () => {
 
 export const createDelegationsIndexes = async () => {
 	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_delegations_table_delegatee_idx ON hafsql.delegations_table USING btree (delegatee);',
+		'CREATE INDEX IF NOT EXISTS hafsql_delegations_table_delegatee_timestamp_idx ON hafsql.delegations_table USING btree (delegatee, timestamp);',
+	)
+	await query(
+		'CREATE INDEX IF NOT EXISTS hafsql_delegations_table_delegator_timestamp_idx ON hafsql.delegations_table USING btree (delegator, timestamp);',
 	)
 }
 
 export const createRCDelegationsIndexes = async () => {
 	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_rc_delegations_table_delegatee_idx ON hafsql.rc_delegations_table USING btree (delegatee);',
+		'CREATE INDEX IF NOT EXISTS hafsql_rc_delegations_table_delegatee_timestamp_idx ON hafsql.rc_delegations_table USING btree (delegatee, timestamp);',
+	)
+	await query(
+		'CREATE INDEX IF NOT EXISTS hafsql_rc_delegations_table_delegator_timestamp_idx ON hafsql.rc_delegations_table USING btree (delegator, timestamp);',
 	)
 }
 

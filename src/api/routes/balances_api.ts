@@ -78,13 +78,7 @@ export const balancesAPI = new Router()
 		validateSymbol(ctx, symbol)
 		const validKeys = ['start', 'limit']
 		validateSearchParams(ctx, validKeys, false)
-		const params = ctx.request.url.searchParams
-		let limit = 100
-		if (params.has('limit')) {
-			const limitStr = params.get('limit')
-			validateLimit(ctx, limitStr, 1000, 1)
-			limit = Number(limitStr)
-		}
+		const limit = validateLimit(ctx, 100, 1000, 1)
 		const result = await getRichList(symbol, limit)
 		if (result.length === 0) {
 			return ctx.throw(404, 'No accounts found')
@@ -112,12 +106,7 @@ export const balancesAPI = new Router()
 		const validKeys = ['start', 'limit']
 		validateSearchParams(ctx, validKeys, false)
 		const params = ctx.request.url.searchParams
-		let limit = 100
-		if (params.has('limit')) {
-			const limitStr = params.get('limit')
-			validateLimit(ctx, limitStr, 1000)
-			limit = Number(limitStr)
-		}
+		const limit = validateLimit(ctx, 100, 1000)
 		let num = MAX_NUM
 		if (params.has('start')) {
 			const start = params.get('start')

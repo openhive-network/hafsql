@@ -57,7 +57,8 @@ export const setupExtraViews = async () => {
   AS SELECT x.delegator,
     x.delegatee,
     x.rc,
-    hafsql.rc_to_hive(x.rc::numeric) as hp_equivalent
+    hafsql.rc_to_hive(x.rc::numeric) as hp_equivalent,
+    x.timestamp
     FROM hafsql.rc_delegations_table x;`)
 
 	// Comments
