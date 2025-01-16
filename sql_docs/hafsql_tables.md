@@ -120,7 +120,7 @@ LIMIT 1
 |---------|---------|-----|-------------|---------|
 |varchar|varchar|numeric|numeric|timestamp|
 
-Indexes on: `(delegator, delegatee)` | `(delegatee)`
+Indexes on: `(delegator, delegatee)` | `(delegatee, timestamp)` | `(delegator, timestamp)`
 
 ***
 ### 10. dynamic_global_properties
@@ -176,11 +176,11 @@ Indexes on: `(muter_*, muted_*)`
 SELECT * FROM hafsql.rc_delegations
 LIMIT 1
 ```
-|delegator|delegatee|rc|hp_equivalent|
-|---------|---------|--|-------------|
-|varchar|varchar|varchar|numeric|
+|delegator|delegatee|rc|hp_equivalent|timestamp|
+|---------|---------|--|-------------|---------|
+|varchar|varchar|varchar|numeric|timestamp|
 
-Indexes on: `(delegator, delegatee)` | `(delegatee)`
+Indexes on: `(delegator, delegatee)` | `(delegatee, timestamp)` | `(delegator, timestamp)`
 
 ***
 ### 15. reblogs
