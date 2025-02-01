@@ -1,4 +1,4 @@
-import { queryArray } from '../../app/helpers/database.ts'
+import { queryArrayAPI } from '../../app/helpers/database.ts'
 import { BigJSONparser, BigJSONstringifier, Router } from '../../deps.ts'
 import { validateNames } from '../helpers/validate_names.ts'
 import { validateSearchParams } from '../helpers/validate_search_params.ts'
@@ -95,7 +95,7 @@ const getFollowers = async (
 	startId: number,
 	limit: number,
 ) => {
-	const result = await queryArray(
+	const result = await queryArrayAPI(
 		`SELECT follower_name FROM hafsql.follows
       WHERE following_name = $1
       AND follower_id ${limit < 0 && startId !== -1 ? '< $2' : '> $2'}
@@ -111,7 +111,7 @@ const getFollowing = async (
 	startId: number,
 	limit: number,
 ) => {
-	const result = await queryArray(
+	const result = await queryArrayAPI(
 		`SELECT following_name FROM hafsql.follows
       WHERE follower_name = $1
       AND following_id ${limit < 0 && startId !== -1 ? '< $2' : '> $2'}
@@ -123,7 +123,7 @@ const getFollowing = async (
 }
 
 const getFollowCounts = async (username: string) => {
-	const result = await queryArray(
+	const result = await queryArrayAPI(
 		`SELECT count(1) FROM hafsql.follows
       WHERE following_name = $1
       UNION ALL 

@@ -1,4 +1,4 @@
-import { query, queryArray } from '../../app/helpers/database.ts'
+import { queryAPI } from '../../app/helpers/database.ts'
 import { BigJSONparser, BigJSONstringifier, Router } from '../../deps.ts'
 import { validateNames } from '../helpers/validate_names.ts'
 import { validateSearchParams } from '../helpers/validate_search_params.ts'
@@ -121,6 +121,47 @@ export const delegationsAPI = new Router()
 			BigJSONstringifier(result),
 		)
 	})
+	/**
+	 * GET /rc-delegations/{username}/outgoing
+	 * @summary Outgoing RC Delegations
+	 * @description Returns list of outgoing RC delegations from a user.
+	 * @tag Delegations
+	 * @pathParam {string} username - Account name e.g. ocd
+	 * @queryParam {string} [start] - Timestamp used for pagination
+	 * @queryParam {integer} [limit=100] - Max number of returned items -
+	 * Can be negative for going backwards and to reverse the sorting<br/>
+	 * <sub>min: -1000 | max: 1000</sub>
+	 * @response 200 - A JSON array of delegations
+	 * @response 400 - Bad request value
+	 * @response 404 - No items found
+	 * @responseContent {object[]} 200.application/json
+	 * @responseContent {BadRequest} 400.application/json
+	 * @responseContent {NoItemFound} 404.application/json
+	 */
+	.get('/rc-delegations/:username/outgoing', async (ctx) => {
+		const username = ctx.params.username
+		await validateNames(ctx, username, 1)
+		const validKeys = ['start', 'limit']
+		validateSearchParams(ctx, validKeys, false)
+		const limit = await validateLimit(ctx, 100, 1000)
+		const params = ctx.request.url.searchParams
+		let startTimestamp: string = '2010-01-01 10:10:10.000'
+		if (params.has('start')) {
+			startTimestamp = <string> params.get('start')
+			startTimestamp = validateTimestamp(ctx, startTimestamp)
+		}
+		const result = await getOutgoingRCDelegations(
+			username,
+			startTimestamp,
+			limit,
+		)
+		if (result.length === 0) {
+			return ctx.throw(404, 'No items found')
+		}
+		return ctx.response.body = BigJSONparser(
+			BigJSONstringifier(result),
+		)
+	})
 
 // Helper functions
 const getIncomingDelegations = async (
@@ -129,7 +170,7 @@ const getIncomingDelegations = async (
 	limit: number,
 ) => {
 	try {
-		const result = await query(
+		const result = await queryAPI(
 			`SELECT delegator, delegatee, vests, hp_equivalent, timestamp FROM hafsql.delegations
       WHERE delegatee = $1
       AND timestamp ${
@@ -154,7 +195,7 @@ const getOutgoingDelegations = async (
 	limit: number,
 ) => {
 	try {
-		const result = await query(
+		const result = await queryAPI(
 			`SELECT delegator, delegatee, vests, hp_equivalent, timestamp FROM hafsql.delegations
       WHERE delegator = $1
       AND timestamp ${
@@ -178,9 +219,29 @@ const getIncomingRCDelegations = async (
 	startTimestamp: string,
 	limit: number,
 ) => {
-	const result = await query(
+	const result = await queryAPI(
 		`SELECT delegator, delegatee, rc, hp_equivalent FROM hafsql.rc_delegations
       WHERE delegatee = $1
+      AND timestamp ${
+			limit < 0 && startTimestamp !== '2010-01-01 10:10:10.000'
+				? '< $2'
+				: '> $2'
+		}
+      ORDER BY timestamp AT TIME ZONE 'UTC' ${limit < 0 ? 'DESC' : 'ASC'}
+      LIMIT $3`,
+		[username, startTimestamp, limit < 0 ? -limit : limit],
+	)
+	return result.rows
+}
+
+const getOutgoingRCDelegations = async (
+	username: string,
+	startTimestamp: string,
+	limit: number,
+) => {
+	const result = await queryAPI(
+		`SELECT delegator, delegatee, rc, hp_equivalent FROM hafsql.rc_delegations
+      WHERE delegator = $1
       AND timestamp ${
 			limit < 0 && startTimestamp !== '2010-01-01 10:10:10.000'
 				? '< $2'

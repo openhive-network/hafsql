@@ -1,0 +1,11 @@
+components:
+  schemas:
+    OperationTypes:
+      type: array
+      items:
+        type: string
+        multiple: true
+        enum:
+          - vote
+          - transfer
+          - comment

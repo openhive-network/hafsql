@@ -60,6 +60,9 @@ export const scalar = new Router()
           a {
             text-decoration: none;
           }
+          .request-item {
+            overflow-y: hidden !important;
+          }
         </style>
       </head>
       <body>

@@ -1,4 +1,4 @@
-import { query, queryArray } from '../../app/helpers/database.ts'
+import { queryArrayAPI } from '../../app/helpers/database.ts'
 import { BigJSONparser, BigJSONstringifier, Router } from '../../deps.ts'
 import { validateNames } from '../helpers/validate_names.ts'
 import { validateSearchParams } from '../helpers/validate_search_params.ts'
@@ -89,7 +89,7 @@ export const blacklistsAPI = new Router()
 
 // Helper functions
 const getBlacklisting = async (username: string) => {
-	const result = await queryArray(
+	const result = await queryArrayAPI(
 		`SELECT blacklister_name FROM hafsql.blacklists
       WHERE blacklisted_name = $1`,
 		[username],
@@ -102,7 +102,7 @@ const getBlacklisted = async (
 	startId: number,
 	limit: number,
 ) => {
-	const result = await queryArray(
+	const result = await queryArrayAPI(
 		`SELECT blacklisted_name FROM hafsql.blacklists
       WHERE blacklister_name = $1
       AND blacklisted_id ${limit < 0 && startId !== -1 ? '< $2' : '> $2'}
@@ -114,7 +114,7 @@ const getBlacklisted = async (
 }
 
 const getBlacklists = async (username: string) => {
-	const result = await queryArray(
+	const result = await queryArrayAPI(
 		`SELECT blacklist_name FROM hafsql.blacklist_follows
       WHERE account_name = $1`,
 		[username],

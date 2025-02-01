@@ -1,4 +1,4 @@
-import { query, queryArray } from '../../app/helpers/database.ts'
+import { queryArrayAPI } from '../../app/helpers/database.ts'
 import { BigJSONparser, BigJSONstringifier, Router } from '../../deps.ts'
 import { validateNames } from '../helpers/validate_names.ts'
 import { validateSearchParams } from '../helpers/validate_search_params.ts'
@@ -90,7 +90,7 @@ export const mutesAPI = new Router()
 
 // Helper functions
 const getMuting = async (username: string) => {
-	const result = await queryArray(
+	const result = await queryArrayAPI(
 		`SELECT muter_name FROM hafsql.mutes
       WHERE muted_name = $1`,
 		[username],
@@ -103,7 +103,7 @@ const getMuted = async (
 	startId: number,
 	limit: number,
 ) => {
-	const result = await queryArray(
+	const result = await queryArrayAPI(
 		`SELECT muted_name FROM hafsql.mutes
       WHERE muter_name = $1
       AND muted_id ${limit < 0 && startId !== -1 ? '< $2' : '> $2'}
@@ -115,7 +115,7 @@ const getMuted = async (
 }
 
 const getMutedLists = async (username: string) => {
-	const result = await queryArray(
+	const result = await queryArrayAPI(
 		`SELECT mute_list_name FROM hafsql.mute_follows
       WHERE account_name = $1`,
 		[username],

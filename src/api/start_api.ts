@@ -41,6 +41,18 @@ export const startAPI = async () => {
 					message: err.message,
 				}
 			} else {
+				if (
+					err instanceof Error && err &&
+					err.message === 'canceling statement due to statement timeout'
+				) {
+					ctx.response.status = 500
+					ctx.response.body = {
+						status: 500,
+						error: STATUS_TEXT[500],
+						message: err.message,
+					}
+					return
+				}
 				throw err
 			}
 		}
@@ -50,7 +62,7 @@ export const startAPI = async () => {
 		.use(apiRouter.routes())
 
 	// app.addEventListener('error', (e) => {
-	// 	console.log(e.error)
+	// console.log(e.error)
 	// })
 
 	app.use(oakCors())

@@ -1,4 +1,4 @@
-import { query } from '../../app/helpers/database.ts'
+import { queryAPI } from '../../app/helpers/database.ts'
 import { BigJSONparser, BigJSONstringifier, Router } from '../../deps.ts'
 import { validateBlockNum } from '../helpers/validate_block_num.ts'
 import { validateLimit } from '../helpers/validate_limit.ts'
@@ -120,6 +120,7 @@ export const balancesAPI = new Router()
 	})
 
 // Keep database connections in a separate context so they can be release on errors
+// Edit: The above is not true anymore after changing the postgres library but it keeps the code cleaner
 
 const getByNames = async (namesArray: string[]) => {
 	let queryStr = ''
@@ -129,12 +130,12 @@ const getByNames = async (namesArray: string[]) => {
 		}
 		queryStr += `SELECT * FROM hafsql.balances WHERE account_name=$${i + 1}\n`
 	}
-	const result = await query(queryStr, namesArray)
+	const result = await queryAPI(queryStr, namesArray)
 	return result.rows
 }
 
 const getHistoricBalance = async (username: string, blockNum: number) => {
-	const result = await query(
+	const result = await queryAPI(
 		'SELECT * FROM hafsql.get_balance($1, $2)',
 		[username, blockNum],
 	)
@@ -142,7 +143,7 @@ const getHistoricBalance = async (username: string, blockNum: number) => {
 }
 
 const getRichList = async (symbol: string, limit: number) => {
-	const result = await query(
+	const result = await queryAPI(
 		`SELECT * FROM hafsql.balances 
       ORDER BY ${symbol} DESC
       LIMIT $1`,
@@ -152,7 +153,7 @@ const getRichList = async (symbol: string, limit: number) => {
 }
 
 const getTotalBalances = async (num: number, limit: number) => {
-	const result = await query(
+	const result = await queryAPI(
 		`SELECT *,
       (SELECT timestamp FROM hafsql.haf_blocks WHERE block_num=tb.block_num)
       FROM hafsql.total_balances tb
