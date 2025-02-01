@@ -28,8 +28,7 @@ export const setupOperationViews = async () => {
       ${param('author')} AS "author",
       ${param('weight')}::int4 AS "weight",
       ${param('permlink')} AS "permlink",
-      ${block('o.id')} AS "block_num",
-      hafsql.get_trx_id(o.id) AS "trx_id"
+      ${block('o.id')} AS "block_num"
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
     WHERE hafd.operation_id_to_type_id(o.id) = 0;`
@@ -46,8 +45,7 @@ export const setupOperationViews = async () => {
     ${param('title')} AS "title",
     ${param('body')} AS "body",
     hafsql.to_json(${param('json_metadata')}) AS "json_metadata",
-    ${block('o.id')} AS "block_num",
-    hafsql.get_trx_id(o.id) AS "trx_id"
+    ${block('o.id')} AS "block_num"
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
     WHERE hafd.operation_id_to_type_id(o.id) = 1;`
@@ -61,8 +59,7 @@ export const setupOperationViews = async () => {
     ${param('required_posting_auths', true)} AS "required_posting_auths",
     ${param('id')} AS "custom_id",
     ${param('json')} AS "json",
-    ${block('o.id')} AS "block_num",
-    hafsql.get_trx_id(o.id) AS "trx_id"
+    ${block('o.id')} AS "block_num"
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
     WHERE hafd.operation_id_to_type_id(o.id) = 18;`
