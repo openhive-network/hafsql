@@ -1,4 +1,4 @@
-import { pool } from '../../src/app/helpers/database.ts'
+import { query } from '../../src/app/helpers/database.ts'
 import { opId, OPS } from '../../src/app/helpers/operation_id.ts'
 import { OperationNames } from '../../src/app/helpers/types.ts'
 
@@ -24,8 +24,7 @@ const generateDocs = async () => {
 	prePrefix += '<!-- SEE sql_docs/helpers/operations_helper.ts -->\n\n\n\n\n\n\n'
 
 	let document = '\n'
-	using client = await pool.connect()
-	const getTables = await client.queryObject<{ table_name: string }>(
+	const getTables = await query<{ table_name: string }>(
 		`SELECT DISTINCT table_name
     FROM information_schema.columns
     WHERE table_schema = 'hafsql' 
@@ -100,8 +99,7 @@ const generateDocs = async () => {
 }
 
 const getColumns = async (tableName: string) => {
-	using client = await pool.connect()
-	const items = await client.queryObject<
+	const items = await query<
 		{ column_name: string; udt_name: string }
 	>(
 		`SELECT column_name, udt_name
@@ -114,8 +112,7 @@ const getColumns = async (tableName: string) => {
 }
 
 const getIndexes = async (tableName: string) => {
-	using client = await pool.connect()
-	const items = await client.queryObject<{ column_names: string }>(
+	const items = await query<{ column_names: string }>(
 		`SELECT substring(indexdef FROM '\\(.*\\)') AS column_names
 		FROM pg_indexes
 		WHERE tablename = $1`,

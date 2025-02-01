@@ -166,7 +166,7 @@ LIMIT 1
 |--|-------|--------------------|--------------------|
 |int8|varchar|varchar|varchar|
 
-Indexes on: `(id)` | `(old_recovery_account)` | `(account)` | `(new_recovery_account)`
+Indexes on: `(id)` | `(account)` | `(old_recovery_account)` | `(new_recovery_account)`
 
 ***
 ### 12. operation_claim_account_table
@@ -282,9 +282,9 @@ Indexes on: `(id)` | `(author, permlink)` | `(payout)` | `(author_rewards)` | `(
 SELECT * FROM hafsql.operation_comment_view
 LIMIT 1
 ```
-|id|timestamp|author|permlink|parent_author|parent_permlink|title|body|json_metadata|block_num|trx_id|
-|--|---------|------|--------|-------------|---------------|-----|----|-------------|---------|------|
-|int8|timestamp|text|text|text|text|text|text|jsonb|int4|text|
+|id|timestamp|author|permlink|parent_author|parent_permlink|title|body|json_metadata|block_num|
+|--|---------|------|--------|-------------|---------------|-----|----|-------------|---------|
+|int8|timestamp|text|text|text|text|text|text|jsonb|int4|
 
 Indexes on: `(author, permlink, id)` | `(author, id)` | `(parent_author, id)` | `(parent_author, parent_permlink)` | `((json_metadata->>'content_type'), id)` | `(id)`
 
@@ -310,7 +310,7 @@ LIMIT 1
 |--|-----|---------|------|------|
 |int8|varchar|int8|numeric|varchar|
 
-Indexes on: `(id)` | `(owner)` | `(requestid)`
+Indexes on: `(id)` | `(requestid)` | `(owner)`
 
 ***
 ### 24. operation_create_claimed_account_table
@@ -332,7 +332,7 @@ LIMIT 1
 ```
 |id|creator|receiver|subject|permlink|start_date|end_date|daily_pay|daily_pay_symbol|extensions|
 |--|-------|--------|-------|--------|----------|--------|---------|----------------|----------|
-|int8|varchar|varchar|varchar|varchar|timestamp|timestamp|numeric|varchar|jsonb|
+|int8|varchar|varchar|varchar|varchar|timestamptz|timestamptz|numeric|varchar|jsonb|
 
 Indexes on: `(id)`
 
@@ -354,9 +354,9 @@ Indexes on: `(id)` | `(author, permlink)` | `(curator)`
 SELECT * FROM hafsql.operation_custom_json_view
 LIMIT 1
 ```
-|id|timestamp|required_auths|required_posting_auths|custom_id|json|block_num|trx_id|
-|--|---------|--------------|----------------------|---------|----|---------|------|
-|int8|timestamp|jsonb|jsonb|text|text|int4|text|
+|id|timestamp|required_auths|required_posting_auths|custom_id|json|block_num|
+|--|---------|--------------|----------------------|---------|----|---------|
+|int8|timestamp|jsonb|jsonb|text|text|int4|
 
 Indexes on: `(custom_id, id)` | `(id)`
 
@@ -524,7 +524,7 @@ LIMIT 1
 ```
 |id|from_account|to_account|hbd_amount|hive_amount|escrow_id|agent|fee|fee_symbol|json_meta|ratification_deadline|escrow_expiration|
 |--|------------|----------|----------|-----------|---------|-----|---|----------|---------|---------------------|-----------------|
-|int8|varchar|varchar|numeric|numeric|int8|varchar|numeric|varchar|jsonb|timestamp|timestamp|
+|int8|varchar|varchar|numeric|numeric|int8|varchar|numeric|varchar|jsonb|timestamptz|timestamptz|
 
 Indexes on: `(id)`
 
@@ -598,7 +598,7 @@ LIMIT 1
 |--|-------------|----------|---------------|------------|------------|-------------------|---------|----------------|
 |int8|varchar|varchar|int8|int8|numeric|varchar|numeric|varchar|
 
-Indexes on: `(id)` | `(open_owner)` | `(open_orderid)` | `(current_orderid)` | `(current_owner)`
+Indexes on: `(id)` | `(current_owner)` | `(open_owner)` | `(open_orderid)` | `(current_orderid)`
 
 ***
 ### 48. operation_fill_recurrent_transfer_table [!badge size="xs" text="Virtual"]
@@ -634,7 +634,7 @@ LIMIT 1
 |--|------------|----------|---------|----------------|---------|----------------|
 |int8|varchar|varchar|numeric|varchar|numeric|varchar|
 
-Indexes on: `(id)` | `(from_account)` | `(to_account)` | `(withdrawn)` | `(deposited)`
+Indexes on: `(id)` | `(to_account)` | `(from_account)` | `(withdrawn)` | `(deposited)`
 
 ***
 ### 51. operation_hardfork_hive_restore_table [!badge size="xs" text="Virtual"]
@@ -728,7 +728,7 @@ LIMIT 1
 ```
 |id|owner|orderid|amount_to_sell|amount_to_sell_symbol|exchange_rate_base|exchange_rate_base_symbol|exchange_rate_quote|exchange_rate_quote_symbol|fill_or_kill|expiration|
 |--|-----|-------|--------------|---------------------|------------------|-------------------------|-------------------|--------------------------|------------|----------|
-|int8|varchar|int8|numeric|varchar|numeric|varchar|numeric|varchar|bool|timestamp|
+|int8|varchar|int8|numeric|varchar|numeric|varchar|numeric|varchar|bool|timestamptz|
 
 Indexes on: `(id)`
 
@@ -740,7 +740,7 @@ LIMIT 1
 ```
 |id|owner|orderid|expiration|amount_to_sell|amount_to_sell_symbol|min_to_receive|min_to_receive_symbol|fill_or_kill|
 |--|-----|-------|----------|--------------|---------------------|--------------|---------------------|------------|
-|int8|varchar|int8|timestamp|numeric|varchar|numeric|varchar|bool|
+|int8|varchar|int8|timestamptz|numeric|varchar|numeric|varchar|bool|
 
 Indexes on: `(id)` | `(owner)` | `(orderid)`
 
@@ -1050,9 +1050,9 @@ Indexes on: `(id)`
 SELECT * FROM hafsql.operation_vote_view
 LIMIT 1
 ```
-|id|timestamp|voter|author|weight|permlink|block_num|trx_id|
-|--|---------|-----|------|------|--------|---------|------|
-|int8|timestamp|text|text|int4|text|int4|text|
+|id|timestamp|voter|author|weight|permlink|block_num|
+|--|---------|-----|------|------|--------|---------|
+|int8|timestamp|text|text|int4|text|int4|
 
 Indexes on: `(author, permlink, id)` | `(author, id)` | `(voter, id)` | `(id)`
 
