@@ -21,7 +21,7 @@ import {
 	TransferFromSavings,
 	TransferToSavings,
 } from '../helpers/types.ts'
-import { createBalancesIndexes } from '../indexes/hafsql.ts'
+import { createBalancesIndexes } from '../indexes/hafsql_indexes.ts'
 import { customClient, query, transaction } from '../helpers/database.ts'
 
 let started = false

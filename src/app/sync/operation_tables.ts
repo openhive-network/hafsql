@@ -94,7 +94,7 @@ import type { ClearNullAccountBalanceOperation } from '../helpers/operation_type
 import type { ProposalPayOperation } from '../helpers/operation_types.ts'
 import type { DhfFundingOperation } from '../helpers/operation_types.ts'
 import type { HardforkHiveOperation } from '../helpers/operation_types.ts'
-import { createOperationIndexes } from '../indexes/hafsql.ts'
+import { createOperationIndexes } from '../indexes/hafsql_indexes.ts'
 import { customClient, query, transaction } from '../helpers/database.ts'
 
 let started = false

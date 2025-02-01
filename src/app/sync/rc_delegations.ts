@@ -7,7 +7,7 @@ import {
 	RcDelegationAppended,
 } from '../helpers/types.ts'
 import { clearUsername } from '../helpers/utils/validate_username.ts'
-import { createRCDelegationsIndexes } from '../indexes/hafsql.ts'
+import { createRCDelegationsIndexes } from '../indexes/hafsql_indexes.ts'
 import { getBlockRange } from '../helpers/utils/get_block_range.ts'
 import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
 import { query, transaction } from '../helpers/database.ts'

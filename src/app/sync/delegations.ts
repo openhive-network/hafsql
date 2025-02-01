@@ -3,7 +3,7 @@ import { print } from '../helpers/utils/print.ts'
 import { sleep } from '../helpers/utils/sleep.ts'
 import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
 import { Delegations, HardforkHive } from '../helpers/types.ts'
-import { createDelegationsIndexes } from '../indexes/hafsql.ts'
+import { createDelegationsIndexes } from '../indexes/hafsql_indexes.ts'
 import { customClient, query, transaction } from '../helpers/database.ts'
 
 let started = false

@@ -1,11 +1,11 @@
 import { query } from '../helpers/database.ts'
 
-export const setupExtraViews = async () => {
+export const setupHafsqlViews = async () => {
 	// Blocks
 	await query(`CREATE OR REPLACE VIEW hafsql.haf_blocks
   AS SELECT b.num AS block_num,
     b.created_at as "timestamp",
-    b.producer_account_id as witness,
+    (SELECT a.name FROM hafd.accounts a WHERE a.id = b.producer_account_id) as witness,
     b.extensions as extensions,
     b.signing_key as signing_key,
     encode(b.hash, 'hex'::text) as hash,

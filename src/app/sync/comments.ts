@@ -11,7 +11,7 @@ import { sleep } from '../helpers/utils/sleep.ts'
 import {
 	createCommentsIndexes,
 	createHafsqlIndexes,
-} from '../indexes/hafsql.ts'
+} from '../indexes/hafsql_indexes.ts'
 import { cleanString } from '../helpers/utils/clean_string.ts'
 import { getBlockRange } from '../helpers/utils/get_block_range.ts'
 import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'

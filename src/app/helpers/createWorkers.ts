@@ -1,4 +1,4 @@
-import { doesIndexExist } from '../indexes/hive.ts'
+import { doesIndexExist } from '../indexes/hive_indexes.ts'
 import { getBlockRange } from './utils/get_block_range.ts'
 import { print } from './utils/print.ts'
 

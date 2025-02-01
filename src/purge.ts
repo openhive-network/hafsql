@@ -1,6 +1,6 @@
 import { query } from './app/helpers/database.ts'
 import { print } from './app/helpers/utils/print.ts'
-import { hiveIndexes } from './app/indexes/hive.ts'
+import { hiveIndexes } from './app/indexes/hive_indexes.ts'
 
 /**
  * Remove hafsql schema and everything related

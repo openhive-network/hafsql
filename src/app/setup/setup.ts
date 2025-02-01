@@ -1,5 +1,5 @@
-import { removeExtraViews, setupExtraViews } from './extra_views.ts'
-import { setupFunctions } from './functions.ts'
+import { removeExtraViews, setupHafsqlViews } from './setup_hafsql_views.ts'
+import { setupFunctions } from './setup_functions.ts'
 import { setupOperationTables } from './setup_operation_tables.ts'
 import {
 	removeOperationViews,
@@ -24,5 +24,5 @@ export const setup = async (): Promise<void> => {
 
 	await setupOperationViews()
 
-	await setupExtraViews()
+	await setupHafsqlViews()
 }

@@ -20,7 +20,7 @@ import {
 	WithdrawVesting,
 	WitnessProxy,
 } from '../helpers/types.ts'
-import { createAccountsIndexes } from '../indexes/hafsql.ts'
+import { createAccountsIndexes } from '../indexes/hafsql_indexes.ts'
 import { customClient, query, transaction } from '../helpers/database.ts'
 
 let started = false

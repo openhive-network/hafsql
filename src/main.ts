@@ -6,7 +6,7 @@ import {
 	createHiveIndexes,
 	doesIndexExist,
 	hiveIndexes,
-} from './app/indexes/hive.ts'
+} from './app/indexes/hive_indexes.ts'
 import { setup } from './app/setup/setup.ts'
 import { handleUpgrade } from './upgrade.ts'
 import { purgeHafSQL } from './purge.ts'

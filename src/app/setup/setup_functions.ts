@@ -145,7 +145,7 @@ export const setupFunctions = async () => {
       trxid text;
     BEGIN
       SELECT t.trx_id FROM hafsql.haf_operations o
-        JOIN hafsql.transactions t
+        JOIN hafsql.haf_transactions t
           ON t.block_num = o.block_num
           AND t.trx_in_block = o.trx_in_block
         WHERE o.id = $1
@@ -341,12 +341,13 @@ export const setupFunctions = async () => {
 
 	// hafsql.get_timestamp(operation_id int8)
 	// Get timestamp from operation_id
+	await dropFunction('hafsql.get_timestamp(int8)')
 	await query(
 		`CREATE OR REPLACE FUNCTION hafsql.get_timestamp(operation_id int8)
-    RETURNS timestamp
+    RETURNS timestamptz
     AS $$
     BEGIN
-      RETURN (SELECT timestamp FROM hafsql.haf_operations WHERE id = operation_id);
+      RETURN (SELECT timestamp FROM hafsql.haf_blocks WHERE block_num = hafd.operation_id_to_block_num(operation_id));
     END
     $$
     LANGUAGE plpgsql
@@ -356,4 +357,29 @@ export const setupFunctions = async () => {
 		`COMMENT ON FUNCTION hafsql.get_timestamp (int8) IS
     'Get timestamp of an operation from operation_id';`,
 	)
+
+	// hafsql.get_timestamp(blockNum int4)
+	await query(
+		`CREATE OR REPLACE FUNCTION hafsql.get_timestamp(blockNum int4)
+    RETURNS timestamptz
+    AS $$
+    BEGIN
+      RETURN (SELECT b.timestamp FROM hafsql.haf_blocks b WHERE b.block_num = blockNum);
+    END
+    $$
+    LANGUAGE plpgsql
+    IMMUTABLE;`,
+	)
+	await query(
+		`COMMENT ON FUNCTION hafsql.get_timestamp (int4) IS
+    'Get timestamp from block_num';`,
+	)
+}
+
+const dropFunction = async (funName: string) => {
+	try {
+		await query(`DROP FUNCTION IF EXISTS ${funName}`)
+	} catch (_e) {
+		//
+	}
 }

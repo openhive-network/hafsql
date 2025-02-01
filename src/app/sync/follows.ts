@@ -8,7 +8,7 @@ import {
 import { getBlockRange } from '../helpers/utils/get_block_range.ts'
 import { getUserId } from '../helpers/utils/get_user_id.ts'
 import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
-import { createFollowsIndexes } from '../indexes/hafsql.ts'
+import { createFollowsIndexes } from '../indexes/hafsql_indexes.ts'
 import { customClient, query, transaction } from '../helpers/database.ts'
 
 let started = false

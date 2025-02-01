@@ -4,7 +4,7 @@ import { print } from '../helpers/utils/print.ts'
 import { sleep } from '../helpers/utils/sleep.ts'
 import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
 import { EffectiveCommentVoteREP, Reputation } from '../helpers/types.ts'
-import { createReputationsIndexes } from '../indexes/hafsql.ts'
+import { createReputationsIndexes } from '../indexes/hafsql_indexes.ts'
 import { customClient, query, transaction } from '../helpers/database.ts'
 
 let started = false
