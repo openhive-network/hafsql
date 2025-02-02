@@ -141,6 +141,15 @@ export const createHafsqlIndexes = async () => {
 	)
 }
 
+export const createMarketIndexes = async () => {
+	await query(
+		'CREATE INDEX IF NOT EXISTS hafsql_market_open_orders_table_amount_idx ON hafsql.market_open_orders_table USING btree (amount);',
+	)
+	await query(
+		'CREATE INDEX IF NOT EXISTS hafsql_market_open_orders_table_rate_idx ON hafsql.market_open_orders_table USING btree (rate);',
+	)
+}
+
 export const createOperationIndexes = async () => {
 	// timestamp for all
 	// for (const item in operationTables) {
