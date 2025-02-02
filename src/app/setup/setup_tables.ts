@@ -222,11 +222,122 @@ export const setupTables = async () => {
     );`,
 	)
 
+	// Version
 	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.version (
       name varchar,
       version varchar,
       CONSTRAINT hafsql_version_table_un UNIQUE (name)
+    );`,
+	)
+
+	// Market Open Orders
+	await query(
+		`CREATE TABLE IF NOT EXISTS hafsql.market_open_orders_table (
+      owner varchar,
+      orderid int8,
+      amount numeric(30, 3),
+      symbol varchar,
+      rate numeric(30,6),
+      CONSTRAINT hafsql_market_open_orders_table_un UNIQUE (owner, orderid)
+    );`,
+	)
+
+	// Market bucket 5m
+	await query(
+		`CREATE TABLE IF NOT EXISTS hafsql.market_bucket_5m_table (
+      timestamp timestamptz,
+      open numeric(30,6),
+      high numeric(30,6),
+      low numeric(30,6),
+      close numeric(30,6),
+      base_vol numeric(30,3),
+      quote_vol numeric(30,3),
+      CONSTRAINT hafsql_market_bucket_5m_table_un UNIQUE (timestamp)
+    );`,
+	)
+
+	// Market bucket 30m
+	await query(
+		`CREATE TABLE IF NOT EXISTS hafsql.market_bucket_30m_table (
+      timestamp timestamptz,
+      open numeric(30,6),
+      high numeric(30,6),
+      low numeric(30,6),
+      close numeric(30,6),
+      base_vol numeric(30,3),
+      quote_vol numeric(30,3),
+      CONSTRAINT hafsql_market_bucket_30m_table_un UNIQUE (timestamp)
+    );`,
+	)
+
+	// Market bucket 1h
+	await query(
+		`CREATE TABLE IF NOT EXISTS hafsql.market_bucket_1h_table (
+      timestamp timestamptz,
+      open numeric(30,6),
+      high numeric(30,6),
+      low numeric(30,6),
+      close numeric(30,6),
+      base_vol numeric(30,3),
+      quote_vol numeric(30,3),
+      CONSTRAINT hafsql_market_bucket_1h_table_un UNIQUE (timestamp)
+    );`,
+	)
+
+	// Market bucket 4h
+	await query(
+		`CREATE TABLE IF NOT EXISTS hafsql.market_bucket_4h_table (
+      timestamp timestamptz,
+      open numeric(30,6),
+      high numeric(30,6),
+      low numeric(30,6),
+      close numeric(30,6),
+      base_vol numeric(30,3),
+      quote_vol numeric(30,3),
+      CONSTRAINT hafsql_market_bucket_4h_table_un UNIQUE (timestamp)
+    );`,
+	)
+
+	// Market bucket 1d
+	await query(
+		`CREATE TABLE IF NOT EXISTS hafsql.market_bucket_1d_table (
+      timestamp timestamptz,
+      open numeric(30,6),
+      high numeric(30,6),
+      low numeric(30,6),
+      close numeric(30,6),
+      base_vol numeric(30,3),
+      quote_vol numeric(30,3),
+      CONSTRAINT hafsql_market_bucket_1d_table_un UNIQUE (timestamp)
+    );`,
+	)
+
+	// Market bucket 1w
+	await query(
+		`CREATE TABLE IF NOT EXISTS hafsql.market_bucket_1w_table (
+      timestamp timestamptz,
+      open numeric(30,6),
+      high numeric(30,6),
+      low numeric(30,6),
+      close numeric(30,6),
+      base_vol numeric(30,3),
+      quote_vol numeric(30,3),
+      CONSTRAINT hafsql_market_bucket_1w_table_un UNIQUE (timestamp)
+    );`,
+	)
+
+	// Market bucket 4w
+	await query(
+		`CREATE TABLE IF NOT EXISTS hafsql.market_bucket_4w_table (
+      timestamp timestamptz,
+      open numeric(30,6),
+      high numeric(30,6),
+      low numeric(30,6),
+      close numeric(30,6),
+      base_vol numeric(30,3),
+      quote_vol numeric(30,3),
+      CONSTRAINT hafsql_market_bucket_4w_table_un UNIQUE (timestamp)
     );`,
 	)
 
@@ -249,6 +360,7 @@ const setupSyncDataTable = async () => {
 		'balances',
 		'accounts',
 		'operations',
+		'market',
 	]
 	for (let i = 0; i < tableNames.length; i++) {
 		const name = tableNames[i]
