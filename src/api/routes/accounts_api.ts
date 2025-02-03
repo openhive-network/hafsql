@@ -17,19 +17,14 @@ export const accountsAPI = new Router()
 	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/accounts', async (ctx) => {
 		const validKeys = ['start', 'limit']
 		validateSearchParams(ctx, validKeys, false)
 		const { startId, limit } = await validateStartLimit(ctx, 1000, 100)
 		const result = await getAccounts(startId, limit)
-		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
-		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),
 		)
@@ -54,9 +49,6 @@ export const accountsAPI = new Router()
 		const names = params.get('names')
 		const namesArray = await validateNames(ctx, names)
 		const result = await getByNames(namesArray)
-		if (result.length === 0) {
-			return ctx.throw(404, 'No accounts found')
-		}
 		return ctx.response.body = BigJSONparser(BigJSONstringifier(result))
 	})
 	/**
@@ -71,10 +63,8 @@ export const accountsAPI = new Router()
 	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/accounts/by-creator/:username', async (ctx) => {
 		const username = ctx.params.username
@@ -84,7 +74,7 @@ export const accountsAPI = new Router()
 		const { startId, limit } = await validateStartLimit(ctx, 1000, 100)
 		const result = await getByCreator(username, startId, limit)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),
@@ -102,24 +92,18 @@ export const accountsAPI = new Router()
 	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/accounts/by-recovery/:username', async (ctx) => {
 		const username = ctx.params.username
 		await validateNames(ctx, username, 1)
 		const validKeys = ['start', 'limit']
 		validateSearchParams(ctx, validKeys, false)
-		const exists = await userExists(username)
-		if (!exists) {
-			return ctx.throw(404, `Account ${username} doesn't exist`)
-		}
 		const { startId, limit } = await validateStartLimit(ctx, 1000, 100)
 		const result = await getByRecovery(username, startId, limit)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),
@@ -134,10 +118,8 @@ export const accountsAPI = new Router()
 	 * e.g. STM5tp5hWbGLL1R3tMVsgYdYxLPyAQFdKoYFbT2hcWUmrU42p1MQC
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/accounts/by-key/:key', async (ctx) => {
 		const key = ctx.params.key
@@ -146,7 +128,7 @@ export const accountsAPI = new Router()
 		}
 		const result = await getByKey(key)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),
@@ -166,10 +148,8 @@ export const accountsAPI = new Router()
 	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/accounts/by-authority/:username', async (ctx) => {
 		const username = ctx.params.username
@@ -179,7 +159,7 @@ export const accountsAPI = new Router()
 		const { startId, limit } = await validateStartLimit(ctx, 1000, 100)
 		const result = await getByAuthority(username, startId, limit)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),
@@ -193,17 +173,15 @@ export const accountsAPI = new Router()
 	 * @pathParam {string} username - Proxy username e.g. gtg
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/accounts/by-proxy/:username', async (ctx) => {
 		const username = ctx.params.username
 		await validateNames(ctx, username, 1)
 		const result = await getByProxy(username)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),

@@ -22,10 +22,8 @@ export const operationsAPI = new Router()
 	 * e.g. 5000000-5000100
 	 * @response 200 - JSON array of operations
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {object[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/operations/by-range/:types', async (ctx) => {
 		const types = await validateTypes(ctx, ctx.params.types)
@@ -35,9 +33,6 @@ export const operationsAPI = new Router()
 		const range = validateBlockRange(ctx, params.get('block_range'))
 		try {
 			const result = await getByTypes(types, range)
-			if (result.length === 0) {
-				return ctx.throw(404, 'No items found')
-			}
 			return ctx.response.body = BigJSONparser(
 				BigJSONstringifier(result),
 			)
@@ -66,10 +61,8 @@ export const operationsAPI = new Router()
 	 * e.g. 100
 	 * @response 200 - JSON array of operations
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {object[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/operations/custom_json/:id', async (ctx) => {
 		const customId = ctx.params.id
@@ -79,10 +72,6 @@ export const operationsAPI = new Router()
 		const limit = validateLimit(ctx, 100, 1000)
 		try {
 			const result = await getCustomJson(customId, limit, params.get('start'))
-
-			if (result.length === 0) {
-				return ctx.throw(404, 'No items found')
-			}
 			return ctx.response.body = BigJSONparser(
 				BigJSONstringifier(result),
 			)
@@ -112,10 +101,8 @@ export const operationsAPI = new Router()
 	 * e.g. 100
 	 * @response 200 - JSON array of operations
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {object[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/operations/transfer', async (ctx) => {
 		const validKeys = ['memo', 'from', 'to', 'start', 'limit']
@@ -142,9 +129,6 @@ export const operationsAPI = new Router()
 				limit,
 				params.get('start'),
 			)
-			if (result.length === 0) {
-				return ctx.throw(404, 'No items found')
-			}
 			return ctx.response.body = BigJSONparser(
 				BigJSONstringifier(result),
 			)

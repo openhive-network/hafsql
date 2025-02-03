@@ -11,18 +11,13 @@ export const communitiesAPI = new Router()
 	 * @pathParam {string} username - Community account name e.g. hive-139531
 	 * @response 200 - A JSON array of roles
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {object[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/communities/:username/roles', async (ctx) => {
 		const username = ctx.params.username
 		await validateNames(ctx, ctx.params.username, 1)
 		const result = await getRoles(username)
-		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
-		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result),
 		)
@@ -35,17 +30,15 @@ export const communitiesAPI = new Router()
 	 * @pathParam {string} username - Community account name e.g. hive-139531
 	 * @response 200 - A JSON array of accounts
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/communities/:username/subscribers', async (ctx) => {
 		const username = ctx.params.username
 		await validateNames(ctx, ctx.params.username, 1)
 		const result = await getSubs(username)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),

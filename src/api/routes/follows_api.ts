@@ -17,10 +17,8 @@ export const followsAPI = new Router()
 	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/accounts/:username/followers', async (ctx) => {
 		const username = ctx.params.username
@@ -30,7 +28,7 @@ export const followsAPI = new Router()
 		const { startId, limit } = await validateStartLimit(ctx, 1000, 100)
 		const result = await getFollowers(username, startId, limit)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),
@@ -48,10 +46,8 @@ export const followsAPI = new Router()
 	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/accounts/:username/following', async (ctx) => {
 		const username = ctx.params.username
@@ -61,7 +57,7 @@ export const followsAPI = new Router()
 		const { startId, limit } = await validateStartLimit(ctx, 1000, 100)
 		const result = await getFollowing(username, startId, limit)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),
@@ -75,10 +71,8 @@ export const followsAPI = new Router()
 	 * @pathParam {string} username - Account name e.g. mahdiyari
 	 * @response 200 - A JSON object of followers and following count
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/accounts/:username/follow-counts', async (ctx) => {
 		const username = ctx.params.username

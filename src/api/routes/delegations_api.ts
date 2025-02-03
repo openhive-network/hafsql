@@ -18,10 +18,8 @@ export const delegationsAPI = new Router()
 	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON array of delegations
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {object[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/delegations/:username/incoming', async (ctx) => {
 		const username = ctx.params.username
@@ -36,9 +34,6 @@ export const delegationsAPI = new Router()
 			startTimestamp = validateTimestamp(ctx, startTimestamp)
 		}
 		const result = await getIncomingDelegations(username, startTimestamp, limit)
-		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
-		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result),
 		)
@@ -55,10 +50,8 @@ export const delegationsAPI = new Router()
 	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON array of delegations
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {object[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/delegations/:username/outgoing', async (ctx) => {
 		const username = ctx.params.username
@@ -73,9 +66,6 @@ export const delegationsAPI = new Router()
 			startTimestamp = validateTimestamp(ctx, startTimestamp)
 		}
 		const result = await getOutgoingDelegations(username, startTimestamp, limit)
-		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
-		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result),
 		)
@@ -92,10 +82,8 @@ export const delegationsAPI = new Router()
 	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON array of delegations
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {object[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/rc-delegations/:username/incoming', async (ctx) => {
 		const username = ctx.params.username
@@ -114,9 +102,6 @@ export const delegationsAPI = new Router()
 			startTimestamp,
 			limit,
 		)
-		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
-		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result),
 		)
@@ -133,10 +118,8 @@ export const delegationsAPI = new Router()
 	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON array of delegations
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {object[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/rc-delegations/:username/outgoing', async (ctx) => {
 		const username = ctx.params.username
@@ -155,9 +138,6 @@ export const delegationsAPI = new Router()
 			startTimestamp,
 			limit,
 		)
-		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
-		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result),
 		)
