@@ -12,6 +12,7 @@ import { communitiesAPI } from './routes/communities_api.ts'
 import { reputationsAPI } from './routes/reputations_api.ts'
 import { operationsAPI } from './routes/operations_api.ts'
 import { commentsAPI } from './routes/comments_api.ts'
+import { marketAPI } from './routes/market_api.ts'
 
 export const apiRouter = new Router()
 
@@ -29,4 +30,5 @@ apiRouter.use(
 	reputationsAPI.routes(),
 	operationsAPI.routes(),
 	commentsAPI.routes(),
+	marketAPI.routes(),
 )
