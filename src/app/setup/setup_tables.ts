@@ -234,6 +234,8 @@ export const setupTables = async () => {
 	// Market Open Orders
 	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.market_open_orders_table (
+      timestamp timestamptz,
+      expiration timestamptz,
       owner varchar,
       orderid int8,
       amount numeric(30, 3),
