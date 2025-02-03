@@ -46,7 +46,8 @@ const fillMarket = async () => {
 
 const getData = async (blockRange: number[]) => {
 	const limitCreate = await query(
-		`SELECT id, owner, orderid, amount_to_sell, min_to_receive, amount_to_sell_symbol, 'limitCreate' AS type
+		`SELECT id, owner, orderid, amount_to_sell, min_to_receive, amount_to_sell_symbol, expiration,
+		hafsql.get_timestamp(id) AS timestamp, 'limitCreate' AS type
     FROM hafsql.operation_limit_order_create_table
     WHERE id >= hafsql.first_op_id_from_block_num($1)
     AND id <= hafsql.last_op_id_from_block_num($2)
@@ -55,7 +56,7 @@ const getData = async (blockRange: number[]) => {
 	)
 	const limitCreate2 = await query(
 		`SELECT id, owner, orderid, amount_to_sell, amount_to_sell_symbol, exchange_rate_base, exchange_rate_base_symbol,
-		exchange_rate_quote, 'limitCreate2' AS type
+		exchange_rate_quote, expiration, hafsql.get_timestamp(id) AS timestamp, 'limitCreate2' AS type
     FROM hafsql.operation_limit_order_create2_table
     WHERE id >= hafsql.first_op_id_from_block_num($1)
     AND id <= hafsql.last_op_id_from_block_num($2)
@@ -110,15 +111,25 @@ const insertData = async (data: any[], blockRange: number[]) => {
 					amount_to_sell,
 					min_to_receive,
 					amount_to_sell_symbol,
+					expiration,
+					timestamp,
 				} = item
 				// HBD amount / HIVE amount = rate
 				const rate = amount_to_sell_symbol === 'HBD'
 					? Number(amount_to_sell) / Number(min_to_receive)
 					: Number(min_to_receive) / Number(amount_to_sell)
 				await client.query(
-					`INSERT INTO hafsql.market_open_orders_table (owner, orderid, amount, symbol, rate)
-					VALUES ($1, $2, $3, $4, $5)`,
-					[owner, orderid, amount_to_sell, amount_to_sell_symbol, rate],
+					`INSERT INTO hafsql.market_open_orders_table (expiration, timestamp, owner, orderid, amount, symbol, rate)
+					VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+					[
+						expiration,
+						timestamp,
+						owner,
+						orderid,
+						amount_to_sell,
+						amount_to_sell_symbol,
+						rate,
+					],
 				)
 			}
 			if (item.type === 'limitCreate2') {
@@ -130,15 +141,25 @@ const insertData = async (data: any[], blockRange: number[]) => {
 					exchange_rate_base,
 					exchange_rate_base_symbol,
 					exchange_rate_quote,
+					expiration,
+					timestamp,
 				} = item
 				// HBD amount / HIVE amount = rate
 				const rate = exchange_rate_base_symbol === 'HBD'
 					? Number(exchange_rate_base) / Number(exchange_rate_quote)
 					: Number(exchange_rate_quote) / Number(exchange_rate_base)
 				await client.query(
-					`INSERT INTO hafsql.market_open_orders_table (owner, orderid, amount, symbol, rate)
-					VALUES ($1, $2, $3, $4, $5)`,
-					[owner, orderid, amount_to_sell, amount_to_sell_symbol, rate],
+					`INSERT INTO hafsql.market_open_orders_table (expiration, timestamp, owner, orderid, amount, symbol, rate)
+					VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+					[
+						expiration,
+						timestamp,
+						owner,
+						orderid,
+						amount_to_sell,
+						amount_to_sell_symbol,
+						rate,
+					],
 				)
 			}
 			if (item.type === 'fillOrder') {
