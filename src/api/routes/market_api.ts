@@ -170,65 +170,75 @@ const getAllTradeHistory = async (limit: number, start: null | string) => {
 	return result.rows
 }
 
+// Though not an expensive call but caching would help reduce number of calls
+// Cache for 3 seconds
+const tickerCache = {
+	timestamp: 0,
+	tickers: {},
+}
 const getTickers = async () => {
+	const now = Date.now()
+	if (tickerCache.timestamp !== 0 && now - tickerCache.timestamp < 3000) {
+		return tickerCache.tickers
+	}
 	// Last 24 hour trades
-	const result = await queryAPI(
-		`SELECT current_pays, open_pays, open_pays_symbol
+	const volums = await queryAPI(
+		`SELECT SUM(CASE WHEN open_pays_symbol = 'HIVE' THEN open_pays ELSE current_pays END) AS base_vol,
+		SUM(CASE WHEN open_pays_symbol = 'HIVE' THEN current_pays ELSE open_pays END) AS quote_vol
+    FROM hafsql.operation_fill_order_table
+    WHERE id > hafsql.id_from_timestamp(NOW() AT TIME ZONE 'utc' - INTERVAL '24 hour', true)`,
+	)
+	const first = await queryAPI(
+		`SELECT current_pays, open_pays, open_pays_symbol 
     FROM hafsql.operation_fill_order_table
     WHERE id > hafsql.id_from_timestamp(NOW() AT TIME ZONE 'utc' - INTERVAL '24 hour', true)
-    ORDER BY id`,
+    AND open_pays > 2
+    ORDER BY id ASC
+    LIMIT 1`,
 	)
+	const last = await queryAPI(
+		`SELECT current_pays, open_pays, open_pays_symbol 
+    FROM hafsql.operation_fill_order_table
+    WHERE id > hafsql.id_from_timestamp(NOW() AT TIME ZONE 'utc' - INTERVAL '24 hour', true)
+    AND open_pays > 2
+    ORDER BY id DESC
+    LIMIT 1`,
+	)
+	const low = await queryAPI(
+		`SELECT low FROM hafsql.market_bucket_5m_table 
+		WHERE timestamp > NOW() AT TIME ZONE 'utc' - INTERVAL '24 hour'
+		ORDER BY low ASC
+		LIMIT 1`,
+	)
+	const high = await queryAPI(
+		`SELECT high FROM hafsql.market_bucket_5m_table 
+		WHERE timestamp > NOW() AT TIME ZONE 'utc' - INTERVAL '24 hour'
+		ORDER BY high DESC
+		LIMIT 1`,
+	)
+	const orderbook = await getOrderbook(6, 1)
+	const firstPrice = first.rows[0].open_pays_symbol === 'HBD'
+		? Number(first.rows[0].open_pays) / Number(first.rows[0].current_pays)
+		: Number(first.rows[0].current_pays) / Number(first.rows[0].open_pays)
+	const lastPrice = last.rows[0].open_pays_symbol === 'HBD'
+		? Number(last.rows[0].open_pays) / Number(last.rows[0].current_pays)
+		: Number(last.rows[0].current_pays) / Number(last.rows[0].open_pays)
 	const tickers = {
 		ticker_id: 'HIVE_HBD',
 		base_currency: 'HIVE',
 		quote_currency: 'HBD',
-		last_price: 0,
-		base_volume: 0,
-		quote_volume: 0,
-		bid: 0,
-		ask: 0,
-		high: 0,
-		low: 0,
-		price_change_percent_24h: 0,
+		last_price: lastPrice.toFixed(6),
+		base_volume: volums.rows[0].base_vol,
+		quote_volume: volums.rows[0].quote_vol,
+		bid: orderbook.bids[0].rate,
+		ask: orderbook.asks[0].rate,
+		high: high.rows[0].high,
+		low: low.rows[0].low,
+		price_change_percent_24h: Number(
+			((lastPrice - firstPrice) * 100 / firstPrice).toFixed(2),
+		),
 	}
-	let firstPrice = 0
-	for (let i = 0; i < result.rows.length; i++) {
-		const {
-			current_pays,
-			open_pays,
-			open_pays_symbol,
-		} = result.rows[i]
-		if (open_pays_symbol === 'HBD') {
-			tickers.quote_volume += Number(open_pays)
-			tickers.base_volume += Number(current_pays)
-		} else {
-			tickers.quote_volume += Number(current_pays)
-			tickers.base_volume += Number(open_pays)
-		}
-		// Skip low volume < 1 HIVE trades
-		if (
-			(open_pays_symbol === 'HIVE' && open_pays < 1) ||
-			(open_pays_symbol === 'HBD' && current_pays < 1)
-		) {
-			continue
-		}
-		const rate = open_pays_symbol === 'HBD'
-			? Number(open_pays) / Number(current_pays)
-			: Number(current_pays) / Number(open_pays)
-
-		if (firstPrice === 0) {
-			firstPrice = rate
-		}
-		if (tickers.low === 0 || tickers.low > rate) {
-			tickers.low = rate
-		}
-		if (tickers.high === 0 || tickers.high < rate) {
-			tickers.high = rate
-		}
-		tickers.last_price = rate
-	}
-	tickers.price_change_percent_24h = Number(
-		((tickers.last_price - firstPrice) * 100 / firstPrice).toFixed(2),
-	)
+	tickerCache.timestamp = Date.now()
+	tickerCache.tickers = tickers
 	return tickers
 }
