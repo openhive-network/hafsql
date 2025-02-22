@@ -162,12 +162,9 @@ export const hiveIndexes: {
 		skip: false,
 	},
 	// json_metadata ->> content_type - for peakd polls
-	// to_json() because there are invalid jsons
 	{
-		name: 'hafsql_json_metadata_idx',
-		params: `((hafsql.to_json(${
-			param('json_metadata')
-		})->>'content_type'), id DESC)`,
+		name: 'hafsql_content_type_idx',
+		params: `(hafsql.get_content_type(body_binary), id DESC)`,
 		ids: [opId.comment],
 		skip: false,
 	},
