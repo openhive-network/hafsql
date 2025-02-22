@@ -17,7 +17,7 @@ export const createCommentsIndexes = async () => {
 		"CREATE INDEX IF NOT EXISTS hafsql_comments_table_metadata_idx ON hafsql.comments_table USING btree ((metadata->>'content_type'));",
 	)
 	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_created_idx ON hafsql.comments_table USING btree (created);',
+		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_created_author_idx ON hafsql.comments_table USING btree (created, author);',
 	)
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_author_created_idx ON hafsql.comments_table USING btree (author, created);',
