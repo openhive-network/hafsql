@@ -5,6 +5,7 @@ import { validateInteger } from '../helpers/validate_integer.ts'
 import { validateLimit } from '../helpers/validate_limit.ts'
 import { validateNames } from '../helpers/validate_names.ts'
 import { validateSearchParams } from '../helpers/validate_search_params.ts'
+import { validateTimestamp } from '../helpers/validate_timestamp.ts'
 
 export const marketAPI = new Router()
 	/**
@@ -113,6 +114,55 @@ export const marketAPI = new Router()
 			return ctx.throw(400, 'Bad params provided')
 		}
 	})
+	/**
+	 * GET /market/charts/{bucket}
+	 * @summary Chart Data
+	 * @description Returns data that can be used to draw charts in different buckets.
+	 * @tag Market
+	 * @pathParam {string} bucket - One of the following:
+	 * - 5m
+	 * - 30m
+	 * - 1h
+	 * - 4h
+	 * - 1d
+	 * - 1w
+	 * - 4w
+	 * e.g. 1h
+	 * @queryParam {string} [start] - Timestamp used for pagination e.g. test
+	 * @queryParam {integer} [limit=200] - Max number of items to return
+	 * - min: 1
+	 * - Max: 1000
+	 * e.g. 200
+	 * @response 200 - A JSON array of orders
+	 * @response 400 - Bad request value
+	 * @responseContent {object[]} 200.application/json
+	 * @responseContent {BadRequest} 400.application/json
+	 */
+	.get('/market/charts/:bucket', async (ctx) => {
+		const bucketSizes = ['5m', '30m', '1h', '4h', '1d', '1w', '4w']
+		const bucket = ctx.params.bucket
+		if (!bucketSizes.includes(bucket)) {
+			return ctx.throw(
+				500,
+				`Bad value for bucket - Valid values include: ${bucketSizes}`,
+			)
+		}
+		validateSearchParams(ctx, ['start', 'limit'], false)
+		const params = ctx.request.url.searchParams
+		let start = null
+		if (params.has('start')) {
+			start = validateTimestamp(ctx, <string> params.get('start'))
+		}
+		const limit = validateLimit(ctx, 200, 1000, 1)
+		try {
+			const result = await getChartData(bucket, start, limit)
+			return ctx.response.body = BigJSONparser(
+				BigJSONstringifier(result),
+			)
+		} catch (_e) {
+			return ctx.throw(400, 'Bad params provided')
+		}
+	})
 
 const getOrderbook = async (decimals: number, limit: number) => {
 	const buys = await queryAPI(
@@ -135,9 +185,27 @@ const getOrderbook = async (decimals: number, limit: number) => {
       LIMIT $2`,
 		['HIVE', limit],
 	)
+	// deno-lint-ignore no-explicit-any
+	const sellsArray: any[] = []
+	// deno-lint-ignore no-explicit-any
+	const buysArray: any[] = []
+	buys.rows.forEach((item) => {
+		buysArray.push({
+			hbd_amount: Number(item.hbd_amount),
+			rate: Number(item.rate),
+			estimate_hive_amount: Number(item.estimate_hive_amount),
+		})
+	})
+	sells.rows.forEach((item) => {
+		sellsArray.push({
+			estimate_hbd_amount: Number(item.estimate_hbd_amount),
+			rate: Number(item.rate),
+			hive_amount: Number(item.hive_amount),
+		})
+	})
 	return {
-		asks: buys.rows,
-		bids: sells.rows,
+		asks: sellsArray,
+		bids: buysArray,
 	}
 }
 
@@ -157,8 +225,10 @@ const getAllTradeHistory = async (limit: number, start: null | string) => {
 		params.push(start)
 	}
 	const result = await queryAPI(
-		`SELECT id, current_owner, open_owner, current_orderid, open_orderid, current_pays, current_pays_symbol,
-    open_pays, open_pays_symbol, hafsql.get_timestamp(id) AS timestamp
+		`SELECT id, current_owner, open_owner, current_pays, current_pays_symbol,
+    open_pays, open_pays_symbol,
+		(CASE WHEN open_pays_symbol = 'HBD' THEN open_pays/current_pays ELSE current_pays/open_pays END)::numeric(30, 6) AS rate,
+		hafsql.get_timestamp(id) AS timestamp
     FROM hafsql.operation_fill_order_table
     WHERE id ${
 			start && limit > 0 ? '< $2' : start && limit < 0 ? '> $2' : '> 0'
@@ -200,7 +270,7 @@ const getTickers = async () => {
 		`SELECT current_pays, open_pays, open_pays_symbol 
     FROM hafsql.operation_fill_order_table
     WHERE id > hafsql.id_from_timestamp(NOW() AT TIME ZONE 'utc' - INTERVAL '24 hour', true)
-    AND open_pays > 2
+    AND (CASE WHEN open_pays_symbol = 'HBD' THEN current_pays > 1 ELSE open_pays > 1 END) = true
     ORDER BY id DESC
     LIMIT 1`,
 	)
@@ -227,13 +297,13 @@ const getTickers = async () => {
 		ticker_id: 'HIVE_HBD',
 		base_currency: 'HIVE',
 		quote_currency: 'HBD',
-		last_price: lastPrice.toFixed(6),
-		base_volume: volums.rows[0].base_vol,
-		quote_volume: volums.rows[0].quote_vol,
+		last_price: Number(lastPrice.toFixed(6)),
+		base_volume: Number(volums.rows[0].base_vol),
+		quote_volume: Number(volums.rows[0].quote_vol),
 		bid: orderbook.bids[0].rate,
 		ask: orderbook.asks[0].rate,
-		high: high.rows[0].high,
-		low: low.rows[0].low,
+		high: Number(high.rows[0].high),
+		low: Number(low.rows[0].low),
 		price_change_percent_24h: Number(
 			((lastPrice - firstPrice) * 100 / firstPrice).toFixed(2),
 		),
@@ -241,4 +311,25 @@ const getTickers = async () => {
 	tickerCache.timestamp = Date.now()
 	tickerCache.tickers = tickers
 	return tickers
+}
+
+const getChartData = async (
+	bucket: string,
+	start: string | null,
+	limit: number,
+) => {
+	let condition = ''
+	const params: Array<string | number> = [limit]
+	if (start) {
+		condition = 'WHERE timestamp < $2'
+		params.push(start)
+	}
+	const result = await queryAPI(
+		`SELECT * FROM hafsql.market_bucket_${bucket}_table
+			${condition}
+			ORDER BY timestamp DESC
+			LIMIT $1`,
+		params,
+	)
+	return result.rows
 }
