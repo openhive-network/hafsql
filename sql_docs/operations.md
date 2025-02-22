@@ -282,11 +282,11 @@ Indexes on: `(id)` | `(author, permlink)` | `(payout)` | `(author_rewards)` | `(
 SELECT * FROM hafsql.operation_comment_view
 LIMIT 1
 ```
-|id|timestamp|author|permlink|parent_author|parent_permlink|title|body|json_metadata|block_num|
-|--|---------|------|--------|-------------|---------------|-----|----|-------------|---------|
-|int8|timestamp|text|text|text|text|text|text|jsonb|int4|
+|id|timestamp|author|permlink|parent_author|parent_permlink|title|body|json_metadata|content_type|block_num|
+|--|---------|------|--------|-------------|---------------|-----|----|-------------|------------|---------|
+|int8|timestamp|text|text|text|text|text|text|jsonb|text|int4|
 
-Indexes on: `(author, permlink, id)` | `(author, id)` | `(parent_author, id)` | `(parent_author, parent_permlink)` | `((json_metadata->>'content_type'), id)` | `(id)`
+Indexes on: `(author, permlink, id)` | `(author, id)` | `(parent_author, id)` | `(parent_author, parent_permlink)` | `((json_metadata->>'content_type'), id)` |`(content_type, id)`| | `(id)`
 
 ***
 ### 22. operation_consolidate_treasury_balance_table [!badge size="xs" text="Virtual"]
