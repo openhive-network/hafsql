@@ -15,17 +15,15 @@ export const commentsAPI = new Router()
 	 * @queryParam {boolean} [include_body=false] - Set true to return the post/comment body
 	 * @response 200 - Post/comment as JSON
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {object} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/comments/:author/:permlink', async (ctx) => {
 		const author = await validateNames(ctx, ctx.params.author, 1)
 		const permlink = validatePermlink(ctx, ctx.params.permlink)
 		const result = await getComment(author[0], permlink)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result[0]),

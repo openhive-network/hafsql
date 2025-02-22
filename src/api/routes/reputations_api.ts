@@ -11,17 +11,15 @@ export const reputationsAPI = new Router()
 	 * @pathParam {string} username - Account name e.g. gtg
 	 * @response 200 - Reputation string
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/reputations/:username', async (ctx) => {
 		const username = ctx.params.username
 		await validateNames(ctx, username, 1)
 		const result = await getReputation(username)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result[0].rep),

@@ -5,7 +5,7 @@ order: 96
 # HafSQL Tables
 
 This category includes the tables with parsed data such as account balances and account details.
-The listed views also have corresponding tables but are not listed here. It is recommended to use the views.
+The following list includes mainly views. There might be a table as well for each category but not listed here.
 
 ***
 
@@ -216,3 +216,37 @@ LIMIT 1
 |int4|numeric|numeric|numeric|numeric|numeric|numeric|
 
 Indexes on: `(block_num)`
+
+***
+### 18. market_open_orders_table
+```sql
+SELECT * FROM hafsql.market_open_orders_table
+LIMIT 1
+```
+|timestamp|expiration|owner|orderid|amount|symbol|rate|
+|---------|----------|-----|-------|------|------|----|
+|timestamptz|timestamptz|varchar|int8|numeric|varchar|numeric|
+
+Indexes on: `(owner, orderid)` | `(timestamp, owner)` | `(rate)` | `(amount)`
+
+***
+### 19. market_bucket_5m_table
+Similar tables:  
+market_bucket_5m_table  
+market_bucket_30m_table  
+market_bucket_1h_table  
+market_bucket_4h_table  
+market_bucket_1d_table  
+market_bucket_1w_table  
+market_bucket_4w_table  
+
+```sql
+SELECT * FROM hafsql.market_bucket_5m_table
+LIMIT 1
+```
+|timestamp|open|high|low|close|base_vol|quote_vol|
+|---------|----|----|---|-----|--------|---------|
+|timestamptz|numeric|numeric|numeric|numeric|numeric|numeric|
+
+Indexes on: `(timestamp)`
+

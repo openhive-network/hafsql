@@ -13,10 +13,8 @@ export const mutesAPI = new Router()
 	 * @pathParam {string} username - Account name e.g. dantheman
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	// I don't think there will be an account muted by a large number of accounts
 	// So the list *should* be short and not need a limit
@@ -25,7 +23,7 @@ export const mutesAPI = new Router()
 		await validateNames(ctx, username, 1)
 		const result = await getMuting(username)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),
@@ -43,10 +41,8 @@ export const mutesAPI = new Router()
 	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/accounts/:username/muted', async (ctx) => {
 		const username = ctx.params.username
@@ -56,7 +52,7 @@ export const mutesAPI = new Router()
 		const { startId, limit } = await validateStartLimit(ctx, 1000, 100)
 		const result = await getMuted(username, startId, limit)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),
@@ -71,17 +67,15 @@ export const mutesAPI = new Router()
 	 * @pathParam {string} username - Account name e.g. mahdiyari
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/accounts/:username/muted-lists', async (ctx) => {
 		const username = ctx.params.username
 		await validateNames(ctx, username, 1)
 		const result = await getMutedLists(username)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),

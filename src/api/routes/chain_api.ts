@@ -14,10 +14,8 @@ export const chainAPI = new Router()
 	 * for that block number
 	 * @response 200 - A JSON object
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {object} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/chain/dynamic-global-properties', async (ctx) => {
 		const validKeys = ['block_num']
@@ -29,7 +27,7 @@ export const chainAPI = new Router()
 		}
 		const result = await getDynamicGlobalProps(blockNum)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result[0]),
@@ -46,10 +44,8 @@ export const chainAPI = new Router()
 	 * - Set true to include transactions in the returned result
 	 * @response 200 - A JSON object
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {object} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/chain/block/:block_num', async (ctx) => {
 		const blockNum = validateBlockNum(ctx, ctx.params.block_num)
@@ -64,7 +60,7 @@ export const chainAPI = new Router()
 		}
 		const result = await getBlock(blockNum, includeTrx)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result[0]),
@@ -81,10 +77,8 @@ export const chainAPI = new Router()
 	 * - Set true to include operations in the returned result
 	 * @response 200 - Array of transaction object
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {object[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/chain/transactions/:block_num', async (ctx) => {
 		const blockNum = validateBlockNum(ctx, ctx.params.block_num)
@@ -99,7 +93,7 @@ export const chainAPI = new Router()
 		}
 		const result = await getTransactions(blockNum, includeOps)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result),
@@ -114,16 +108,14 @@ export const chainAPI = new Router()
 	 * e.g. 6707feb450da66dc223ab5cb3e259937b2fef6bf
 	 * @response 200 - A JSON object
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {object} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/chain/transaction/:trx_id', async (ctx) => {
 		const trxId = validateTrxId(ctx, ctx.params.trx_id)
 		const result = await findTransaction(trxId)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result[0]),
@@ -141,10 +133,8 @@ export const chainAPI = new Router()
 	 * <br>Set to `false` to return in the object format and assets as nai
 	 * @response 200 - Array of operations
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {array[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/chain/operations/:block_num', async (ctx) => {
 		const blockNum = validateBlockNum(ctx, ctx.params.block_num)
@@ -158,9 +148,6 @@ export const chainAPI = new Router()
 			}
 		}
 		const result = await getOperations(blockNum, legacyFormat)
-		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
-		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result),
 		)

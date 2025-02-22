@@ -17,10 +17,8 @@ export const balancesAPI = new Router()
 	 * @queryParam {string} names - List of usernames separated by `,` e.g. mahdiyari,gtg
 	 * @response 200 - A JSON array of balance objects
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/balances/by-names', async (ctx) => {
 		const validKeys = ['names']
@@ -29,9 +27,6 @@ export const balancesAPI = new Router()
 		const names = params.get('names')
 		const namesArray = await validateNames(ctx, names)
 		const result = await getByNames(namesArray)
-		if (result.length === 0) {
-			return ctx.throw(404, 'No accounts found')
-		}
 		return ctx.response.body = BigJSONparser(BigJSONstringifier(result))
 	})
 	/**
@@ -43,10 +38,8 @@ export const balancesAPI = new Router()
 	 * @pathParam {string} block_num - Block number e.g. 5000000
 	 * @response 200 - A JSON object of balances
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/balances/historical/:name/:block_num', async (ctx) => {
 		const username = ctx.params.name
@@ -54,7 +47,7 @@ export const balancesAPI = new Router()
 		const blockNum = validateBlockNum(ctx, ctx.params.block_num)
 		const result = await getHistoricBalance(username, blockNum)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No accounts found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(BigJSONstringifier(result[0]))
 	})
@@ -68,10 +61,8 @@ export const balancesAPI = new Router()
 	 * <sub>min: 1 | max: 1000</sub>
 	 * @response 200 - A JSON object of balances
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/balances/rich-list/:symbol', async (ctx) => {
 		const symbol = ctx.params.symbol
@@ -80,9 +71,6 @@ export const balancesAPI = new Router()
 		validateSearchParams(ctx, validKeys, false)
 		const limit = validateLimit(ctx, 100, 1000, 1)
 		const result = await getRichList(symbol, limit)
-		if (result.length === 0) {
-			return ctx.throw(404, 'No accounts found')
-		}
 		return ctx.response.body = BigJSONparser(BigJSONstringifier(result))
 	})
 	/**
@@ -97,10 +85,8 @@ export const balancesAPI = new Router()
 	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON object of balances
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/balances/total-balances', async (ctx) => {
 		const validKeys = ['start', 'limit']
@@ -113,9 +99,6 @@ export const balancesAPI = new Router()
 			num = validateBlockNum(ctx, start)
 		}
 		const result = await getTotalBalances(num, limit)
-		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
-		}
 		return ctx.response.body = BigJSONparser(BigJSONstringifier(result))
 	})
 

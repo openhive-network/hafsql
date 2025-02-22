@@ -13,10 +13,8 @@ export const blacklistsAPI = new Router()
 	 * @pathParam {string} username - Account name e.g. mahdiyari
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	// The list *should* be short and not need a limit
 	.get('/accounts/:username/blacklisting', async (ctx) => {
@@ -24,7 +22,7 @@ export const blacklistsAPI = new Router()
 		await validateNames(ctx, username, 1)
 		const result = await getBlacklisting(username)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),
@@ -42,10 +40,8 @@ export const blacklistsAPI = new Router()
 	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/accounts/:username/blacklisted', async (ctx) => {
 		const username = ctx.params.username
@@ -55,7 +51,7 @@ export const blacklistsAPI = new Router()
 		const { startId, limit } = await validateStartLimit(ctx, 1000, 100)
 		const result = await getBlacklisted(username, startId, limit)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),
@@ -70,17 +66,15 @@ export const blacklistsAPI = new Router()
 	 * @pathParam {string} username - Account name e.g. mahdiyari
 	 * @response 200 - A JSON array of account names
 	 * @response 400 - Bad request value
-	 * @response 404 - No items found
 	 * @responseContent {string[]} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
-	 * @responseContent {NoItemFound} 404.application/json
 	 */
 	.get('/accounts/:username/blacklists', async (ctx) => {
 		const username = ctx.params.username
 		await validateNames(ctx, username, 1)
 		const result = await getBlacklists(username)
 		if (result.length === 0) {
-			return ctx.throw(404, 'No items found')
+			return ctx.response.body = []
 		}
 		return ctx.response.body = BigJSONparser(
 			BigJSONstringifier(result.join().split(',')),

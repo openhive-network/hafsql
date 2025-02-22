@@ -17,7 +17,7 @@ export const createCommentsIndexes = async () => {
 		"CREATE INDEX IF NOT EXISTS hafsql_comments_table_metadata_idx ON hafsql.comments_table USING btree ((metadata->>'content_type'));",
 	)
 	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_created_idx ON hafsql.comments_table USING btree (created);',
+		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_created_author_idx ON hafsql.comments_table USING btree (created, author);',
 	)
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_author_created_idx ON hafsql.comments_table USING btree (author, created);',
@@ -138,6 +138,18 @@ export const createAccountsIndexes = async () => {
 export const createHafsqlIndexes = async () => {
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_reblogs_table_post_idx ON hafsql.reblogs_table USING btree (post);',
+	)
+}
+
+export const createMarketIndexes = async () => {
+	await query(
+		'CREATE INDEX IF NOT EXISTS hafsql_market_open_orders_table_amount_idx ON hafsql.market_open_orders_table USING btree (amount);',
+	)
+	await query(
+		'CREATE INDEX IF NOT EXISTS hafsql_market_open_orders_table_rate_idx ON hafsql.market_open_orders_table USING btree (rate);',
+	)
+	await query(
+		'CREATE INDEX IF NOT EXISTS hafsql_market_open_orders_table_timestamp_owner_idx ON hafsql.market_open_orders_table USING btree (timestamp, owner);',
 	)
 }
 

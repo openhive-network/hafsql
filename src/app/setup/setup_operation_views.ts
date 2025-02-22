@@ -45,6 +45,7 @@ export const setupOperationViews = async () => {
     ${param('title')} AS "title",
     ${param('body')} AS "body",
     hafsql.to_json(${param('json_metadata')}) AS "json_metadata",
+    hafsql.get_content_type(o.body_binary) AS "content_type",
     ${block('o.id')} AS "block_num"
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}

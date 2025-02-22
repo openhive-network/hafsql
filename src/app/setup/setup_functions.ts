@@ -374,6 +374,25 @@ export const setupFunctions = async () => {
 		`COMMENT ON FUNCTION hafsql.get_timestamp (int4) IS
     'Get timestamp from block_num';`,
 	)
+
+	// hafsql.get_content_type(hafd.operation)
+	await query(
+		`CREATE OR REPLACE FUNCTION hafsql.get_content_type(body hafd.operation)
+    RETURNS text
+    AS $$
+    BEGIN
+      RETURN (body::jsonb->'value'->>'json_metadata')::jsonb->>'content_type';
+    EXCEPTION WHEN OTHERS THEN
+      RETURN NULL;
+    END
+    $$
+    LANGUAGE plpgsql
+    IMMUTABLE;`,
+	)
+	await query(
+		`COMMENT ON FUNCTION hafsql.get_content_type (hafd.operation) IS
+    'Get content_type from body of a post operation';`,
+	)
 }
 
 const dropFunction = async (funName: string) => {

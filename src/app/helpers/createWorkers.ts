@@ -7,6 +7,7 @@ const isSyncing = {
 	two: false,
 	three: false,
 	four: false,
+	five: false,
 }
 
 export const createWorkers = async () => {
@@ -118,6 +119,15 @@ export const createWorkers = async () => {
 		// operations
 		createWorker('../sync/operation_tables.ts').postMessage('start')
 		print('[Main] Starting operation tables worker 👷')
+	}
+
+	if (isSyncing.five === false && !(await getBlockRange('operations'))) {
+		isSyncing.five = true
+		if (Deno.env.get('HAFSQL_MARKET') !== 'false') {
+			// market
+			createWorker('../sync/market.ts').postMessage('start')
+			print('[Main] Starting market worker 👷')
+		}
 	}
 }
 
