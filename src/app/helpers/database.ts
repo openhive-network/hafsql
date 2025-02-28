@@ -50,12 +50,15 @@ export const queryAPI = async <T extends QueryResultRow>(
 ) => {
 	const { queryString, params } = parseTemplateLiteralText(strings, values)
 	const connection = await pool.connect()
-	// 30s
-	await connection.query('SET statement_timeout=30000')
-	const result = await connection.query<T>(queryString, params)
-	await connection.query('SET statement_timeout=0')
-	connection.release()
-	return result
+	try {
+		// 30s
+		await connection.query('SET statement_timeout=30000')
+		const result = await connection.query<T>(queryString, params)
+		await connection.query('SET statement_timeout=0')
+		return result
+	} finally {
+		connection.release()
+	}
 }
 
 /** Used by the APIs - has statement_timeout */
@@ -65,16 +68,19 @@ export const queryArrayAPI = async (
 ) => {
 	const { queryString, params } = parseTemplateLiteralText(strings, values)
 	const connection = await pool.connect()
-	// 30s
-	await connection.query('SET statement_timeout=30000')
-	const result = await connection.query({
-		text: queryString,
-		values: params,
-		rowMode: 'array',
-	})
-	await connection.query('SET statement_timeout=0')
-	connection.release()
-	return result
+	try {
+		// 30s
+		await connection.query('SET statement_timeout=30000')
+		const result = await connection.query({
+			text: queryString,
+			values: params,
+			rowMode: 'array',
+		})
+		await connection.query('SET statement_timeout=0')
+		return result
+	} finally {
+		connection.release()
+	}
 }
 
 export type customClient = {
