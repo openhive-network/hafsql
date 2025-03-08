@@ -34,6 +34,9 @@ export const createCommentsIndexes = async () => {
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_category_id_idx ON hafsql.comments_table USING btree (category, id);',
 	)
+	await query(
+		"CREATE INDEX IF NOT EXISTS hafsql_comments_table_parent_author_empty_deleted_idx ON hafsql.comments_table USING btree (parent_author, deleted) WHERE parent_author='';",
+	)
 }
 
 export const createDelegationsIndexes = async () => {
