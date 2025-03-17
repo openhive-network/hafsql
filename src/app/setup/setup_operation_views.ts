@@ -75,9 +75,9 @@ export const setupOperationViews = async () => {
       ${param('voter')} AS voter,
       ${param('author')} AS author,
       ${param('permlink')} AS permlink,
-      ${param('weight')} AS weight,
+      ${param('weight')}::numeric AS weight,
       ${param('rshares')}::numeric AS rshares,
-      ${param('total_vote_weight')} AS total_vote_weight,
+      ${param('total_vote_weight')}::numeric AS total_vote_weight,
       ${amount(param('pending_payout'))} AS pending_payout,
       ${symbol(param('pending_payout'))} AS pending_payout_symbol,
       ${block('o.id')} as block_num
