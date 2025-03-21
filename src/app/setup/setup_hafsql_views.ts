@@ -86,6 +86,8 @@ export const setupHafsqlViews = async () => {
     x.payout AS total_payout_value,
     x.curation_rewards AS curator_payout_value,
     x.beneficiary_rewards AS beneficiary_payout_value,
+    COALESCE((SELECT SUM(rshares) FROM hafsql.operation_effective_comment_vote_view WHERE author=x.author AND permlink=x.permlink), 0) AS total_rshares,
+    COALESCE((SELECT SUM(CASE WHEN rshares < 0 THEN -1 * rshares ELSE rshares END) FROM hafsql.operation_effective_comment_vote_view WHERE author=x.author AND permlink=x.permlink), 0) AS net_rshares,
     COALESCE((SELECT total_vote_weight FROM hafsql.operation_effective_comment_vote_view WHERE author=x.author and permlink=x.permlink ORDER BY id DESC LIMIT 1), 0) AS total_vote_weight,
     COALESCE((SELECT extensions->0->'value'->>'beneficiaries' FROM hafsql.operation_comment_options_table WHERE author=x.author and permlink=x.permlink ORDER BY id DESC LIMIT 1), '[]') AS beneficiaries,
     COALESCE((SELECT max_accepted_payout FROM hafsql.operation_comment_options_table WHERE author=x.author and permlink=x.permlink ORDER BY id DESC LIMIT 1), 1000000.0) AS max_accepted_payout,
