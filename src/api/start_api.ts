@@ -112,5 +112,5 @@ const checkHafStatus = async () => {
 
 let statusInterval: number
 if (!Deno.args.includes('api_only')) {
-	statusInterval = setInterval(checkHafStatus, 60000)
+	statusInterval = setInterval(checkHafStatus, 5_000)
 }
