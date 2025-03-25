@@ -247,8 +247,8 @@ export const setupFunctions = async () => {
     RETURNS numeric(6, 2)
     AS $$
     BEGIN
-      RETURN CASE WHEN $1 > 0 THEN ((log10($1 - 10) - 9) * 9 + 25)::numeric(6, 2)
-        ELSE (-(log10(-$1 - 10) - 9) * 9 + 25)::numeric(6, 2) END;
+      RETURN CASE WHEN $1 > 0 THEN (GREATEST((log10($1 - 10) - 9), 0) * 9 + 25)::numeric(6, 2)
+        ELSE (-GREATEST((log10(-$1 - 10) - 9), 0) * 9 + 25)::numeric(6, 2) END;
     EXCEPTION WHEN OTHERS THEN
       RETURN 0;
     END
