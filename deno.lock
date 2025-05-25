@@ -1,5 +1,5 @@
 {
-  "version": "4",
+  "version": "5",
   "specifiers": {
     "jsr:@oak/commons@1": "1.0.0",
     "jsr:@oak/oak@^17.1.4": "17.1.4",
@@ -15,6 +15,7 @@
     "jsr:@tajpouria/cors@1.2.1": "1.2.1",
     "npm:@types/diff-match-patch@1.0.36": "1.0.36",
     "npm:@types/json-bigint@1.0.4": "1.0.4",
+    "npm:@types/node@*": "22.15.15",
     "npm:@types/pg@*": "8.11.10",
     "npm:big.js@^6.2.2": "6.2.2",
     "npm:diff-match-patch@1.0.5": "1.0.5",
@@ -86,16 +87,22 @@
     "@types/json-bigint@1.0.4": {
       "integrity": "sha512-ydHooXLbOmxBbubnA7Eh+RpBzuaIiQjh8WGJYQB50JFGFrdxW7JzVlyEV7fAXw0T2sqJ1ysTneJbiyNLqZRAag=="
     },
+    "@types/node@22.15.15": {
+      "integrity": "sha512-R5muMcZob3/Jjchn5LcO8jdKwSCbzqmPB6ruBxMcf9kbxtniZHP327s6C37iOfuw8mbKK3cAQa7sEl7afLrQ8A==",
+      "dependencies": [
+        "undici-types@6.21.0"
+      ]
+    },
     "@types/node@22.5.4": {
       "integrity": "sha512-FDuKUJQm/ju9fT/SeX/6+gBzoPzlVCzfzmGkwKvRHQVxi4BntVbyIwf6a4Xn62mrvndLiml6z/UBXIdEVjQLXg==",
       "dependencies": [
-        "undici-types"
+        "undici-types@6.19.8"
       ]
     },
     "@types/pg@8.11.10": {
       "integrity": "sha512-LczQUW4dbOQzsH2RQ5qoeJ6qJPdrcM/DcMLoqWQkMLMsq83J5lAX3LXjdkWdpscFy67JSOWDnh7Ny/sPFykmkg==",
       "dependencies": [
-        "@types/node",
+        "@types/node@22.5.4",
         "pg-protocol",
         "pg-types@4.0.2"
       ]
@@ -116,7 +123,8 @@
       ]
     },
     "oa-parser@0.0.3": {
-      "integrity": "sha512-N7HGcji9L9OYZ/i9f4eBWyZ+/4tbl5jg7JYHXTcqe5BWie8yMXMUbRcVQJer5JvVHb0JwZwzQIrjFC6EMiS0Kw=="
+      "integrity": "sha512-N7HGcji9L9OYZ/i9f4eBWyZ+/4tbl5jg7JYHXTcqe5BWie8yMXMUbRcVQJer5JvVHb0JwZwzQIrjFC6EMiS0Kw==",
+      "bin": true
     },
     "obuf@1.1.2": {
       "integrity": "sha512-PX1wu0AmAdPqOL1mWhqmlOd8kOIZQwGZw6rh7uby9fTc5lhaOWFLX3I6R1hrF9k3zUY40e6igsLGkDXK92LJNg=="
@@ -170,12 +178,14 @@
     "pg@8.13.1": {
       "integrity": "sha512-OUir1A0rPNZlX//c7ksiu7crsGZTKSOXJPgtNiHGIlC9H0lO+NC6ZDYksSgBYY/thSWhnSRBv8w1lieNNGATNQ==",
       "dependencies": [
-        "pg-cloudflare",
         "pg-connection-string",
         "pg-pool",
         "pg-protocol",
         "pg-types@2.2.0",
         "pgpass"
+      ],
+      "optionalDependencies": [
+        "pg-cloudflare"
       ]
     },
     "pgpass@1.0.5": {
@@ -222,6 +232,9 @@
     },
     "undici-types@6.19.8": {
       "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw=="
+    },
+    "undici-types@6.21.0": {
+      "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="
     },
     "xtend@4.0.2": {
       "integrity": "sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ=="
