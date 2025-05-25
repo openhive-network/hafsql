@@ -67,6 +67,7 @@ export const setupPublicUser = async () => {
 	await grantSelectToSchema('hafbe_bal', 'tables')
 	// hivemind
 	await grantSelectToSchema('hivemind_app', 'tables')
+	await grantSelectToSchema('hivemind_app', 'views')
 	// reptracker
 	await grantSelectToSchema('reptracker_app', 'tables')
 
