@@ -13,6 +13,7 @@ import { purgeHafSQL } from './purge.ts'
 import { query } from './app/helpers/database.ts'
 import { createWorkers } from './app/helpers/createWorkers.ts'
 import { setupPublicUser } from './app/setup/setup_public_user.ts'
+import { isHafReady } from './app/helpers/isHafReady.ts'
 
 // Running hafsql with the argument `purge` will remove everything and exit
 if (Deno.args.includes('purge')) {
@@ -54,10 +55,8 @@ let once = false
 
 // We will wait for HAF to be ready before starting
 const entryPoint = async () => {
-	const result = await query<{ is_ready: boolean }>(
-		'SELECT hive.is_instance_ready() AS is_ready;',
-	)
-	if (result.rows[0]?.is_ready) {
+	const result = await isHafReady()
+	if (result) {
 		// Setup database - create views and tables
 		await setup()
 		// check for possible upgrade actions
@@ -131,10 +130,8 @@ const format = (num: number) => {
 if (Deno.env.get('HAFSQL_PUBLICUSER') === 'true') {
 	const publicUserInterval = setInterval(async () => {
 		try {
-			const isHafReady = await query<{ is_ready: boolean }>(
-				'SELECT hive.is_instance_ready() AS is_ready;',
-			)
-			if (!isHafReady.rows[0]?.is_ready) {
+			const isReady = await isHafReady()
+			if (!isReady) {
 				return
 			}
 			const head = await query<{ num: number }>(

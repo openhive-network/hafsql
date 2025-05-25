@@ -114,7 +114,11 @@ export const createWorkers = async () => {
 		}
 	}
 
-	if (isSyncing.four === false) {
+	// We check for the hive index because sometimes the instance_isready messes it up
+	if (
+		isSyncing.four === false &&
+		(await doesIndexExist('hive_operations_op_type_id_block_num'))
+	) {
 		isSyncing.four = true
 		// operations
 		createWorker('../sync/operation_tables.ts').postMessage('start')
