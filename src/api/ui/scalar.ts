@@ -10,6 +10,8 @@ const spec = openApi({
 	verbose: false,
 } as ApiParserOptions)
 
+spec.servers = [{ url: Deno.env.get('API_PREFIX') || '/' }]
+
 export const scalar = new Router()
 	/**
 	 * GET /openapi.json
@@ -85,6 +87,12 @@ export const scalar = new Router()
             favicon: '/favicon.ico',
             hideModels: true,
             hideClientButton: true,
+            servers: [
+              {
+                url: document.URL.split('#')[0],
+                description: 'HafSQL',
+              },
+            ]
           }
 
           document.getElementById('api-reference').dataset.configuration =

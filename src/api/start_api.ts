@@ -8,8 +8,10 @@ import {
 import { print } from '../app/helpers/utils/print.ts'
 import { apiRouter } from './mod.ts'
 import { query } from '../app/helpers/database.ts'
+import { isHafReady } from '../app/helpers/isHafReady.ts'
 
 let HAF_STATUS = 'unkown'
+const PREFIX = Deno.env.get('API_PREFIX')
 
 export const startAPI = async () => {
 	if (!Deno.args.includes('api_only')) {
@@ -58,7 +60,7 @@ export const startAPI = async () => {
 		}
 	})
 
-	const router = new Router()
+	const router = new Router({ prefix: PREFIX })
 		.use(apiRouter.routes())
 
 	// app.addEventListener('error', (e) => {
@@ -70,6 +72,10 @@ export const startAPI = async () => {
 
 	// Handle unhandled responses by the routes
 	app.use((ctx, next) => {
+		// redirect / calls to PREFIX
+		if (PREFIX && ctx.request.url.pathname === '/') {
+			return ctx.response.redirect(PREFIX)
+		}
 		const status = ctx.response.status
 		if (status === 404) {
 			// route not implemented
@@ -87,27 +93,29 @@ export const startAPI = async () => {
 }
 
 const checkHafStatus = async () => {
-	const isHafReady = await query<{ is_ready: boolean }>(
-		'SELECT hive.is_instance_ready() AS is_ready;',
-	)
-	if (!isHafReady.rows[0]?.is_ready) {
-		HAF_STATUS = 'Waiting for HAF to be ready'
-		return
+	try {
+		const isReady = await isHafReady()
+		if (!isReady) {
+			HAF_STATUS = 'Waiting for HAF to be ready'
+			return
+		}
+		const head = await query<{ num: number }>(
+			`SELECT num FROM hafd.blocks ORDER BY num DESC LIMIT 1;`,
+		)
+		const headNum = head.rows[0].num
+		const result = await query<{ not_synced_yet: number }>(
+			`SELECT COUNT(1) AS not_synced_yet FROM hafsql.sync_data WHERE last_block_num < $1`,
+			[headNum - 3],
+		)
+		if (result.rows[0].not_synced_yet > 0) {
+			HAF_STATUS = 'Waiting for HafSQL to be ready'
+			return
+		}
+		HAF_STATUS = 'ready'
+		clearInterval(statusInterval)
+	} catch {
+		// sync_data table won't be available when waiting for haf to be ready
 	}
-	const head = await query<{ num: number }>(
-		`SELECT num FROM hafd.blocks ORDER BY num DESC LIMIT 1;`,
-	)
-	const headNum = head.rows[0].num
-	const result = await query<{ not_synced_yet: number }>(
-		`SELECT COUNT(1) AS not_synced_yet FROM hafsql.sync_data WHERE last_block_num < $1`,
-		[headNum - 3],
-	)
-	if (result.rows[0].not_synced_yet > 0) {
-		HAF_STATUS = 'Waiting for HafSQL to be ready'
-		return
-	}
-	HAF_STATUS = 'ready'
-	clearInterval(statusInterval)
 }
 
 let statusInterval: number
