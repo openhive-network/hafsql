@@ -10,7 +10,7 @@ const spec = openApi({
 	verbose: false,
 } as ApiParserOptions)
 
-spec.servers = [{ url: Deno.env.get('API_PREFIX') || '/' }]
+spec.servers = [{ url: Deno.env.get('API_PREFIX') || '' }]
 
 export const scalar = new Router()
 	/**
