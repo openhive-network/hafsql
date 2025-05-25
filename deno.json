@@ -1,33 +1,30 @@
 {
-	"version": "2.1.5",
-	"tasks": {
-		"dev": "deno run --watch --allow-read --allow-env --allow-net --allow-sys src/main.ts",
-		"start": "deno run --allow-read --allow-env src/main.ts",
-		"format": "deno fmt",
-		"test": "deno run --watch --allow-read --allow-env --allow-net test.ts",
-		"api": "deno run --watch --allow-read --allow-env --allow-net --allow-sys src/main.ts api_only",
-		"docs": "deno run --allow-read --allow-env --allow-net --allow-sys --allow-write sql_docs/helpers/operations_helper.ts",
-		"pre-docker-build": "deno install --entrypoint src/deps.ts && deno cache src/main.ts"
-	},
-	"fmt": {
-		"useTabs": true,
-		"lineWidth": 80,
-		"indentWidth": 2,
-		"semiColons": false,
-		"singleQuote": true,
-		"include": [
-			"src/",
-			"./*.ts"
-		]
-	},
-	"imports": {
-		"@oak/oak": "jsr:@oak/oak@^17.1.4",
-		"@std/dotenv": "jsr:@std/dotenv@^0.225.2",
-		"@tajpouria/cors": "jsr:@tajpouria/cors@1.2.1",
-		"big.js": "npm:big.js@^6.2.2",
-		"diff-match-patch": "npm:diff-match-patch@1.0.5",
-		"json-bigint": "npm:json-bigint@1.0.0",
-		"oa-parser": "npm:oa-parser@^0.0.3",
-		"pg": "npm:pg@^8.13.1"
-	}
+  "version": "2.2.0",
+  "tasks": {
+    "dev": "deno run --watch --allow-read --allow-env --allow-net --allow-sys src/main.ts",
+    "start": "deno run --allow-read --allow-env src/main.ts",
+    "format": "deno fmt",
+    "test": "deno run --watch --allow-read --allow-env --allow-net test.ts",
+    "api": "deno run --watch --allow-read --allow-env --allow-net --allow-sys src/main.ts api_only",
+    "docs": "deno run --allow-read --allow-env --allow-net --allow-sys --allow-write sql_docs/helpers/operations_helper.ts",
+    "pre-docker-build": "deno install --entrypoint src/deps.ts && deno cache src/main.ts"
+  },
+  "fmt": {
+    "useTabs": true,
+    "lineWidth": 80,
+    "indentWidth": 2,
+    "semiColons": false,
+    "singleQuote": true,
+    "include": ["src/", "./*.ts"]
+  },
+  "imports": {
+    "@oak/oak": "jsr:@oak/oak@^17.1.4",
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.2",
+    "@tajpouria/cors": "jsr:@tajpouria/cors@1.2.1",
+    "big.js": "npm:big.js@^6.2.2",
+    "diff-match-patch": "npm:diff-match-patch@1.0.5",
+    "json-bigint": "npm:json-bigint@1.0.0",
+    "oa-parser": "npm:oa-parser@^0.0.3",
+    "pg": "npm:pg@^8.13.1"
+  }
 }
