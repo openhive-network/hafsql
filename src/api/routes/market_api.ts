@@ -128,7 +128,7 @@ export const marketAPI = new Router()
 	 * - 1w
 	 * - 4w
 	 * e.g. 1h
-	 * @queryParam {string} [start] - Timestamp used for pagination e.g. test
+	 * @queryParam {string} [start] - Timestamp used for pagination e.g. 2023-11-11T00:00:00.000Z
 	 * @queryParam {integer} [limit=200] - Max number of items to return
 	 * - min: 1
 	 * - Max: 1000
