@@ -11,7 +11,7 @@ export const purgeHafSQL = async () => {
 	print('Removing indexes...')
 	for (let i = 0; i < hiveIndexes.length; i++) {
 		await query(
-			`DROP INDEX CONCURRENTLY IF EXISTS ${hiveIndexes[i].name}`,
+			`DROP INDEX CONCURRENTLY IF EXISTS hafd.${hiveIndexes[i].name}`,
 		)
 	}
 	try {
