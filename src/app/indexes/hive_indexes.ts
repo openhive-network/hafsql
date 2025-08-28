@@ -1,49 +1,57 @@
 import { query } from '../helpers/database.ts'
 import { opId } from '../helpers/operation_id.ts'
 import { print } from '../helpers/utils/print.ts'
+import { sleep } from '../helpers/utils/sleep.ts'
 
 export const createHiveIndexes = async () => {
-	// Kill all running queries by hafsql
-	await query(
-		`SELECT pg_cancel_backend(sa.pid) FROM pg_catalog.pg_stat_activity sa WHERE sa.application_name=$1 AND sa.query LIKE $2`,
-		['hafsql', 'CREATE%'],
-	)
-	const invalidIndexes = await getInvalidIndexes()
-	invalidIndexes.forEach(async (index) => {
-		await query(`DROP INDEX CONCURRENTLY hafd.${index};`)
-	})
-	for (let i = 0; i < hiveIndexes.length; i++) {
-		const name = hiveIndexes[i].name
-		const params = hiveIndexes[i].params
-		const ids = hiveIndexes[i].ids
-		const skip = hiveIndexes[i].skip
-		if (skip) {
-			continue
-		}
-		let condition = ''
-		if (ids.length > 0) {
-			if (ids.length > 1) {
-				condition = `WHERE hafd.operation_id_to_type_id(id) IN (${ids.join()})`
-			} else {
-				condition = `WHERE hafd.operation_id_to_type_id(id) = ${ids[0]}`
-			}
-			// for now only used by one index so should be fine
-			if (hiveIndexes[i].condition) {
-				condition += ` AND ${hiveIndexes[i].condition}`
-			}
-		}
-
-		const exists = await doesIndexExist(name)
-		if (exists) {
-			continue
-		}
-		const table = hiveIndexes[i].table || 'hafd.operations'
+	try {
+		// Kill all running queries by hafsql
 		await query(
-			`CREATE INDEX CONCURRENTLY IF NOT EXISTS ${name} ON ${table} ${params} ${condition};`,
+			`SELECT pg_cancel_backend(sa.pid) FROM pg_catalog.pg_stat_activity sa WHERE sa.application_name=$1 AND sa.query LIKE $2`,
+			['hafsql', 'CREATE%'],
 		)
-		print(`[Indexes] Index ${name} done! ✅`)
+		const invalidIndexes = await getInvalidIndexes()
+		invalidIndexes.forEach(async (index) => {
+			await query(`DROP INDEX CONCURRENTLY hafd.${index};`)
+		})
+		for (let i = 0; i < hiveIndexes.length; i++) {
+			const name = hiveIndexes[i].name
+			const params = hiveIndexes[i].params
+			const ids = hiveIndexes[i].ids
+			const skip = hiveIndexes[i].skip
+			if (skip) {
+				continue
+			}
+			let condition = ''
+			if (ids.length > 0) {
+				if (ids.length > 1) {
+					condition =
+						`WHERE hafd.operation_id_to_type_id(id) IN (${ids.join()})`
+				} else {
+					condition = `WHERE hafd.operation_id_to_type_id(id) = ${ids[0]}`
+				}
+				// for now only used by one index so should be fine
+				if (hiveIndexes[i].condition) {
+					condition += ` AND ${hiveIndexes[i].condition}`
+				}
+			}
+
+			const exists = await doesIndexExist(name)
+			if (exists) {
+				continue
+			}
+			const table = hiveIndexes[i].table || 'hafd.operations'
+			await query(
+				`CREATE INDEX CONCURRENTLY IF NOT EXISTS ${name} ON ${table} ${params} ${condition};`,
+			)
+			print(`[Indexes] Index ${name} done! ✅`)
+		}
+		print('[Indexes] All indexes have been created! ✅')
+	} catch (_e) {
+		print('Retrying index creation... (this is normal)')
+		await sleep(10000)
+		createHiveIndexes()
 	}
-	print('[Indexes] All indexes have been created! ✅')
 }
 
 /**
