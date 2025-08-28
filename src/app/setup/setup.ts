@@ -7,6 +7,7 @@ import {
 } from './setup_operation_views.ts'
 import { setupSchema } from './setup_schema.ts'
 import { setupTables } from './setup_tables.ts'
+import { query } from '../helpers/database.ts'
 
 export const setup = async (): Promise<void> => {
 	await setupSchema()
@@ -25,4 +26,15 @@ export const setup = async (): Promise<void> => {
 	await setupOperationViews()
 
 	await setupHafsqlViews()
+
+	// HAF drops indexes and needs some permissions to re-create them
+	await query(
+		'GRANT USAGE, CREATE ON SCHEMA hafsql TO hived;',
+	)
+	await query(
+		'GRANT SELECT ON ALL TABLES IN SCHEMA hafsql TO hived;',
+	)
+	await query(
+		'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA hafsql TO hived;',
+	)
 }
