@@ -85,6 +85,9 @@ const printStats = async () => {
 	const head = await query<{ num: number }>(
 		`SELECT num FROM hafd.blocks ORDER BY num DESC LIMIT 1;`,
 	)
+	if (head.rows.length === 0) {
+		return
+	} 
 	const headNum = head.rows[0].num
 	const result = await query<SyncData>(
 		`SELECT * FROM hafsql.sync_data;`,
