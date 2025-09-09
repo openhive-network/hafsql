@@ -3,17 +3,20 @@ import { print } from '../helpers/utils/print.ts'
 
 let checkInterval: number
 
+const username = Deno.env.get('HAFSQL_PUBLICUSERNAME') || 'hafsql_public'
+const password = Deno.env.get('HAFSQL_PUBLICPASSWORD') || 'hafsql_public'
+
 export const setupPublicUser = async () => {
 	const role = await query(
 		'SELECT rolname FROM pg_catalog.pg_roles WHERE rolname = $1',
-		['hafsql_public'],
+		[username],
 	)
 	if (role.rowCount) {
-		await query('DROP OWNED BY hafsql_public CASCADE;')
-		await query('DROP USER hafsql_public;')
+		await query(`DROP OWNED BY ${username} CASCADE;`)
+		await query(`DROP USER ${username};`)
 	}
 	await query(
-		"CREATE ROLE hafsql_public NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT LOGIN NOREPLICATION NOBYPASSRLS PASSWORD 'hafsql_public';",
+		`CREATE ROLE ${username} NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT LOGIN NOREPLICATION NOBYPASSRLS PASSWORD ${password};`,
 	)
 	await grantUsageOnSchema('hafsql')
 	await grantUsageOnSchema('hafd')
@@ -30,31 +33,31 @@ export const setupPublicUser = async () => {
 	await grantUsageOnSchema('hivemind_endpoints')
 	await grantUsageOnSchema('reptracker_endpoints')
 	await query(
-		'GRANT SELECT ON ALL TABLES IN SCHEMA hafsql TO hafsql_public;',
+		`GRANT SELECT ON ALL TABLES IN SCHEMA hafsql TO ${username};`,
 	)
 	await query(
-		'GRANT ALL ON FUNCTION hafd._operation_to_jsonb TO hafsql_public;',
+		`GRANT ALL ON FUNCTION hafd._operation_to_jsonb TO ${username};`,
 	)
 	await query(
-		'GRANT ALL ON FUNCTION hafd.operation_id_to_block_num TO hafsql_public;',
+		`GRANT ALL ON FUNCTION hafd.operation_id_to_block_num TO ${username};`,
 	)
 	await query(
-		'GRANT ALL ON FUNCTION hafd.operation_id_to_type_id TO hafsql_public;',
+		`GRANT ALL ON FUNCTION hafd.operation_id_to_type_id TO ${username};`,
 	)
 	await query(
-		'GRANT ALL ON FUNCTION hafd.operation_id_to_pos TO hafsql_public;',
+		`GRANT ALL ON FUNCTION hafd.operation_id_to_pos TO ${username};`,
 	)
 	await query(
-		'GRANT ALL ON FUNCTION hafd.operation_from_jsontext TO hafsql_public;',
+		`GRANT ALL ON FUNCTION hafd.operation_from_jsontext TO ${username};`,
 	)
 	await query(
-		'GRANT ALL ON FUNCTION hive.get_legacy_style_operation TO hafsql_public;',
+		`GRANT ALL ON FUNCTION hive.get_legacy_style_operation TO ${username};`,
 	)
 	await query(
-		"ALTER USER hafsql_public SET statement_timeout='45s';",
+		`ALTER USER ${username} SET statement_timeout='45s';`,
 	)
 	await query(
-		'ALTER USER hafsql_public SET search_path TO hafsql, public;',
+		`ALTER USER ${username} SET search_path TO hafsql, public;`,
 	)
 	// HAF tables/views
 	await grantSelectToSchema('hive', 'views')
@@ -78,7 +81,7 @@ export const setupPublicUser = async () => {
 	await grantUsageToFunctions('hivemind_endpoints')
 	await grantUsageToFunctions('reptracker_endpoints')
 
-	print('[Main] hafsql_public user setup done')
+	print(`[Main] ${username} user setup done!`)
 
 	if (!checkInterval) {
 		checkInterval = setInterval(() => {
@@ -105,7 +108,7 @@ const grantSelectToSchema = async (
 				FROM information_schema.${onWhat}
 				WHERE table_schema = '${schema}'
 			LOOP
-				EXECUTE format('GRANT SELECT ON %I.%I TO hafsql_public', r.table_schema, r.table_name);
+				EXECUTE format('GRANT SELECT ON %I.%I TO ${username}', r.table_schema, r.table_name);
 			END LOOP;
 		END
 		$$;`,
@@ -126,7 +129,7 @@ const grantUsageToFunctions = async (schema: string) => {
 				JOIN pg_namespace n ON n.oid = p.pronamespace
 				WHERE n.nspname = '${schema}'
 			LOOP
-				EXECUTE format('GRANT ALL ON FUNCTION %I.%I(%s) TO hafsql_public',
+				EXECUTE format('GRANT ALL ON FUNCTION %I.%I(%s) TO ${username}',
 					r.schema_name, r.function_name, r.args);
 			END LOOP;
 		END
@@ -135,5 +138,5 @@ const grantUsageToFunctions = async (schema: string) => {
 }
 
 const grantUsageOnSchema = async (schema: string) => {
-	await query(`GRANT USAGE ON SCHEMA ${schema} TO hafsql_public;`)
+	await query(`GRANT USAGE ON SCHEMA ${schema} TO ${username};`)
 }
