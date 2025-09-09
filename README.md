@@ -21,7 +21,8 @@ To include [environment variables](#options):
 cp .env.defaults .env
 # Edit .env
 # Then
-docker run -itd --env-file .env -p 3000:3000 --name hafsql mahdiyari/hafsql:latest
+docker run -itd --env-file .env -p 3000:3000 --name hafsql mahdiyari/hafsql:{version}
+# replace {version} with actual version number e.g. 2.2.6
 ```
 Make sure the IP address on `HAFSQL_PGHOST` is correct. You can find the correct IP address by:
 ```sh
@@ -29,10 +30,7 @@ docker inspect \
   -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' container_name_or_id
 ```
 
-> Note: HafSQL needs `haf_admin` pg_hba entry. Example:
-```
-host haf_block_log all 172.0.0.0/8 trust
-```
+> Note: HafSQL needs `haf_admin`, `hafsql_owner`, and `hafsql_user` pg_hba entries.
 
 
 ### Option 2: Run only HAF + HafSQL
