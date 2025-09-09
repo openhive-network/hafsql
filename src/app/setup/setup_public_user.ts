@@ -16,7 +16,7 @@ export const setupPublicUser = async () => {
 		await query(`DROP USER ${username};`)
 	}
 	await query(
-		`CREATE ROLE ${username} NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT LOGIN NOREPLICATION NOBYPASSRLS PASSWORD ${password};`,
+		`CREATE ROLE ${username} NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT LOGIN NOREPLICATION NOBYPASSRLS PASSWORD '${password}';`,
 	)
 	await grantUsageOnSchema('hafsql')
 	await grantUsageOnSchema('hafd')
@@ -98,8 +98,9 @@ const grantSelectToSchema = async (
 	schema: string,
 	onWhat: 'tables' | 'views',
 ) => {
-	await query(
-		`DO $$
+	try {
+		await query(
+			`DO $$
 		DECLARE
 			r RECORD;
 		BEGIN
@@ -112,12 +113,16 @@ const grantSelectToSchema = async (
 			END LOOP;
 		END
 		$$;`,
-	)
+		)
+	} catch {
+		// This can fail if other apps are not synced yet
+	}
 }
 
 const grantUsageToFunctions = async (schema: string) => {
-	await query(
-		`DO $$
+	try {
+		await query(
+			`DO $$
 		DECLARE
 			r RECORD;
 		BEGIN
@@ -134,9 +139,16 @@ const grantUsageToFunctions = async (schema: string) => {
 			END LOOP;
 		END
 		$$;`,
-	)
+		)
+	} catch {
+		// This can fail if other apps are not synced yet
+	}
 }
 
 const grantUsageOnSchema = async (schema: string) => {
-	await query(`GRANT USAGE ON SCHEMA ${schema} TO ${username};`)
+	try {
+		await query(`GRANT USAGE ON SCHEMA ${schema} TO ${username};`)
+	} catch {
+		// This can fail if other apps are not synced yet
+	}
 }
