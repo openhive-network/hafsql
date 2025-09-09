@@ -10,7 +10,7 @@ import {
 import { setup } from './app/setup/setup.ts'
 import { handleUpgrade } from './upgrade.ts'
 import { purgeHafSQL } from './purge.ts'
-import { query } from './app/helpers/database.ts'
+import { initDatabase, query } from './app/helpers/database.ts'
 import { createWorkers } from './app/helpers/createWorkers.ts'
 import { setupPublicUser } from './app/setup/setup_public_user.ts'
 import { isHafReady } from './app/helpers/isHafReady.ts'
@@ -20,14 +20,6 @@ if (Deno.args.includes('purge')) {
 	print('Running HafSQL with the `purge` command...')
 	await purgeHafSQL()
 	Deno.exit()
-}
-
-// Development argument for api only
-if (Deno.args.includes('api_only')) {
-	print('Running HafSQL with the `api_only` command...')
-	await startAPI()
-	// wait here 270 hours - should be enough for development
-	await sleep(1000000000)
 }
 
 // Just because
@@ -45,6 +37,17 @@ console.log(`
 ╚═══════════════════════════════════════════════════════════╝
 
 `)
+
+// Create hafsql_owner and hafsql_user roles
+await initDatabase()
+
+// Development argument for api only
+if (Deno.args.includes('api_only')) {
+	print('Running HafSQL with the `api_only` command...')
+	await startAPI()
+	// wait here 270 hours - should be enough for development
+	await sleep(1000000000)
+}
 
 // Start workers for each indexer
 const mainLoop = async () => {
@@ -87,7 +90,7 @@ const printStats = async () => {
 	)
 	if (head.rows.length === 0) {
 		return
-	} 
+	}
 	const headNum = head.rows[0].num
 	const result = await query<SyncData>(
 		`SELECT * FROM hafsql.sync_data;`,

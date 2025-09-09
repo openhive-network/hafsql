@@ -3,8 +3,10 @@
 // @deno-types="npm:@types/pg"
 import pg from 'npm:pg'
 export const Pool = pg.Pool
+export const Client = pg.Client
 export type { PoolClient } from 'npm:pg'
 export type {
+	Pool as PoolType,
 	QueryArrayConfig,
 	QueryArrayResult,
 	QueryResultRow,
