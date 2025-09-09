@@ -1,4 +1,5 @@
-import { Pool, QueryResultRow } from '../../deps.ts'
+import { Client, Pool, PoolType, QueryResultRow } from '../../deps.ts'
+import { print } from './utils/print.ts'
 
 // Lazy loaded per worker
 const POOL_SIZE = Number(Deno.env.get('HAFSQL_PGPOOLSIZE')) || 5
@@ -7,12 +8,53 @@ const PG_PORT = Number(Deno.env.get('HAFSQL_PGPORT')) || 5432
 const PG_DATABASE = Deno.env.get('HAFSQL_PGDATABASE') || 'haf_block_log'
 const PG_USER = Deno.env.get('HAFSQL_PGUSER') || 'haf_admin'
 
+export const initDatabase = async () => {
+	const client = new Client(
+		{
+			host: PG_HOST,
+			port: PG_PORT,
+			database: PG_DATABASE,
+			user: PG_USER,
+			application_name: 'hafsql',
+		},
+	)
+	await client.connect()
+	try {
+		await client.query(
+			'CREATE ROLE hafsql_owner WITH SUPERUSER CREATEDB LOGIN;',
+		)
+	} catch {
+		// It could fail if role already exists
+	}
+	try {
+		await client.query(
+			'CREATE ROLE hafsql_user WITH SUPERUSER CREATEDB LOGIN;',
+		)
+	} catch {
+		//
+	}
+	await client.end()
+	print('[Main] hafsql_owner & hafsql_user roles have been created ✅')
+}
+
 const pool = new Pool(
 	{
 		host: PG_HOST,
 		port: PG_PORT,
 		database: PG_DATABASE,
-		user: PG_USER,
+		user: 'hafsql_owner',
+		application_name: 'hafsql',
+		max: POOL_SIZE,
+		idle_in_transaction_session_timeout: 600000,
+	},
+)
+
+const apiPool = new Pool(
+	{
+		host: PG_HOST,
+		port: PG_PORT,
+		database: PG_DATABASE,
+		user: PG_USER === 'hafsql_public' ? PG_USER : 'hafsql_user',
 		password: PG_USER === 'hafsql_public' ? PG_USER : undefined,
 		application_name: 'hafsql',
 		max: POOL_SIZE,
@@ -49,7 +91,7 @@ export const queryAPI = async <T extends QueryResultRow>(
 	...values: any[]
 ) => {
 	const { queryString, params } = parseTemplateLiteralText(strings, values)
-	const connection = await pool.connect()
+	const connection = await apiPool.connect()
 	try {
 		// 30s
 		await connection.query('SET statement_timeout=30000')
@@ -67,7 +109,7 @@ export const queryArrayAPI = async (
 	...values: any[]
 ) => {
 	const { queryString, params } = parseTemplateLiteralText(strings, values)
-	const connection = await pool.connect()
+	const connection = await apiPool.connect()
 	try {
 		// 30s
 		await connection.query('SET statement_timeout=30000')
