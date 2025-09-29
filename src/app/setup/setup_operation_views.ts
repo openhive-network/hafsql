@@ -80,6 +80,10 @@ export const setupOperationViews = async () => {
       ${param('total_vote_weight')}::numeric AS total_vote_weight,
       ${amount(param('pending_payout'))} AS pending_payout,
       ${symbol(param('pending_payout'))} AS pending_payout_symbol,
+      CASE WHEN ${param('total_vote_weight')}::numeric > 0
+        THEN (${amount(param('pending_payout'))} /
+        ${param('total_vote_weight')}::numeric) * ${param('weight')}::numeric
+        ELSE 0 END AS vote_value,
       ${block('o.id')} as block_num
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
