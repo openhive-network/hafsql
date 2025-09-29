@@ -47,6 +47,8 @@ export const createHiveIndexes = async () => {
 			print(`[Indexes] Index ${name} done! ✅`)
 		}
 		print('[Indexes] All indexes have been created! ✅')
+		print('[Indexes] Creating Hivemind indexes...')
+		await createHivemindIndexes()
 	} catch (_e) {
 		print('Retrying index creation... (this is normal)')
 		await sleep(10000)
@@ -177,3 +179,17 @@ export const hiveIndexes: {
 		skip: false,
 	},
 ]
+
+// We don't need this but people need it to run queries on hivemind tables
+export const createHivemindIndexes = async () => {
+	try {
+		await query(
+			`CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_last_update_rshares_idx ON hivemind_app.hive_votes USING btree (last_update, rshares);`,
+		)
+		print(`[Indexes] Hivemind index hafsql_last_update_rshares_idx done! ✅`)
+	} catch {
+		print('Hivemind is probably not installed yet, retrying in 5 minutes...')
+		await sleep(300000)
+		await createHivemindIndexes()
+	}
+}
