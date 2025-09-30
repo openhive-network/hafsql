@@ -22,9 +22,7 @@ so we can improve the speed of that type of query.
 !!!
 
 !!!
-It is recommended to use the REST APIs as much as possible instead of direct SQL queries.
-The REST APIs will be supported on multiple public API nodes and will provide more reliability.  
-If your needs are not satisfied by the REST APIs, please consider opening an [:icon-link-external: issue](https://gitlab.com/mahdiyari/hafsql).
+Consider getting the data in smaller parts. For example, it is not a good idea to download all the operations (+ 1TB) in a single query. 
 !!!
 
 !!!
