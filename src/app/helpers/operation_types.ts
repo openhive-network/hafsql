@@ -302,6 +302,10 @@ export interface WitnessSetPropertiesOperations {
 
 export interface AccountUpdate2Operation {
   account: string
+  owner: string
+  active: string
+  posting: string
+  memo_key: string
   json_metadata: string
   posting_json_metadata: string
   extensions: string

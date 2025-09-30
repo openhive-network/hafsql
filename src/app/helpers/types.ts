@@ -291,6 +291,10 @@ export interface AccountUpdate {
 }
 export interface AccountUpdate2 {
 	account: string
+	owner: object
+	active: object
+	posting: object
+	memo_key: string
 	json_metadata: object
 	posting_json_metadata: object
 	timestamp: string
