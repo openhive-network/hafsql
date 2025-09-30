@@ -3,6 +3,7 @@ import { query, transaction } from './app/helpers/database.ts'
 import { print } from './app/helpers/utils/print.ts'
 import { operationTables } from './app/setup/setup_operation_tables.ts'
 import { semver } from './deps.ts'
+import { setup } from './app/setup/setup.ts'
 
 /**
  * Make upgrade decisions based on the version - this runs just after the setup
@@ -41,6 +42,8 @@ export const handleUpgrade = async () => {
 			)
 		})
 		print('Upgrade script done ✅')
+		// Run setup again to recreate the tables
+		await setup()
 	}
 
 	// Update the version
