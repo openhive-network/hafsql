@@ -119,7 +119,7 @@ const getData = async (blockRange: number[]) => {
       ORDER BY id;`,
 	)
 	const accountUpdate2 = await query<AccountUpdate2>(
-		`SELECT account, json_metadata, posting_json_metadata, hafsql.get_timestamp(id) AS timestamp, id FROM hafsql.operation_account_update2_table
+		`SELECT account, owner, active, posting, memo_key, json_metadata, posting_json_metadata, hafsql.get_timestamp(id) AS timestamp, id FROM hafsql.operation_account_update2_table
       WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY id;`,
