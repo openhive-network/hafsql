@@ -1,7 +1,7 @@
 // All external dependencies go here for easier maintenance
 
 // @deno-types="npm:@types/pg"
-import pg from 'npm:pg'
+import pg from 'pg'
 export const Pool = pg.Pool
 export const Client = pg.Client
 export type { PoolClient } from 'npm:pg'
@@ -38,3 +38,5 @@ export const BigJSONparser = JSONbig({ storeAsString: true }).parse
 export const BigJSONstringifier = JSONbig({ storeAsString: true }).stringify
 export const openApi = openapi
 export type ApiParserOptions = ParserOptions
+
+export * as semver from '@std/semver'
