@@ -4,6 +4,14 @@ order: 99
 ---
 
 # Database Structure
+The public database provides you with access to multiple HAF applications including HAF itself. Each application usually comes with one or multiple schemas. HafSQL has only one schema `hafsql`. It is recommended to explore all the apps/schemas.
+
+- hivemind has data related to posts, votes, communities, etc
+- hafbe has block explorer stuff including witness and proxy data
+- hafbe_bal has balance data
+
+
+## HafSQL
 There are two types of tables in HafSQL:
 - Operations
 - Parsed data
