@@ -1382,6 +1382,10 @@ const fillWitnessSetProperties = async (
 const fillAccountUpdate2 = async (ops: Operations[], client: customClient) => {
 	const ids = []
 	const accounts = []
+	const owners = []
+	const actives = []
+	const postings = []
+	const memos = []
 	const metadatas = []
 	const postingMetadatas = []
 	const exes = []
@@ -1389,13 +1393,21 @@ const fillAccountUpdate2 = async (ops: Operations[], client: customClient) => {
 		const value = <AccountUpdate2Operation> ops[i].body.value
 		ids.push(ops[i].id)
 		accounts.push(value.account)
+		owners.push(value.owner)
+		actives.push(value.active)
+		postings.push(value.posting)
+		memos.push(value.memo_key)
 		metadatas.push(value.json_metadata)
 		postingMetadatas.push(value.posting_json_metadata)
 		exes.push(JSON.stringify(value.extensions))
 	}
 	await client.query`INSERT INTO hafsql.operation_account_update2_table
-    (id, account, json_metadata, posting_json_metadata, extensions)
+    (id, account, owner, active, posting, memo_key,
+		json_metadata, posting_json_metadata, extensions)
     SELECT UNNEST(${ids}::int8[]), UNNEST(${accounts}::text[]),
+		UNNEST(${owners}::jsonb[]),
+    UNNEST(${actives}::jsonb[]), UNNEST(${postings}::jsonb[]),
+    UNNEST(${memos}::text[]),
     hafsql.to_json(UNNEST(${metadatas}::text[])),
     hafsql.to_json(UNNEST(${postingMetadatas}::text[])),
     UNNEST(${exes}::jsonb[])

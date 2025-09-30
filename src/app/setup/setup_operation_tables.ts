@@ -312,6 +312,10 @@ export const operationTables = {
 	},
 	account_update2: {
 		account: types.varchar,
+		owner: types.jsonb,
+		active: types.jsonb,
+		posting: types.jsonb,
+		memo_key: types.varchar,
 		json_metadata: types.jsonb,
 		posting_json_metadata: types.jsonb,
 		extensions: types.jsonb,
