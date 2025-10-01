@@ -119,7 +119,7 @@ const getData = async (blockRange: number[]) => {
       ORDER BY id;`,
 	)
 	const accountUpdate2 = await query<AccountUpdate2>(
-		`SELECT account, json_metadata, posting_json_metadata, hafsql.get_timestamp(id) AS timestamp, id FROM hafsql.operation_account_update2_table
+		`SELECT account, owner, active, posting, memo_key, json_metadata, posting_json_metadata, hafsql.get_timestamp(id) AS timestamp, id FROM hafsql.operation_account_update2_table
       WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY id;`,
@@ -412,12 +412,41 @@ const handleAccountUpdate2 = async (
 	const timestamp = element.timestamp
 	const json_metadata = JSON.stringify(element.json_metadata)
 	const posting_metadata = JSON.stringify(element.posting_json_metadata)
+	const owner = <object> element.owner
+	const active = element.active
+	const posting = element.posting
+	const memo_key = element.memo_key
 	const accountId = await getUserId(account, client)
 	let additional = ''
 	const addParams = []
+	let i = 0
+	const paramsStart = 4
 	if (element.json_metadata) {
-		additional += `json_metadata=$4 ,`
+		additional += `json_metadata=$${paramsStart + i} ,`
 		addParams.push(json_metadata)
+		i++
+	}
+	if (owner) {
+		additional += `owner=$${paramsStart + i} ,`
+		addParams.push(owner)
+		i++
+		additional += `last_owner_update=$${paramsStart + i} ,`
+		addParams.push(timestamp)
+		i++
+	}
+	if (active) {
+		additional += `active=$${paramsStart + i} ,`
+		addParams.push(active)
+		i++
+	}
+	if (posting) {
+		additional += `posting=$${paramsStart + i} ,`
+		addParams.push(posting)
+		i++
+	}
+	if (memo_key) {
+		additional += `memo_key=$${paramsStart + i} ,`
+		addParams.push(memo_key)
 	}
 	await client.query(
 		`UPDATE hafsql.accounts_table SET ${additional} posting_metadata=$1, last_update=$2 WHERE account=$3`,

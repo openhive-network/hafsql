@@ -12,6 +12,7 @@
     "jsr:@std/http@1": "1.0.15",
     "jsr:@std/media-types@1": "1.1.0",
     "jsr:@std/path@1": "1.0.9",
+    "jsr:@std/semver@^1.0.5": "1.0.5",
     "jsr:@tajpouria/cors@1.2.1": "1.2.1",
     "npm:@types/diff-match-patch@1.0.36": "1.0.36",
     "npm:@types/json-bigint@1.0.4": "1.0.4",
@@ -75,6 +76,9 @@
     },
     "@std/path@1.0.9": {
       "integrity": "260a49f11edd3db93dd38350bf9cd1b4d1366afa98e81b86167b4e3dd750129e"
+    },
+    "@std/semver@1.0.5": {
+      "integrity": "529f79e83705714c105ad0ba55bec0f9da0f24d2f726b6cc1c15e505cc2c0624"
     },
     "@tajpouria/cors@1.2.1": {
       "integrity": "eca42e4fb7cb3906ef0ee3d1e565dd6bb4632ccd8e70a95cf4279759743328f0"
@@ -244,6 +248,7 @@
     "dependencies": [
       "jsr:@oak/oak@^17.1.6",
       "jsr:@std/dotenv@~0.225.5",
+      "jsr:@std/semver@^1.0.5",
       "jsr:@tajpouria/cors@1.2.1",
       "npm:big.js@^6.2.2",
       "npm:diff-match-patch@1.0.5",

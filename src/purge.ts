@@ -29,6 +29,14 @@ export const purgeHafSQL = async () => {
 			`DROP INDEX CONCURRENTLY IF EXISTS hafd.${hiveIndexes[i].name}`,
 		)
 	}
+	// Remove the hivemind index
+	try {
+		await client.query(
+			`DROP INDEX CONCURRENTLY IF EXISTS hivemind_app.hafsql_last_update_rshares_idx`,
+		)
+	} catch {
+		//
+	}
 	try {
 		await client.query('DROP OWNED BY hafsql_public CASCADE')
 	} catch (_e) {

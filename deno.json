@@ -1,5 +1,5 @@
 {
-  "version": "2.3.0",
+  "version": "2.3.2",
   "tasks": {
     "dev": "deno run --watch --allow-read --allow-env --allow-net --allow-sys src/main.ts",
     "start": "deno run --allow-read --allow-env src/main.ts",
@@ -20,6 +20,7 @@
   "imports": {
     "@oak/oak": "jsr:@oak/oak@^17.1.6",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.5",
+    "@std/semver": "jsr:@std/semver@^1.0.5",
     "@tajpouria/cors": "jsr:@tajpouria/cors@1.2.1",
     "big.js": "npm:big.js@^6.2.2",
     "diff-match-patch": "npm:diff-match-patch@1.0.5",
