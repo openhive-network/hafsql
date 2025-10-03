@@ -35,7 +35,7 @@ export const mutesAPI = new Router()
 	 * @description Returns list of accounts muted by a certain username.
 	 * @tag Mutes
 	 * @pathParam {string} username - Account name e.g. dantheman
-	 * @queryParam {integer} [start] - Username used for pagination
+	 * @queryParam {string} [start] - Username used for pagination
 	 * @queryParam {integer} [limit=100] - Max number of returned items -
 	 * Can be negative for going backwards and to reverse the sorting<br/>
 	 * <sub>min: -1000 | max: 1000</sub>

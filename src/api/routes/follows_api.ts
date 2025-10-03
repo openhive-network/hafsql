@@ -11,7 +11,7 @@ export const followsAPI = new Router()
 	 * @description Returns list of followers of a certain username.
 	 * @tag Follows
 	 * @pathParam {string} username - Account name e.g. mahdiyari
-	 * @queryParam {integer} [start] - Username used for pagination
+	 * @queryParam {string} [start] - Username used for pagination
 	 * @queryParam {integer} [limit=100] - Max number of returned items -
 	 * Can be negative for going backwards and to reverse the sorting<br/>
 	 * <sub>min: -1000 | max: 1000</sub>
@@ -40,7 +40,7 @@ export const followsAPI = new Router()
 	 * @description Returns list of following of a certain username.
 	 * @tag Follows
 	 * @pathParam {string} username - Account name e.g. mahdiyari
-	 * @queryParam {integer} [start] - Username used for pagination
+	 * @queryParam {string} [start] - Username used for pagination
 	 * @queryParam {integer} [limit=100] - Max number of returned items -
 	 * Can be negative for going backwards and to reverse the sorting<br/>
 	 * <sub>min: -1000 | max: 1000</sub>
