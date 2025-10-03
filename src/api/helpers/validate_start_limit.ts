@@ -1,3 +1,4 @@
+import { queryAPI } from '../../app/helpers/database.ts'
 import { getUserId } from '../../app/helpers/utils/get_user_id.ts'
 import { Context } from '../../deps.ts'
 import { validateLimit } from './validate_limit.ts'
@@ -13,7 +14,7 @@ export const validateStartLimit = async (
 	if (params.has('start')) {
 		const start = <string> params.get('start')
 		await validateNames(ctx, start, 1)
-		startId = <number> await getUserId(start)
+		startId = <number> await getUserId(start, { query: queryAPI })
 	}
 	let limit = defaultLimit
 	if (params.has('limit')) {
