@@ -314,6 +314,18 @@ export const setupHafsqlViews = async () => {
     operation_id
     FROM hafd.account_operations
     join hafd.accounts a ON account_id = a.id;`)
+
+	// producer_rewards
+	await query(`CREATE MATERIALIZED VIEW IF NOT EXISTS hafsql.producer_rewards
+  AS SELECT
+    producer,
+    hafsql.vests_to_hive(SUM(CASE WHEN vesting_shares_symbol = 'VESTS' THEN vesting_shares ELSE 0 END))
+    + SUM(CASE WHEN vesting_shares_symbol = 'HIVE' THEN vesting_shares ELSE 0 END) as producer_rewards_hp
+  FROM hafsql.operation_producer_reward_table
+  GROUP BY producer`)
+	await query(
+		'CREATE UNIQUE INDEX IF NOT EXISTS producer_rewards_producer_idx ON hafsql.producer_rewards (producer);',
+	)
 }
 
 export const removeExtraViews = async () => {
@@ -340,5 +352,6 @@ export const removeExtraViews = async () => {
     hafsql.reputations,
     hafsql.balances,
     hafsql.total_balances,
-    hafsql.haf_account_operations;`)
+    hafsql.haf_account_operations
+    hafsql.producer_rewards;`)
 }
