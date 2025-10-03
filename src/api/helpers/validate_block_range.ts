@@ -1,5 +1,4 @@
 import { Context } from '../../deps.ts'
-import { userExists } from './user_exists.ts'
 import { validateBlockNum } from './validate_block_num.ts'
 
 /**
