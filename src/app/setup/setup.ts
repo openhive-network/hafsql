@@ -37,4 +37,10 @@ export const setup = async (): Promise<void> => {
 	await query(
 		'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA hafsql TO hived;',
 	)
+
+	// cronjobs
+	// every hour refresh the materialized view producer_rewards
+	await query(
+		`cron.schedule('hafsql-refresh-producer-rewards', '0 * * * *', 'REFRESH MATERIALIZED VIEW CONCURRENTLY hafsql.producer_rewards;')`,
+	)
 }
