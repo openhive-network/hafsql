@@ -38,15 +38,15 @@ console.log(`
 
 `)
 
-// Create hafsql_owner and hafsql_user roles
-await initDatabase()
-
 // Development argument for api only
 if (Deno.args.includes('api_only')) {
 	print('Running HafSQL with the `api_only` command...')
 	await startAPI()
 	// wait here 270 hours - should be enough for development
 	await sleep(1000000000)
+} else {
+	// Create hafsql_owner and hafsql_user roles
+	await initDatabase()
 }
 
 // Start workers for each indexer
