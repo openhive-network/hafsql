@@ -41,6 +41,6 @@ export const setup = async (): Promise<void> => {
 	// cronjobs
 	// every hour refresh the materialized view producer_rewards
 	await query(
-		`cron.schedule('hafsql-refresh-producer-rewards', '0 * * * *', 'REFRESH MATERIALIZED VIEW CONCURRENTLY hafsql.producer_rewards;')`,
+		`SELECT cron.schedule('hafsql-refresh-producer-rewards', '0 * * * *', 'REFRESH MATERIALIZED VIEW CONCURRENTLY hafsql.producer_rewards;')`,
 	)
 }
