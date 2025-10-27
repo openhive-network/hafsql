@@ -186,7 +186,10 @@ export const createHivemindIndexes = async () => {
 		await query(
 			`CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_last_update_rshares_idx ON hivemind_app.hive_votes USING btree (last_update, rshares);`,
 		)
-		print(`[Indexes] Hivemind index hafsql_last_update_rshares_idx done! ✅`)
+		await query(
+			`CREATE index CONCURRENTLY IF NOT EXISTS hafsql_last_update_vote_percent_idx ON hivemind_app.hive_votes USING btree (last_update, vote_percent);`,
+		)
+		print(`[Indexes] Hivemind indexes done! ✅`)
 	} catch {
 		print('Hivemind is probably not installed yet, retrying in 5 minutes...')
 		await sleep(300000)

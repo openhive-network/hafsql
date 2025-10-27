@@ -34,6 +34,9 @@ export const purgeHafSQL = async () => {
 		await client.query(
 			`DROP INDEX CONCURRENTLY IF EXISTS hivemind_app.hafsql_last_update_rshares_idx`,
 		)
+		await client.query(
+			`DROP INDEX CONCURRENTLY IF EXISTS hivemind_app.hafsql_last_update_vote_percent_idx`,
+		)
 	} catch {
 		//
 	}
