@@ -167,7 +167,7 @@ export const marketAPI = new Router()
 const getOrderbook = async (decimals: number, limit: number) => {
 	const rateMulti = Math.pow(10, decimals)
 	const buys = await queryAPI(
-		`SELECT hbd_amount, agg_rate AS rate, (hbd_amount/agg_rate) AS estimate_hive_amount
+		`SELECT hbd_amount, agg_rate AS rate, (hbd_amount/agg_rate)::numeric(30, 3) AS estimate_hive_amount
 		FROM (
 			SELECT SUM(amount) AS hbd_amount, CEIL(rate * ${rateMulti}) / ${rateMulti} AS agg_rate
 			FROM hafsql.market_open_orders_table
@@ -179,7 +179,7 @@ const getOrderbook = async (decimals: number, limit: number) => {
 		['HBD', limit],
 	)
 	const sells = await queryAPI(
-		`SELECT hive_amount, agg_rate AS rate, (hive_amount*agg_rate) AS estimate_hbd_amount
+		`SELECT hive_amount, agg_rate AS rate, (hive_amount*agg_rate)::numeric(30, 3) AS estimate_hbd_amount
 		FROM (
 			SELECT SUM(amount) AS hive_amount, CEIL(rate * ${rateMulti}) / ${rateMulti} AS agg_rate
 			FROM hafsql.market_open_orders_table
