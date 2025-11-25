@@ -165,9 +165,9 @@ export const setupHafsqlViews = async () => {
     x.following AS following_id,
     a.name as follower_name,
     ab.name AS following_name
-  FROM hafsql.follows_table x
-  JOIN hafd.accounts a ON x.follower = a.id
-  JOIN hafd.accounts ab ON x.following = ab.id;`)
+  FROM hivemind_app.follows x
+  JOIN hivemind_app.hive_accounts a ON x.follower = a.id
+  JOIN hivemind_app.hive_accounts ab ON x.following = ab.id;`)
 
 	// Reblogs
 	await query(`CREATE OR REPLACE VIEW hafsql.reblogs
