@@ -165,24 +165,29 @@ export const marketAPI = new Router()
 	})
 
 const getOrderbook = async (decimals: number, limit: number) => {
+	const rateMulti = Math.pow(10, decimals)
 	const buys = await queryAPI(
-		`SELECT SUM(amount) AS hbd_amount, rate::numeric(30,${decimals}),
-      (SUM(amount)/rate::numeric(30,${decimals}))::numeric(30,3) AS estimate_hive_amount
-      FROM hafsql.market_open_orders_table
-      WHERE symbol=$1
-      GROUP BY rate::numeric(30,${decimals})
-      ORDER BY rate DESC
-      LIMIT $2`,
+		`SELECT hbd_amount, agg_rate AS rate, (hbd_amount/agg_rate) AS estimate_hive_amount
+		FROM (
+			SELECT SUM(amount) AS hbd_amount, CEIL(rate * ${rateMulti}) / ${rateMulti} AS agg_rate
+			FROM hafsql.market_open_orders_table
+			WHERE symbol=$1
+			GROUP by agg_rate
+			ORDER by agg_rate DESC
+			LIMIT $2
+		)`,
 		['HBD', limit],
 	)
 	const sells = await queryAPI(
-		`SELECT SUM(amount) AS hive_amount, rate::numeric(30,${decimals}),
-      (SUM(amount)*rate::numeric(30,${decimals}))::numeric(30,3) AS estimate_hbd_amount
-      FROM hafsql.market_open_orders_table
-      WHERE symbol=$1
-      GROUP BY rate::numeric(30,${decimals})
-      ORDER BY rate ASC
-      LIMIT $2`,
+		`SELECT hive_amount, agg_rate AS rate, (hive_amount*agg_rate) AS estimate_hbd_amount
+		FROM (
+			SELECT SUM(amount) AS hive_amount, CEIL(rate * ${rateMulti}) / ${rateMulti} AS agg_rate
+			FROM hafsql.market_open_orders_table
+			WHERE symbol=$1
+			GROUP by agg_rate
+			ORDER by agg_rate ASC
+			LIMIT $2
+		)`,
 		['HIVE', limit],
 	)
 	// deno-lint-ignore no-explicit-any
