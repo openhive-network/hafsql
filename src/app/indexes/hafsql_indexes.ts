@@ -1,4 +1,5 @@
 import { query } from '../helpers/database.ts'
+import { doesIndexExist } from './hive_indexes.ts'
 
 export const createCommentsIndexes = async () => {
 	await query(
@@ -106,7 +107,10 @@ export const createAccountsIndexes = async () => {
 	// We had some toast errors on this table when creating indexes
 	// I assume due to number of updates happening on this table data gets corrupted
 	// See if vaccuming before index creation eliminates this issue
-	await query('VACUUM FULL ANALYZE hafsql.accounts_table;')
+	const exists = await doesIndexExist('hafsql_accounts_table_proxy_idx')
+	if (!exists) {
+		await query('VACUUM FULL ANALYZE hafsql.accounts_table;')
+	}
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_creator_idx ON hafsql.accounts_table (creator);',
 	)
