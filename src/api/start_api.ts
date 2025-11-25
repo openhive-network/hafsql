@@ -105,7 +105,7 @@ const checkHafStatus = async () => {
 		const headNum = head.rows[0].num
 		const result = await query<{ not_synced_yet: number }>(
 			`SELECT COUNT(1) AS not_synced_yet FROM hafsql.sync_data WHERE last_block_num < $1`,
-			[headNum - 3],
+			[Number(headNum) - 10],
 		)
 		if (result.rows[0].not_synced_yet > 0) {
 			HAF_STATUS = 'Waiting for HafSQL to be ready'
