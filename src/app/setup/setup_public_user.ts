@@ -2,23 +2,17 @@ import { query } from '../helpers/database.ts'
 import { print } from '../helpers/utils/print.ts'
 import { sleep } from '../helpers/utils/sleep.ts'
 
-let checkInterval: number
-
 const username = Deno.env.get('HAFSQL_PUBLICUSERNAME') || 'hafsql_public'
 const password = Deno.env.get('HAFSQL_PUBLICPASSWORD') || 'hafsql_public'
 
 export const setupPublicUser = async () => {
 	try {
-		const role = await query(
-			'SELECT rolname FROM pg_catalog.pg_roles WHERE rolname = $1',
-			[username],
-		)
-		if (role?.rowCount && role.rowCount < 1) {
-			// await query(`DROP OWNED BY ${username} CASCADE;`)
-			// await query(`DROP USER ${username};`)
+		try {
 			await query(
 				`CREATE ROLE ${username} NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT LOGIN NOREPLICATION NOBYPASSRLS PASSWORD '${password}';`,
 			)
+		} catch {
+			//
 		}
 		await grantUsageOnSchema('hafsql')
 		await grantUsageOnSchema('hafd')
