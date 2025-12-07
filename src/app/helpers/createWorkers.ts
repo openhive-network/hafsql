@@ -28,11 +28,6 @@ export const createWorkers = async () => {
 			createWorker('../sync/proposals.ts').postMessage('start')
 			print('[Main] Starting proposal worker 👷')
 		}
-		if (Deno.env.get('HAFSQL_BALANCES') !== 'false') {
-			// balances
-			createWorker('../sync/balances.ts').postMessage('start')
-			print('[Main] Starting balances worker 👷')
-		}
 
 		if (Deno.env.get('HAFSQL_ACCOUNTS') !== 'false') {
 			// accounts
