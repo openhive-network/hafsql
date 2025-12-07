@@ -80,6 +80,17 @@ export const handleUpgrade = async () => {
 			await query(
 				'DROP TABLE IF EXISTS hafsql.pending_saving_withdraws_table CASCADE;',
 			)
+			await query(
+				'DELETE FROM hafsql.sync_data WHERE table_name IN ($1, $2, $3, $4, $5, $6)',
+				[
+					'reblogs',
+					'delegations',
+					'follows',
+					'communities',
+					'balances',
+					'reputations',
+				],
+			)
 		})
 
 		print('Upgrade script done ✅')
