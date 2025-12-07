@@ -14,7 +14,7 @@ export const createWorkers = async () => {
 	// op_type_id id
 	if (
 		isSyncing.one === false &&
-		await doesIndexExist('hafsql_hive_operations_op_type_id_id') &&
+		(await doesIndexExist('hafsql_hive_operations_op_type_id_id')) &&
 		!(await getBlockRange('operations'))
 	) {
 		isSyncing.one = true
@@ -23,23 +23,10 @@ export const createWorkers = async () => {
 			createWorker('../sync/comments.ts').postMessage('start')
 			print('[Main] Starting comments worker 👷‍')
 		}
-
-		if (Deno.env.get('HAFSQL_DELEGATIONS') !== 'false') {
-			// delegations
-			createWorker('../sync/delegations.ts').postMessage('start')
-			print('[Main] Starting HP delegations worker 👷')
-		}
-
 		if (Deno.env.get('HAFSQL_PROPOSALS') !== 'false') {
 			// proposals
 			createWorker('../sync/proposals.ts').postMessage('start')
 			print('[Main] Starting proposal worker 👷')
-		}
-
-		if (Deno.env.get('HAFSQL_BALANCES') !== 'false') {
-			// balances
-			createWorker('../sync/balances.ts').postMessage('start')
-			print('[Main] Starting balances worker 👷')
 		}
 
 		if (Deno.env.get('HAFSQL_ACCOUNTS') !== 'false') {
@@ -52,31 +39,10 @@ export const createWorkers = async () => {
 	// custom_json id
 	if (
 		isSyncing.two === false &&
-		await doesIndexExist('hafsql_id_opid_idx') &&
+		(await doesIndexExist('hafsql_id_opid_idx')) &&
 		!(await getBlockRange('operations'))
 	) {
 		isSyncing.two = true
-		if (
-			Deno.env.get('HAFSQL_REBLOGS') !== 'false' &&
-			Deno.env.get('HAFSQL_COMMENTS') !== 'false'
-		) {
-			// reblogs
-			createWorker('../sync/reblogs.ts').postMessage('start')
-			print('[Main] Starting reblogs worker 👷')
-		}
-
-		if (Deno.env.get('HAFSQL_FOLLOWS') !== 'false') {
-			// follows
-			createWorker('../sync/follows.ts').postMessage('start')
-			print('[Main] Starting follows worker 👷')
-		}
-
-		if (Deno.env.get('HAFSQL_COMMUNITIES') !== 'false') {
-			// community_roles
-			createWorker('../sync/communities.ts').postMessage('start')
-			print('[Main] Starting community roles worker 👷')
-		}
-
 		if (Deno.env.get('HAFSQL_RC_DELEGATIONS') !== 'false') {
 			// rc_delegations
 			createWorker('../sync/rc_delegations.ts').postMessage('start')
@@ -87,7 +53,7 @@ export const createWorkers = async () => {
 	// author permlink
 	if (
 		isSyncing.three === false &&
-		await doesIndexExist('hafsql_author_permlink_idx') &&
+		(await doesIndexExist('hafsql_author_permlink_idx')) &&
 		!(await getBlockRange('operations'))
 	) {
 		isSyncing.three = true
@@ -102,15 +68,6 @@ export const createWorkers = async () => {
 			// pending_rewards
 			createWorker('../sync/pending_rewards.ts').postMessage('start')
 			print('[Main] Starting pending_rewards worker 👷')
-		}
-
-		if (
-			Deno.env.get('HAFSQL_REPUTATIONS') !== 'false' &&
-			Deno.env.get('HAFSQL_COMMENTS') !== 'false'
-		) {
-			// reputations
-			createWorker('../sync/reputations.ts').postMessage('start')
-			print('[Main] Starting reputations worker 👷')
 		}
 	}
 

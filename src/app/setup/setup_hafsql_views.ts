@@ -45,12 +45,14 @@ export const setupHafsqlViews = async () => {
 
 	// Delegations
 	await query(`CREATE OR REPLACE VIEW hafsql.delegations
-  AS SELECT x.delegator,
-    x.delegatee,
-    x.vests,
-    hafsql.vests_to_hive(x.vests) as hp_equivalent,
-    x.timestamp
-    FROM hafsql.delegations_table x;`)
+  AS SELECT a.name as delegator,
+    b.name as delegatee,
+    x.balance as vests,
+    hafsql.vests_to_hive(x.balance/1000000) AS hp_equivalent,
+    hafsql.get_timestamp(x.source_op) as "timestamp"
+   FROM hafbe_bal.current_accounts_delegations x
+   join hafd.accounts a on x.delegator=a.id
+   join hafd.accounts b on x.delegatee=b.id;`)
 
 	// RC Delegations
 	await query(`CREATE OR REPLACE VIEW hafsql.rc_delegations
@@ -99,86 +101,108 @@ export const setupHafsqlViews = async () => {
 
 	// Community Subs
 	await query(`CREATE OR REPLACE VIEW hafsql.community_subs
-  AS SELECT c.account AS account_id,
-    c.community AS community_id,
+  AS SELECT a.haf_id AS account_id,
+    b.haf_id AS community_id,
     a.name AS account_name,
-    b.name AS community_name
-    FROM hafsql.community_subs_table c
-    JOIN hafd.accounts a ON c.account=a.id
-    JOIN hafd.accounts b ON c.community=b.id;`)
+    b.name AS community_name,
+    hs.created_at,
+    hs.block_num
+    FROM hivemind_app.hive_subscriptions hs
+    JOIN hivemind_app.hive_accounts a ON hs.account_id=a.id
+    JOIN hivemind_app.hive_accounts b ON hs.community_id=b.id;`)
 
 	// Community Roles
 	await query(`CREATE OR REPLACE VIEW hafsql.community_roles
-  AS SELECT c.account AS account_id,
-    c.community AS community_id,
+  AS SELECT a.haf_id AS account_id,
+    b.haf_id  AS community_id,
     a.name AS account_name,
     b.name AS community_name,
-    CASE WHEN c.role=-2 THEN 'muted' WHEN c.role=8 THEN 'owner' WHEN c.role=2 THEN 'member' WHEN c.role=4 THEN 'mod' WHEN c.role=6 THEN 'admin' ELSE 'guest' END AS role,
-    c.title
-    FROM hafsql.community_roles_table c
-    JOIN hafd.accounts a ON c.account=a.id
-    JOIN hafd.accounts b ON c.community=b.id;`)
+    hr.created_at,
+    hr.role_id,
+    CASE WHEN hr.role_id=-2 THEN 'muted' WHEN hr.role_id=8 THEN 'owner' WHEN hr.role_id=2 THEN 'member' WHEN hr.role_id=4 THEN 'mod' WHEN hr.role_id=6 THEN 'admin' ELSE 'guest' END AS role,
+    hr.title
+    FROM hivemind_app.hive_roles hr
+    JOIN hivemind_app.hive_accounts a ON hr.account_id=a.id
+    JOIN hivemind_app.hive_accounts b ON hr.community_id=b.id;`)
 
 	// Blacklists
 	await query(`CREATE OR REPLACE VIEW hafsql.blacklists
-  AS SELECT x.blacklister AS blacklister_id,
-    x.blacklisted AS blacklisted_id,
+  AS SELECT a.haf_id AS blacklister_id,
+    b.haf_id AS blacklisted_id,
+    x.block_num,
     a.name AS blacklister_name,
     b.name AS blacklisted_name
-    FROM hafsql.blacklists_table x
-    JOIN hafd.accounts a ON x.blacklister=a.id
-    JOIN hafd.accounts b ON x.blacklisted=b.id;`)
+    FROM hivemind_app.blacklisted x
+    JOIN hivemind_app.hive_accounts a ON x.follower=a.id
+    JOIN hivemind_app.hive_accounts b ON x.following=b.id;`)
 
 	// Mutes
 	await query(`CREATE OR REPLACE VIEW hafsql.mutes
-  AS SELECT x.muter AS muter_id,
-    x.muted AS muted_id,
+  AS SELECT a.haf_id AS muter_id,
+    b.haf_id AS muted_id,
+    x.block_num,
     a.name AS muter_name,
     b.name AS muted_name
-    FROM hafsql.mutes_table x
-    JOIN hafd.accounts a ON x.muter=a.id
-    JOIN hafd.accounts b ON x.muted=b.id;`)
+    FROM hivemind_app.muted x
+    JOIN hivemind_app.hive_accounts a ON x.follower=a.id
+    JOIN hivemind_app.hive_accounts b ON x.following=b.id;`)
 
 	// Blacklist Follows
 	await query(`CREATE OR REPLACE VIEW hafsql.blacklist_follows
-  AS SELECT x.account AS account_id,
-    x.blacklist AS blacklist_id,
+  AS SELECT a.haf_id AS account_id,
+    b.haf_id AS blacklist_id,
+    x.block_num,
     a.name AS account_name,
     b.name AS blacklist_name
-    FROM hafsql.blacklist_follows_table x
-    JOIN hafd.accounts a ON x.account=a.id
-    JOIN hafd.accounts b ON x.blacklist=b.id;`)
+    FROM hivemind_app.follow_blacklisted x
+    JOIN hivemind_app.hive_accounts a ON x.follower=a.id
+    JOIN hivemind_app.hive_accounts b ON x.following=b.id;`)
 
 	// Mute Follows
 	await query(`CREATE OR REPLACE VIEW hafsql.mute_follows
-  AS SELECT x.account AS account_id,
-    x.mute_list AS mute_list_id,
+  AS SELECT a.haf_id AS account_id,
+    b.haf_id AS mute_list_id,
+    x.block_num,
     a.name AS account_name,
     b.name AS mute_list_name
-    FROM hafsql.mute_follows_table x
-    JOIN hafd.accounts a ON x.account=a.id
-    JOIN hafd.accounts b ON x.mute_list=b.id;`)
+    FROM hivemind_app.follow_muted x
+    JOIN hivemind_app.hive_accounts a ON x.follower=a.id
+    JOIN hivemind_app.hive_accounts b ON x.following=b.id;`)
 
 	// Follows
 	await query(`CREATE OR REPLACE VIEW hafsql.follows
-  AS SELECT x.follower AS follower_id,
-    x.following AS following_id,
+  AS SELECT a.haf_id AS follower_id,
+    ab.haf_id AS following_id,
+    x.block_num,
     a.name as follower_name,
     ab.name AS following_name
   FROM hivemind_app.follows x
   JOIN hivemind_app.hive_accounts a ON x.follower = a.id
-  JOIN hivemind_app.hive_accounts ab ON x.following = ab.id;`)
+  JOIN hivemind_app.hive_accounts ab ON x.following = ab.id`)
 
 	// Reblogs
 	await query(`CREATE OR REPLACE VIEW hafsql.reblogs
-  AS SELECT x.account AS account_id,
-    x.post AS post_id,
-    a.name AS account_name,
-    c.author,
-    c.permlink
-    FROM hafsql.reblogs_table x
-    JOIN hafd.accounts a ON x.account = a.id
-    JOIN hafsql.comments c ON c.id = x.post;`)
+  AS SELECT
+    s.account_id,
+    s.account_name,
+    s.post_id,
+    s.author,
+    hpd."permlink",
+    s.block_num,
+    s.created_at 
+    FROM (SELECT
+    a.haf_id AS account_id,
+    a."name" AS account_name,
+    hr.post_id,
+    b.name AS author,
+    hr.block_num,
+    hr.created_at
+    FROM hivemind_app.hive_reblogs hr
+    JOIN hivemind_app.hive_posts p ON hr.post_id=p.id 
+    JOIN hivemind_app.hive_accounts b ON p.author_id=b.id
+    JOIN hivemind_app.hive_accounts a ON hr.blogger_id=a.id
+    ) s
+    JOIN hivemind_app.hive_permlink_data hpd ON hpd.id=s.post_id`)
 
 	// Proposal Approvlas
 	await query(`CREATE OR REPLACE VIEW hafsql.proposal_approvals
@@ -188,13 +212,13 @@ export const setupHafsqlViews = async () => {
 
 	// Reputations
 	await query(`CREATE OR REPLACE VIEW hafsql.reputations
-  AS SELECT x.account as account_id,
-    a.name as account_name,
-    x.reputation,
-    x.is_implicit,
-    hafsql.parse_reputation(x.reputation) as rep
-    FROM hafsql.reputations_table x
-    JOIN hafd.accounts a ON x.account=a.id;`)
+  AS SELECT ar.account_id,
+    a.name AS account_name,
+    ar.reputation,
+    ar.is_implicit,
+    hafsql.parse_reputation(ar.reputation) as rep
+    FROM reptracker_app.account_reputations ar
+    JOIN hivemind_app.hive_accounts a ON ar.account_id=a.haf_id;`)
 
 	// Accounts
 	await query(`CREATE OR REPLACE VIEW hafsql.accounts
@@ -233,8 +257,8 @@ export const setupHafsqlViews = async () => {
     ha.withdrawn,
     ha.withdraw_routes,
     (SELECT "name" FROM hafd.accounts WHERE id = ha.proxy) AS proxy,
-    (SELECT SUM(amount) FROM hafsql.pending_saving_withdraws_table where "from"=x.id AND symbol='hive') AS pending_hive_savings_withdrawal,
-    (SELECT SUM(amount) FROM hafsql.pending_saving_withdraws_table where "from"=x.id AND symbol='hbd') AS pending_hbd_savings_withdrawal
+    (SELECT ABS(SUM(balance)/1000.0) FROM hafbe_bal.transfer_saving_id tsi WHERE tsi.account=x.id AND tsi.nai=21) AS pending_hive_savings_withdrawal,
+    (SELECT ABS(SUM(balance)/1000.0) FROM hafbe_bal.transfer_saving_id tsi WHERE tsi.account=x.id AND tsi.nai=13) AS pending_hbd_savings_withdrawal
     FROM hafd.accounts x, hafsql.accounts_table ha, hafd.accounts creatort, hafd.accounts recoveryt
     WHERE x.id = ha.account
     AND ha.creator = creatort.id
@@ -269,41 +293,102 @@ export const setupHafsqlViews = async () => {
 
 	// Balances
 	await query(`CREATE OR REPLACE VIEW hafsql.balances
-  AS SELECT x.account as account_id,
-    a.name as account_name,
-    x.hive,
-    x.hbd,
-    x.vests,
-    hafsql.vests_to_hive(x.vests) as hp_equivalent,
-    x.hive_savings,
-    x.hbd_savings
-    FROM hafsql.balances_table x
-    JOIN hafd.accounts a ON x.account=a.id;`)
+  AS SELECT
+      a.id AS account_id,
+      a.name AS account_name,
+      COALESCE(MAX(CASE WHEN cab.nai = 21 THEN cab.balance END), 0.0)/1000 AS hive,
+      COALESCE(MAX(CASE WHEN cab.nai = 13 THEN cab.balance END), 0.0)/1000 AS hbd,
+      COALESCE(MAX(CASE WHEN cab.nai = 37 THEN cab.balance END), 0.0)/1000000 AS vests,
+      hafsql.vests_to_hive(COALESCE(MAX(CASE WHEN cab.nai = 37 THEN cab.balance END), 0)/1000000) as hp_equivalent,
+      COALESCE(MAX(CASE WHEN ss.nai = 21 THEN ss.balance END), 0.0)/1000 AS hive_savings,
+      COALESCE(MAX(CASE WHEN ss.nai = 13 THEN ss.balance END), 0.0)/1000 AS hbd_savings
+    FROM hafd.accounts a
+    LEFT JOIN hafbe_bal.current_account_balances cab
+          ON cab.account = a.id
+          AND cab.nai IN (21, 13, 37)
+    LEFT JOIN hafbe_bal.account_savings ss
+          ON ss.account = a.id
+          AND ss.nai IN (21, 13)
+    GROUP BY a.id, a.name
+    ORDER BY a.id;`)
 
 	// Balances history
 	await query(`CREATE OR REPLACE VIEW hafsql.balances_history
-  AS SELECT x.account as account_id,
-    a.name as account_name,
-    x.block_num,
-    x.hive,
-    x.hbd,
-    x.vests,
-    hafsql.vests_to_hive(x.vests, x.block_num) as hp_equivalent,
-    x.hive_savings,
-    x.hbd_savings
-    FROM hafsql.balances_history_table x
-    JOIN hafd.accounts a ON x.account=a.id;`)
+  AS WITH base AS (
+    SELECT
+      e.*,
+      hafd.operation_id_to_block_num(e.source_op) AS block_num
+    FROM hafbe_bal.account_balance_history e
+  )
+  SELECT
+    a.name,
+    base.block_num,
+    hbd.balance AS hbd,
+    hive.balance AS hive,
+    vests.balance AS vests,
+    hive_savings.balance AS hive_savings,
+    hbd_savings.balance AS hbd_savings,
+    base.hive_rowid
+  FROM base
+  JOIN hafd.accounts a ON a.id = base.account
+  LEFT JOIN LATERAL (
+    SELECT balance
+    FROM hafbe_bal.account_balance_history
+    WHERE account = base.account
+      AND nai = 13
+      AND hafd.operation_id_to_block_num(source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(source_op) DESC, source_op DESC
+    LIMIT 1
+  ) hbd ON true
+  LEFT JOIN LATERAL (
+    SELECT balance
+    FROM hafbe_bal.account_balance_history
+    WHERE account = base.account
+      AND nai = 21
+      AND hafd.operation_id_to_block_num(source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(source_op) DESC, source_op DESC
+    LIMIT 1
+  ) hive ON true
+  LEFT JOIN LATERAL (
+    SELECT balance
+    FROM hafbe_bal.account_balance_history
+    WHERE account = base.account
+      AND nai = 37
+      AND hafd.operation_id_to_block_num(source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(source_op) DESC, source_op DESC
+    LIMIT 1
+  ) vests ON true
+  LEFT JOIN LATERAL (
+    SELECT balance
+    FROM hafbe_bal.account_savings_history
+    WHERE account = base.account
+      AND nai = 21
+      AND hafd.operation_id_to_block_num(source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(source_op) DESC, source_op DESC
+    LIMIT 1
+  ) hive_savings ON true
+  LEFT JOIN LATERAL (
+    SELECT balance
+    FROM hafbe_bal.account_savings_history
+    WHERE account = base.account
+      AND nai = 13
+      AND hafd.operation_id_to_block_num(source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(source_op) DESC, source_op DESC
+    LIMIT 1
+  ) hbd_savings ON true;`)
 
 	// Total balances
 	await query(`CREATE OR REPLACE VIEW hafsql.total_balances
-  AS SELECT x.block_num,
-    x.hive,
-    x.hbd,
-    x.vests,
-    hafsql.vests_to_hive(x.vests, x.block_num) AS hp_equivalent,
-    x.hive_savings,
-    x.hbd_savings
-    FROM hafsql.total_balances_table x;`)
+  AS SELECT *, hafsql.vests_to_hive(vests_balance) AS hp_equivalent FROM
+  (SELECT
+  SUM(CASE WHEN nai=13 THEN balance ELSE 0 END)/1000.0 AS hbd_balance,
+  SUM(CASE WHEN nai=21 THEN balance ELSE 0 END)/1000.0 AS hive_balance,
+  SUM(CASE WHEN nai=37 THEN balance ELSE 0 END)/1000000.0 AS vests_balance
+  FROM hafbe_bal.current_account_balances cab),
+  (SELECT
+  SUM(CASE WHEN nai=13 THEN balance ELSE 0 END)/1000.0 AS hbd_savings,
+  SUM(CASE WHEN nai=21 THEN balance ELSE 0 END)/1000.0 AS hive_savings
+  FROM hafbe_bal.account_savings t);`)
 
 	// haf_account_operations
 	await query(`CREATE OR REPLACE VIEW hafsql.haf_account_operations
@@ -351,6 +436,7 @@ export const removeExtraViews = async () => {
     hafsql.community_roles,
     hafsql.reputations,
     hafsql.balances,
+    hafsql.balances_history,
     hafsql.total_balances,
     hafsql.haf_account_operations;`)
 	await query('DROP MATERIALIZED VIEW IF EXISTS hafsql.producer_rewards;')
