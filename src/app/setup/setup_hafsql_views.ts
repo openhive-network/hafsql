@@ -436,6 +436,7 @@ export const removeExtraViews = async () => {
     hafsql.community_roles,
     hafsql.reputations,
     hafsql.balances,
+    hafsql.balances_history,
     hafsql.total_balances,
     hafsql.haf_account_operations;`)
 	await query('DROP MATERIALIZED VIEW IF EXISTS hafsql.producer_rewards;')
