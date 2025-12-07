@@ -14,7 +14,7 @@
   "deno.enable": true,
   "editor.defaultFormatter": "denoland.vscode-deno",
   "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "denoland.vscode-deno"
   },
   "[json]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
