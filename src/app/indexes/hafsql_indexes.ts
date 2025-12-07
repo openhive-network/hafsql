@@ -40,52 +40,12 @@ export const createCommentsIndexes = async () => {
 	)
 }
 
-export const createDelegationsIndexes = async () => {
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_delegations_table_delegatee_timestamp_idx ON hafsql.delegations_table USING btree (delegatee, timestamp);',
-	)
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_delegations_table_delegator_timestamp_idx ON hafsql.delegations_table USING btree (delegator, timestamp);',
-	)
-}
-
 export const createRCDelegationsIndexes = async () => {
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_rc_delegations_table_delegatee_timestamp_idx ON hafsql.rc_delegations_table USING btree (delegatee, timestamp);',
 	)
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_rc_delegations_table_delegator_timestamp_idx ON hafsql.rc_delegations_table USING btree (delegator, timestamp);',
-	)
-}
-
-export const createCommunitiesIndexes = async () => {
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_proposal_approvals_voter_idx ON hafsql.proposal_approvals_table USING btree (voter);',
-	)
-}
-
-export const createBalancesIndexes = async () => {
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_hive_idx ON hafsql.balances_table USING btree (hive);',
-	)
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_hbd_idx ON hafsql.balances_table USING btree (hbd);',
-	)
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_vests_idx ON hafsql.balances_table USING btree (vests);',
-	)
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_hive_savings_idx ON hafsql.balances_table USING btree (hive_savings);',
-	)
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_hbd_savings_idx ON hafsql.balances_table USING btree (hbd_savings);',
-	)
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_balances_idx ON hafsql.balances_table USING btree (hive, hbd, vests, hive_savings, hbd_savings);',
-	)
-	// history
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_balances_history_table_vests_idx ON hafsql.balances_history_table USING btree (block_num);',
 	)
 }
 
@@ -129,12 +89,6 @@ export const createAccountsIndexes = async () => {
 	)
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_proxy_idx ON hafsql.accounts_table (proxy);',
-	)
-}
-
-export const createHafsqlIndexes = async () => {
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_reblogs_table_post_idx ON hafsql.reblogs_table USING btree (post);',
 	)
 }
 
