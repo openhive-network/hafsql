@@ -64,14 +64,6 @@ export const createCommunitiesIndexes = async () => {
 	)
 }
 
-export const createReputationsIndexes = async () => {
-	// Might be nice to have to sort reputations from high to low
-	// using client = await pool.connect()
-	// await query(
-	// 	'CREATE INDEX IF NOT EXISTS hafsql_reputations_table_reputation_idx ON hafsql.reputations_table USING btree (reputation);',
-	// )
-}
-
 export const createBalancesIndexes = async () => {
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_balances_table_hive_idx ON hafsql.balances_table USING btree (hive);',
@@ -94,12 +86,6 @@ export const createBalancesIndexes = async () => {
 	// history
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_balances_history_table_vests_idx ON hafsql.balances_history_table USING btree (block_num);',
-	)
-}
-
-export const createFollowsIndexes = async () => {
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_follows_table_following_idx ON hafsql.follows_table USING btree (following);',
 	)
 }
 
