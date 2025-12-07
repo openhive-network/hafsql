@@ -257,8 +257,8 @@ export const setupHafsqlViews = async () => {
     ha.withdrawn,
     ha.withdraw_routes,
     (SELECT "name" FROM hafd.accounts WHERE id = ha.proxy) AS proxy,
-    (SELECT SUM(amount) FROM hafsql.pending_saving_withdraws_table where "from"=x.id AND symbol='hive') AS pending_hive_savings_withdrawal,
-    (SELECT SUM(amount) FROM hafsql.pending_saving_withdraws_table where "from"=x.id AND symbol='hbd') AS pending_hbd_savings_withdrawal
+    (SELECT ABS(SUM(balance)/1000.0) FROM hafbe_bal.transfer_saving_id tsi WHERE tsi.account=x.id AND tsi.nai=21) AS pending_hive_savings_withdrawal,
+    (SELECT ABS(SUM(balance)/1000.0) FROM hafbe_bal.transfer_saving_id tsi WHERE tsi.account=x.id AND tsi.nai=13) AS pending_hbd_savings_withdrawal
     FROM hafd.accounts x, hafsql.accounts_table ha, hafd.accounts creatort, hafd.accounts recoveryt
     WHERE x.id = ha.account
     AND ha.creator = creatort.id
