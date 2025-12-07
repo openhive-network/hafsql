@@ -573,6 +573,7 @@ export const operationTables = {
 		symbol: types.varchar,
 		memo: types.varchar,
 		remaining_executions: types.int2,
+		extensions: types.jsonb,
 	},
 	failed_recurrent_transfer: {
 		from_account: types.varchar,
@@ -583,6 +584,7 @@ export const operationTables = {
 		consecutive_failures: types.int2,
 		remaining_executions: types.int2,
 		deleted: types.boolean,
+		extensions: types.jsonb,
 	},
 	limit_order_cancelled: {
 		seller: types.varchar,

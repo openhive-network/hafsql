@@ -2394,6 +2394,7 @@ const fillFillRcurrentTransfer = async (
 	const amounts = []
 	const memos = []
 	const remains = []
+	const exes = []
 	for (let i = 0; i < ops.length; i++) {
 		const value = <FillRecurrentTransferOperation> ops[i].body.value
 		ids.push(ops[i].id)
@@ -2402,14 +2403,15 @@ const fillFillRcurrentTransfer = async (
 		amounts.push(value.amount)
 		memos.push(value.memo)
 		remains.push(value.remaining_executions)
+		exes.push(JSON.stringify(value.extensions))
 	}
 	await client.query`INSERT INTO hafsql.operation_fill_recurrent_transfer_table
-    (id, from_account, to_account, amount, symbol, memo, remaining_executions)
+    (id, from_account, to_account, amount, symbol, memo, remaining_executions, extensions)
     SELECT UNNEST(${ids}::int8[]),
     UNNEST(${froms}::text[]), UNNEST(${tos}::text[]),
     hafsql.asset_amount(UNNEST(${amounts}::text[])),
     hafsql.asset_symbol(UNNEST(${amounts}::text[])),
-    UNNEST(${memos}::text[]), UNNEST(${remains}::int2[])
+    UNNEST(${memos}::text[]), UNNEST(${remains}::int2[]), UNNEST(${exes}::jsonb[])
     ON CONFLICT (id) DO NOTHING;`
 }
 
@@ -2425,6 +2427,7 @@ const fillFailedRecurrentTransfer = async (
 	const fails = []
 	const remains = []
 	const deleted = []
+	const exes = []
 	for (let i = 0; i < ops.length; i++) {
 		const value = <FailedRecurrentTransferOperation> ops[i].body.value
 		ids.push(ops[i].id)
@@ -2435,17 +2438,18 @@ const fillFailedRecurrentTransfer = async (
 		fails.push(value.consecutive_failures)
 		remains.push(value.remaining_executions)
 		deleted.push(value.deleted)
+		exes.push(JSON.stringify(value.extensions))
 	}
 	await client
 		.query`INSERT INTO hafsql.operation_failed_recurrent_transfer_table
     (id, from_account, to_account, amount, symbol, memo, consecutive_failures,
-      remaining_executions, deleted)
+      remaining_executions, deleted, extensions)
     SELECT UNNEST(${ids}::int8[]),
     UNNEST(${froms}::text[]), UNNEST(${tos}::text[]),
     hafsql.asset_amount(UNNEST(${amounts}::text[])),
     hafsql.asset_symbol(UNNEST(${amounts}::text[])),
     UNNEST(${memos}::text[]), UNNEST(${fails}::int2[]),
-    UNNEST(${remains}::int2[]), UNNEST(${deleted}::boolean[])
+    UNNEST(${remains}::int2[]), UNNEST(${deleted}::boolean[]), UNNEST(${exes}::jsonb[])
     ON CONFLICT (id) DO NOTHING;`
 }
 

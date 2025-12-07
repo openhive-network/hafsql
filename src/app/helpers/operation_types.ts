@@ -581,6 +581,7 @@ export interface FillRecurrentTransferOperation {
   amount: string
   memo: string
   remaining_executions: string
+  extensions: string
 }
 
 export interface FailedRecurrentTransferOperation {
@@ -591,6 +592,7 @@ export interface FailedRecurrentTransferOperation {
   consecutive_failures: string
   remaining_executions: string
   deleted: string
+  extensions: string
 }
 
 export interface LimitOrderCancelledOperation {
