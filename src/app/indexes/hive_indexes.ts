@@ -26,9 +26,9 @@ export const createHiveIndexes = async () => {
 			if (ids.length > 0) {
 				if (ids.length > 1) {
 					condition =
-						`WHERE hafd.operation_id_to_type_id(id) IN (${ids.join()})`
+						`WHERE op_type_id IN (${ids.join()})`
 				} else {
-					condition = `WHERE hafd.operation_id_to_type_id(id) = ${ids[0]}`
+					condition = `WHERE op_type_id = ${ids[0]}`
 				}
 				// for now only used by one index so should be fine
 				if (hiveIndexes[i].condition) {
@@ -112,7 +112,7 @@ export const hiveIndexes: {
 	// sorting by ID (op_id) on op_* & vo_* views - needed for sync
 	{
 		name: 'hafsql_hive_operations_op_type_id_id',
-		params: '(hafd.operation_id_to_type_id(id), id)',
+		params: '(op_type_id, id)',
 		ids: [],
 		skip: false,
 	},
@@ -121,7 +121,7 @@ export const hiveIndexes: {
 		name: 'hafsql_author_permlink_idx',
 		params: `(${param('author')}, ${
 			param('permlink')
-		}, hafd.operation_id_to_type_id(id), id DESC)`,
+		}, op_type_id, id DESC)`,
 		ids: [
 			opId.vote,
 			opId.comment,
@@ -139,7 +139,7 @@ export const hiveIndexes: {
 	// voter - op_
 	{
 		name: 'hafsql_voter_idx',
-		params: `(${param('voter')}, hafd.operation_id_to_type_id(id), id)`,
+		params: `(${param('voter')}, op_type_id, id)`,
 		ids: [
 			opId.vote,
 			opId.effective_comment_vote,
@@ -149,7 +149,7 @@ export const hiveIndexes: {
 	// author - op_
 	{
 		name: 'hafsql_author_idx',
-		params: `(${param('author')}, hafd.operation_id_to_type_id(id), id DESC)`,
+		params: `(${param('author')}, op_type_id, id DESC)`,
 		ids: [
 			opId.vote,
 			opId.comment,

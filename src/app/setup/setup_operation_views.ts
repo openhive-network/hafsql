@@ -31,7 +31,7 @@ export const setupOperationViews = async () => {
       ${block('o.id')} AS "block_num"
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
-    WHERE hafd.operation_id_to_type_id(o.id) = 0;`
+    WHERE o.op_type_id = 0;`
 	await query(OpVote)
 
 	// No dedicated table
@@ -49,7 +49,7 @@ export const setupOperationViews = async () => {
     ${block('o.id')} AS "block_num"
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
-    WHERE hafd.operation_id_to_type_id(o.id) = 1;`
+    WHERE o.op_type_id = 1;`
 	await query(OpComment)
 
 	// No dedicated table
@@ -63,7 +63,7 @@ export const setupOperationViews = async () => {
     ${block('o.id')} AS "block_num"
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
-    WHERE hafd.operation_id_to_type_id(o.id) = 18;`
+    WHERE o.op_type_id = 18;`
 	await query(OpCustomJson)
 
 	// +23
@@ -87,7 +87,7 @@ export const setupOperationViews = async () => {
       ${block('o.id')} as block_num
     FROM hafd.operations o
     JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
-    WHERE hafd.operation_id_to_type_id(o.id) = ${OPs} + 23;`
+    WHERE o.op_type_id = ${OPs} + 23;`
 	await query(VOEffectiveCommentVote)
 }
 

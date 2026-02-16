@@ -38,9 +38,6 @@ export const setupPublicUser = async () => {
 			`GRANT ALL ON FUNCTION hafd.operation_id_to_block_num TO ${username};`,
 		)
 		await query(
-			`GRANT ALL ON FUNCTION hafd.operation_id_to_type_id TO ${username};`,
-		)
-		await query(
 			`GRANT ALL ON FUNCTION hafd.operation_id_to_pos TO ${username};`,
 		)
 		await query(

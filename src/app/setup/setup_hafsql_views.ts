@@ -270,7 +270,7 @@ export const setupHafsqlViews = async () => {
     hafd.operation_id_to_block_num(x.id) AS block_num,
     x.trx_in_block,
     x.op_pos,
-    hafd.operation_id_to_type_id(x.id) AS op_type_id,
+    x.op_type_id,
     hb.created_at AS "timestamp",
     x.body_binary::jsonb as body,
     hafsql.get_trx_id(x.id) as included_trx_id
