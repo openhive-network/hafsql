@@ -11,9 +11,10 @@ export const createHiveIndexes = async () => {
 			['hafsql', 'CREATE%'],
 		)
 		const invalidIndexes = await getInvalidIndexes()
-		invalidIndexes.forEach(async (index) => {
-			await query(`DROP INDEX CONCURRENTLY hafd.${index};`)
-		})
+		for (const index of invalidIndexes) {
+			print(`[Indexes] Dropping invalid index ${index.schema}.${index.name}...`)
+			await query(`DROP INDEX CONCURRENTLY ${index.schema}.${index.name};`)
+		}
 		for (let i = 0; i < hiveIndexes.length; i++) {
 			const name = hiveIndexes[i].name
 			const params = hiveIndexes[i].params
@@ -49,10 +50,10 @@ export const createHiveIndexes = async () => {
 		print('[Indexes] All indexes have been created! ✅')
 		print('[Indexes] Creating Hivemind indexes...')
 		await createHivemindIndexes()
-	} catch (_e) {
-		print('Retrying index creation... (this is normal)')
+	} catch (e) {
+		print(`[Indexes] Error during index creation: ${e.message}. Retrying in 10s...`)
 		await sleep(10000)
-		createHiveIndexes()
+		await createHiveIndexes()
 	}
 }
 
@@ -75,18 +76,12 @@ export const doesIndexExist = async (name: string) => {
 }
 
 const getInvalidIndexes = async () => {
-	const result = await query<{ relname: string }>(`SELECT c.relname
+	const result = await query<{ nspname: string; relname: string }>(`SELECT n.nspname, c.relname
 		FROM pg_catalog.pg_class c, pg_catalog.pg_namespace n, pg_catalog.pg_index i
 		WHERE  (i.indisvalid = false OR i.indisready = false) AND
 			i.indexrelid = c.oid AND c.relnamespace = n.oid AND
-			n.nspname != 'pg_catalog' AND
-			n.nspname != 'information_schema' AND
-			n.nspname != 'pg_toast'`)
-	const temp = []
-	for (let i = 0; i < result.rows.length; i++) {
-		temp.push(result.rows[i].relname)
-	}
-	return temp
+			c.relname LIKE 'hafsql_%'`)
+	return result.rows.map((row) => ({ schema: row.nspname, name: row.relname }))
 }
 
 /**
