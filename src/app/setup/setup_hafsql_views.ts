@@ -3,7 +3,7 @@ import { query } from '../helpers/database.ts'
 export const setupHafsqlViews = async () => {
 	// Blocks
 	await query(`CREATE OR REPLACE VIEW hafsql.haf_blocks
-  AS SELECT b.num AS block_num,
+  AS SELECT b.block_id AS block_num,
     b.created_at as "timestamp",
     (SELECT a.name FROM hafd.accounts a WHERE a.id = b.producer_account_id) as witness,
     b.extensions as extensions,
@@ -16,7 +16,7 @@ export const setupHafsqlViews = async () => {
 
 	// Transactions
 	await query(`CREATE OR REPLACE VIEW hafsql.haf_transactions
-  AS SELECT x.block_num,
+  AS SELECT x.block_id AS block_num,
     x.trx_in_block,
     x.trx_hash,
     encode(x.trx_hash, 'hex') AS trx_id,
@@ -29,7 +29,7 @@ export const setupHafsqlViews = async () => {
 	// DynamicGlobalProperties
 	await query(
 		`CREATE OR REPLACE VIEW hafsql.dynamic_global_properties
-  AS SELECT b.num AS block_num,
+  AS SELECT b.block_id AS block_num,
     b.created_at as "timestamp",
     b.total_vesting_fund_hive::numeric as total_vesting_fund_hive,
     b.total_vesting_shares::numeric as total_vesting_shares,
@@ -224,7 +224,7 @@ export const setupHafsqlViews = async () => {
 	await query(`CREATE OR REPLACE VIEW hafsql.accounts
   AS SELECT x.id,
     x.name,
-    x.block_num,
+    x.block_id AS block_num,
     (SELECT ov.timestamp FROM hafsql.operation_vote_view ov WHERE ov.voter = x.name ORDER BY ov.id DESC LIMIT 1) AS last_vote_time,
     (SELECT ct.created FROM hafsql.comments_table ct WHERE ct.author = x.name and ct.parent_author ='' ORDER BY ct.id DESC LIMIT 1) AS last_root_post,
     (SELECT ct.created FROM hafsql.comments_table ct WHERE ct.author = x.name ORDER BY ct.id DESC LIMIT 1) AS last_post,
@@ -267,7 +267,7 @@ export const setupHafsqlViews = async () => {
 	// Operations
 	await query(`CREATE OR REPLACE VIEW hafsql.haf_operations
   AS SELECT x.id,
-    hafd.operation_id_to_block_num(x.id) AS block_num,
+    x.block_id AS block_num,
     x.trx_in_block,
     x.op_pos,
     x.op_type_id,
@@ -275,7 +275,7 @@ export const setupHafsqlViews = async () => {
     x.body_binary::jsonb as body,
     hafsql.get_trx_id(x.id) as included_trx_id
     FROM hafd.operations x
-    JOIN hafd.blocks hb ON hb.num = hafd.operation_id_to_block_num(x.id);`)
+    JOIN hafd.blocks hb ON hb.block_id = x.block_id;`)
 
 	// Operation Types
 	await query(`CREATE OR REPLACE VIEW hafsql.haf_operation_types
@@ -287,7 +287,7 @@ export const setupHafsqlViews = async () => {
 	// Applied Hardforks
 	await query(`CREATE OR REPLACE VIEW hafsql.haf_applied_hardforks
   AS SELECT x.hardfork_num,
-    x.block_num,
+    x.block_id AS block_num,
     x.hardfork_vop_id
     FROM hafd.applied_hardforks x;`)
 
@@ -317,8 +317,9 @@ export const setupHafsqlViews = async () => {
   AS WITH base AS (
     SELECT
       e.*,
-      hafd.operation_id_to_block_num(e.source_op) AS block_num
+      o.block_id AS block_num
     FROM hafbe_bal.account_balance_history e
+    JOIN hafd.operations o ON o.id = e.source_op
   )
   SELECT
     a.name,
@@ -332,48 +333,53 @@ export const setupHafsqlViews = async () => {
   FROM base
   JOIN hafd.accounts a ON a.id = base.account
   LEFT JOIN LATERAL (
-    SELECT balance
-    FROM hafbe_bal.account_balance_history
-    WHERE account = base.account
-      AND nai = 13
-      AND hafd.operation_id_to_block_num(source_op) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(source_op) DESC, source_op DESC
+    SELECT abh.balance
+    FROM hafbe_bal.account_balance_history abh
+    JOIN hafd.operations o ON o.id = abh.source_op
+    WHERE abh.account = base.account
+      AND abh.nai = 13
+      AND o.block_id <= base.block_num
+    ORDER BY o.block_id DESC, abh.source_op DESC
     LIMIT 1
   ) hbd ON true
   LEFT JOIN LATERAL (
-    SELECT balance
-    FROM hafbe_bal.account_balance_history
-    WHERE account = base.account
-      AND nai = 21
-      AND hafd.operation_id_to_block_num(source_op) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(source_op) DESC, source_op DESC
+    SELECT abh.balance
+    FROM hafbe_bal.account_balance_history abh
+    JOIN hafd.operations o ON o.id = abh.source_op
+    WHERE abh.account = base.account
+      AND abh.nai = 21
+      AND o.block_id <= base.block_num
+    ORDER BY o.block_id DESC, abh.source_op DESC
     LIMIT 1
   ) hive ON true
   LEFT JOIN LATERAL (
-    SELECT balance
-    FROM hafbe_bal.account_balance_history
-    WHERE account = base.account
-      AND nai = 37
-      AND hafd.operation_id_to_block_num(source_op) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(source_op) DESC, source_op DESC
+    SELECT abh.balance
+    FROM hafbe_bal.account_balance_history abh
+    JOIN hafd.operations o ON o.id = abh.source_op
+    WHERE abh.account = base.account
+      AND abh.nai = 37
+      AND o.block_id <= base.block_num
+    ORDER BY o.block_id DESC, abh.source_op DESC
     LIMIT 1
   ) vests ON true
   LEFT JOIN LATERAL (
-    SELECT balance
-    FROM hafbe_bal.account_savings_history
-    WHERE account = base.account
-      AND nai = 21
-      AND hafd.operation_id_to_block_num(source_op) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(source_op) DESC, source_op DESC
+    SELECT ash.balance
+    FROM hafbe_bal.account_savings_history ash
+    JOIN hafd.operations o ON o.id = ash.source_op
+    WHERE ash.account = base.account
+      AND ash.nai = 21
+      AND o.block_id <= base.block_num
+    ORDER BY o.block_id DESC, ash.source_op DESC
     LIMIT 1
   ) hive_savings ON true
   LEFT JOIN LATERAL (
-    SELECT balance
-    FROM hafbe_bal.account_savings_history
-    WHERE account = base.account
-      AND nai = 13
-      AND hafd.operation_id_to_block_num(source_op) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(source_op) DESC, source_op DESC
+    SELECT ash.balance
+    FROM hafbe_bal.account_savings_history ash
+    JOIN hafd.operations o ON o.id = ash.source_op
+    WHERE ash.account = base.account
+      AND ash.nai = 13
+      AND o.block_id <= base.block_num
+    ORDER BY o.block_id DESC, ash.source_op DESC
     LIMIT 1
   ) hbd_savings ON true;`)
 

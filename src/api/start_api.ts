@@ -99,10 +99,10 @@ const checkHafStatus = async () => {
 			HAF_STATUS = 'Waiting for HAF to be ready'
 			return
 		}
-		const head = await query<{ num: number }>(
-			`SELECT num FROM hafd.blocks ORDER BY num DESC LIMIT 1;`,
+		const head = await query<{ block_id: number }>(
+			`SELECT block_id FROM hafd.blocks ORDER BY block_id DESC LIMIT 1;`,
 		)
-		const headNum = head.rows[0].num
+		const headNum = head.rows[0].block_id
 		const result = await query<{ not_synced_yet: number }>(
 			`SELECT COUNT(1) AS not_synced_yet FROM hafsql.sync_data WHERE last_block_num < $1`,
 			[Number(headNum) - 10],

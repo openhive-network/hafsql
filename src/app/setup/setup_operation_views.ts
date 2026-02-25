@@ -12,9 +12,7 @@ const amount = (param: string) => {
 const symbol = (param: string) => {
 	return `hafsql.asset_symbol(${param})`
 }
-const block = (id: string) => {
-	return `hafd.operation_id_to_block_num(${id})`
-}
+const block = () => 'o.block_id'
 
 const OPs = 49
 
@@ -28,9 +26,9 @@ export const setupOperationViews = async () => {
       ${param('author')} AS "author",
       ${param('weight')}::int4 AS "weight",
       ${param('permlink')} AS "permlink",
-      ${block('o.id')} AS "block_num"
+      ${block()} AS "block_num"
     FROM hafd.operations o
-    JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
+    JOIN hafd.blocks hb ON hb.block_id = ${block()}
     WHERE o.op_type_id = 0;`
 	await query(OpVote)
 
@@ -46,9 +44,9 @@ export const setupOperationViews = async () => {
     ${param('body')} AS "body",
     hafsql.to_json(${param('json_metadata')}) AS "json_metadata",
     hafsql.get_content_type(o.body_binary) AS "content_type",
-    ${block('o.id')} AS "block_num"
+    ${block()} AS "block_num"
     FROM hafd.operations o
-    JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
+    JOIN hafd.blocks hb ON hb.block_id = ${block()}
     WHERE o.op_type_id = 1;`
 	await query(OpComment)
 
@@ -60,9 +58,9 @@ export const setupOperationViews = async () => {
     ${param('required_posting_auths', true)} AS "required_posting_auths",
     ${param('id')} AS "custom_id",
     ${param('json')} AS "json",
-    ${block('o.id')} AS "block_num"
+    ${block()} AS "block_num"
     FROM hafd.operations o
-    JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
+    JOIN hafd.blocks hb ON hb.block_id = ${block()}
     WHERE o.op_type_id = 18;`
 	await query(OpCustomJson)
 
@@ -84,9 +82,9 @@ export const setupOperationViews = async () => {
         THEN (${amount(param('pending_payout'))} /
         ${param('total_vote_weight')}::numeric) * ${param('weight')}::numeric
         ELSE 0 END AS vote_value,
-      ${block('o.id')} as block_num
+      ${block()} as block_num
     FROM hafd.operations o
-    JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
+    JOIN hafd.blocks hb ON hb.block_id = ${block()}
     WHERE o.op_type_id = ${OPs} + 23;`
 	await query(VOEffectiveCommentVote)
 }

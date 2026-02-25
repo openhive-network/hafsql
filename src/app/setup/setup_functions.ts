@@ -164,12 +164,12 @@ export const setupFunctions = async () => {
 	// hafsql.last_op_id_from_block_num(int4)
 	// Get highest op_id inside a block
 	await query(
-		`CREATE OR REPLACE FUNCTION hafsql.last_op_id_from_block_num(int4)
+		`CREATE OR REPLACE FUNCTION hafsql.last_op_id_from_block_num(int8)
     RETURNS int8
     AS $$
     BEGIN
-      RETURN (SELECT id FROM hafsql.haf_operations
-        WHERE hafd.operation_id_to_block_num(id) = $1
+      RETURN (SELECT id FROM hafd.operations
+        WHERE block_id = $1
         ORDER BY id DESC limit 1);
     EXCEPTION WHEN OTHERS THEN
       RETURN NULL;
@@ -180,19 +180,19 @@ export const setupFunctions = async () => {
     RETURNS NULL ON NULL INPUT;`,
 	)
 	await query(
-		`COMMENT ON FUNCTION hafsql.last_op_id_from_block_num (int4) IS
+		`COMMENT ON FUNCTION hafsql.last_op_id_from_block_num (int8) IS
     'Get highest op_id inside a block';`,
 	)
 
 	// hafsql.first_op_id_from_block_num(int4)
 	// Get lowest op_id inside a block
 	await query(
-		`CREATE OR REPLACE FUNCTION hafsql.first_op_id_from_block_num(int4)
+		`CREATE OR REPLACE FUNCTION hafsql.first_op_id_from_block_num(int8)
     RETURNS int8
     AS $$
     BEGIN
-      RETURN (SELECT id FROM hafsql.haf_operations
-        WHERE hafd.operation_id_to_block_num(id) = $1
+      RETURN (SELECT id FROM hafd.operations
+        WHERE block_id = $1
         ORDER BY id ASC limit 1);
     EXCEPTION WHEN OTHERS THEN
       RETURN NULL;
@@ -203,7 +203,7 @@ export const setupFunctions = async () => {
     RETURNS NULL ON NULL INPUT;`,
 	)
 	await query(
-		`COMMENT ON FUNCTION hafsql.first_op_id_from_block_num (int4) IS
+		`COMMENT ON FUNCTION hafsql.first_op_id_from_block_num (int8) IS
     'Get lowest op_id inside a block';`,
 	)
 
@@ -348,7 +348,7 @@ export const setupFunctions = async () => {
     RETURNS timestamptz
     AS $$
     BEGIN
-      RETURN (SELECT timestamp FROM hafsql.haf_blocks WHERE block_num = hafd.operation_id_to_block_num(operation_id));
+      RETURN (SELECT b.created_at FROM hafd.operations o JOIN hafd.blocks b ON b.block_id = o.block_id WHERE o.id = operation_id);
     END
     $$
     LANGUAGE plpgsql
