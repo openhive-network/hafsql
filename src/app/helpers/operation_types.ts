@@ -1,5 +1,5 @@
 // The body of the operations as stored in the hive.operations table
-// Returned from the body_binary::jsonb->value
+// Returned from body_value (wrapped as {value: body_value})
 // Usually the name of the params is important not their types
 
 export interface VoteOperation {

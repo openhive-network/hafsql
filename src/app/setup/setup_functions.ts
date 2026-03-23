@@ -163,13 +163,14 @@ export const setupFunctions = async () => {
 
 	// hafsql.last_op_id_from_block_num(int4)
 	// Get highest op_id inside a block
+	await dropFunction('hafsql.last_op_id_from_block_num(int8)')
 	await query(
-		`CREATE OR REPLACE FUNCTION hafsql.last_op_id_from_block_num(int8)
+		`CREATE OR REPLACE FUNCTION hafsql.last_op_id_from_block_num(int4)
     RETURNS int8
     AS $$
     BEGIN
       RETURN (SELECT id FROM hafd.operations
-        WHERE block_id = $1
+        WHERE hafd.operation_id_to_block_num(id) = $1
         ORDER BY id DESC limit 1);
     EXCEPTION WHEN OTHERS THEN
       RETURN NULL;
@@ -180,19 +181,20 @@ export const setupFunctions = async () => {
     RETURNS NULL ON NULL INPUT;`,
 	)
 	await query(
-		`COMMENT ON FUNCTION hafsql.last_op_id_from_block_num (int8) IS
+		`COMMENT ON FUNCTION hafsql.last_op_id_from_block_num (int4) IS
     'Get highest op_id inside a block';`,
 	)
 
 	// hafsql.first_op_id_from_block_num(int4)
 	// Get lowest op_id inside a block
+	await dropFunction('hafsql.first_op_id_from_block_num(int8)')
 	await query(
-		`CREATE OR REPLACE FUNCTION hafsql.first_op_id_from_block_num(int8)
+		`CREATE OR REPLACE FUNCTION hafsql.first_op_id_from_block_num(int4)
     RETURNS int8
     AS $$
     BEGIN
       RETURN (SELECT id FROM hafd.operations
-        WHERE block_id = $1
+        WHERE hafd.operation_id_to_block_num(id) = $1
         ORDER BY id ASC limit 1);
     EXCEPTION WHEN OTHERS THEN
       RETURN NULL;
@@ -203,7 +205,7 @@ export const setupFunctions = async () => {
     RETURNS NULL ON NULL INPUT;`,
 	)
 	await query(
-		`COMMENT ON FUNCTION hafsql.first_op_id_from_block_num (int8) IS
+		`COMMENT ON FUNCTION hafsql.first_op_id_from_block_num (int4) IS
     'Get lowest op_id inside a block';`,
 	)
 
@@ -348,7 +350,7 @@ export const setupFunctions = async () => {
     RETURNS timestamptz
     AS $$
     BEGIN
-      RETURN (SELECT b.created_at FROM hafd.operations o JOIN hafd.blocks b ON b.block_id = o.block_id WHERE o.id = operation_id);
+      RETURN (SELECT b.created_at FROM hafd.operations o JOIN hafd.blocks b ON b.num = hafd.operation_id_to_block_num(o.id) WHERE o.id = operation_id);
     END
     $$
     LANGUAGE plpgsql
@@ -376,13 +378,14 @@ export const setupFunctions = async () => {
     'Get timestamp from block_num';`,
 	)
 
-	// hafsql.get_content_type(hafd.operation)
+	// hafsql.get_content_type(jsonb) — accepts body_value directly (HAF 1.28.6-rc12 schema)
+	await dropFunction('hafsql.get_content_type(hafd.operation)')
 	await query(
-		`CREATE OR REPLACE FUNCTION hafsql.get_content_type(body hafd.operation)
+		`CREATE OR REPLACE FUNCTION hafsql.get_content_type(body jsonb)
     RETURNS text
     AS $$
     BEGIN
-      RETURN (body::jsonb->'value'->>'json_metadata')::jsonb->>'content_type';
+      RETURN (body->>'json_metadata')::jsonb->>'content_type';
     EXCEPTION WHEN OTHERS THEN
       RETURN NULL;
     END
@@ -391,8 +394,8 @@ export const setupFunctions = async () => {
     IMMUTABLE;`,
 	)
 	await query(
-		`COMMENT ON FUNCTION hafsql.get_content_type (hafd.operation) IS
-    'Get content_type from body of a post operation';`,
+		`COMMENT ON FUNCTION hafsql.get_content_type (jsonb) IS
+    'Get content_type from body_value of a post operation';`,
 	)
 }
 

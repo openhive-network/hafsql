@@ -140,7 +140,8 @@ export const fillOperationTables = async () => {
 
 const getData = async (blockRange: number[]) => {
 	const result = await query<Operations>(
-		`SELECT id, body_binary::jsonb AS body, op_type_id
+		// TODO: future optimization — select body_value directly as body and update all ops[i].body.value.X references to ops[i].body.X
+		`SELECT id, jsonb_build_object('value', body_value) AS body, op_type_id
       FROM hafd.operations
       WHERE id >= hafsql.first_op_id_from_block_num($1)
       AND id <= hafsql.last_op_id_from_block_num($2)

@@ -89,9 +89,9 @@ const getInvalidIndexes = async () => {
  */
 const param = (param: string, jsonb = false): string => {
 	if (jsonb) {
-		return `(body_binary::jsonb->'value'->'${param}')`
+		return `(body_value->'${param}')`
 	}
-	return `(body_binary::jsonb->'value'->>'${param}')`
+	return `(body_value->>'${param}')`
 }
 
 // Indexes on hafd.operations
@@ -169,7 +169,7 @@ export const hiveIndexes: {
 	// json_metadata ->> content_type - for peakd polls
 	{
 		name: 'hafsql_content_type_idx',
-		params: `(hafsql.get_content_type(body_binary), id DESC)`,
+		params: `(hafsql.get_content_type(body_value), id DESC)`,
 		ids: [opId.comment],
 		skip: false,
 	},

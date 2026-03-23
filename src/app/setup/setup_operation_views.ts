@@ -2,9 +2,9 @@ import { query } from '../helpers/database.ts'
 
 const param = (param: string, jsonb = false) => {
 	if (jsonb) {
-		return `(o.body_binary::jsonb->'value'->'${param}')`
+		return `(o.body_value->'${param}')`
 	}
-	return `(o.body_binary::jsonb->'value'->>'${param}')`
+	return `(o.body_value->>'${param}')`
 }
 const amount = (param: string) => {
 	return `hafsql.asset_amount(${param})`
@@ -12,7 +12,7 @@ const amount = (param: string) => {
 const symbol = (param: string) => {
 	return `hafsql.asset_symbol(${param})`
 }
-const block = () => 'o.block_id'
+const block = () => 'hafd.operation_id_to_block_num(o.id)'
 
 const OPs = 49
 
@@ -28,7 +28,7 @@ export const setupOperationViews = async () => {
       ${param('permlink')} AS "permlink",
       ${block()} AS "block_num"
     FROM hafd.operations o
-    JOIN hafd.blocks hb ON hb.block_id = ${block()}
+    JOIN hafd.blocks hb ON hb.num = ${block()}
     WHERE o.op_type_id = 0;`
 	await query(OpVote)
 
@@ -43,10 +43,10 @@ export const setupOperationViews = async () => {
     ${param('title')} AS "title",
     ${param('body')} AS "body",
     hafsql.to_json(${param('json_metadata')}) AS "json_metadata",
-    hafsql.get_content_type(o.body_binary) AS "content_type",
+    hafsql.get_content_type(o.body_value) AS "content_type",
     ${block()} AS "block_num"
     FROM hafd.operations o
-    JOIN hafd.blocks hb ON hb.block_id = ${block()}
+    JOIN hafd.blocks hb ON hb.num = ${block()}
     WHERE o.op_type_id = 1;`
 	await query(OpComment)
 
@@ -60,7 +60,7 @@ export const setupOperationViews = async () => {
     ${param('json')} AS "json",
     ${block()} AS "block_num"
     FROM hafd.operations o
-    JOIN hafd.blocks hb ON hb.block_id = ${block()}
+    JOIN hafd.blocks hb ON hb.num = ${block()}
     WHERE o.op_type_id = 18;`
 	await query(OpCustomJson)
 
@@ -84,7 +84,7 @@ export const setupOperationViews = async () => {
         ELSE 0 END AS vote_value,
       ${block()} as block_num
     FROM hafd.operations o
-    JOIN hafd.blocks hb ON hb.block_id = ${block()}
+    JOIN hafd.blocks hb ON hb.num = ${block()}
     WHERE o.op_type_id = ${OPs} + 23;`
 	await query(VOEffectiveCommentVote)
 }
