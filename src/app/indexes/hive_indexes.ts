@@ -5,6 +5,20 @@ import { sleep } from '../helpers/utils/sleep.ts'
 
 export const createHiveIndexes = async () => {
 	try {
+		// If HAFSQL_DEFER_ALL_INDEXES is set, wait for all tracked apps
+		// to reach live sync before creating any indexes on their tables.
+		// This avoids IO competition during other apps' massive sync.
+		const deferAll = Deno.env.get('HAFSQL_DEFER_ALL_INDEXES') === 'true'
+		if (deferAll) {
+			print(
+				'[Indexes] HAFSQL_DEFER_ALL_INDEXES=true, waiting for hivemind to reach live sync before creating indexes...',
+			)
+			await waitForAppLive('hivemind_app')
+			print(
+				'[Indexes] All apps near live sync, proceeding with index creation...',
+			)
+		}
+
 		// Kill all running queries by hafsql
 		await query(
 			`SELECT pg_cancel_backend(sa.pid) FROM pg_catalog.pg_stat_activity sa WHERE sa.application_name=$1 AND sa.query LIKE $2`,
@@ -82,6 +96,67 @@ const getInvalidIndexes = async () => {
 			i.indexrelid = c.oid AND c.relnamespace = n.oid AND
 			c.relname LIKE 'hafsql_%'`)
 	return result.rows.map((row) => ({ schema: row.nspname, name: row.relname }))
+}
+
+/**
+ * Check if a HAF app context is near live sync (within threshold blocks of head).
+ * Returns true if the context doesn't exist (app not installed) or is near head.
+ */
+const isAppNearLive = async (
+	contextName: string,
+	threshold = 1000,
+): Promise<boolean> => {
+	try {
+		const result = await query<{ behind: number }>(
+			`SELECT (s.consistent_block - c.current_block_num) AS behind
+			 FROM hafd.contexts c
+			 CROSS JOIN hafd.hive_state s
+			 WHERE c.name = $1`,
+			[contextName],
+		)
+		if (result.rows.length === 0) {
+			return true // context doesn't exist, don't block on it
+		}
+		return result.rows[0].behind < threshold
+	} catch {
+		return false
+	}
+}
+
+/**
+ * Wait until a HAF app context reaches near-live sync.
+ */
+const waitForAppLive = async (contextName: string): Promise<void> => {
+	let logged = false
+	while (true) {
+		if (await isAppNearLive(contextName)) {
+			return
+		}
+		if (!logged) {
+			try {
+				const result = await query<{
+					current: number
+					head: number
+				}>(
+					`SELECT c.current_block_num AS current, s.consistent_block AS head
+					 FROM hafd.contexts c
+					 CROSS JOIN hafd.hive_state s
+					 WHERE c.name = $1`,
+					[contextName],
+				)
+				if (result.rows.length > 0) {
+					const { current, head } = result.rows[0]
+					print(
+						`[Indexes] Waiting for ${contextName} to reach live sync (${current}/${head})...`,
+					)
+				}
+			} catch {
+				// ignore
+			}
+			logged = true
+		}
+		await sleep(60000)
+	}
 }
 
 /**
@@ -176,8 +251,18 @@ export const hiveIndexes: {
 ]
 
 // We don't need this but people need it to run queries on hivemind tables
+// Deferred until hivemind reaches live sync to avoid write amplification
+// during hivemind's massive sync (heavy vote inserts)
 export const createHivemindIndexes = async () => {
 	try {
+		const deferHivemind =
+			Deno.env.get('HAFSQL_DEFER_HIVEMIND_INDEXES') !== 'false'
+		if (deferHivemind) {
+			await waitForAppLive('hivemind_app')
+			print(
+				'[Indexes] Hivemind reached live sync, creating hivemind indexes...',
+			)
+		}
 		await query(
 			`CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_last_update_rshares_idx ON hivemind_app.hive_votes USING btree (last_update, rshares);`,
 		)
