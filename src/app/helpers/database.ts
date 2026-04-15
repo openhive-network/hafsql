@@ -28,10 +28,17 @@ export const initDatabase = async () => {
 	}
 	try {
 		await client.query(
-			'CREATE ROLE hafsql_user WITH SUPERUSER CREATEDB LOGIN;',
+			'CREATE ROLE hafsql_user WITH NOSUPERUSER NOCREATEDB LOGIN;',
 		)
 	} catch {
-		//
+		// Role may already exist — demote if it was previously superuser
+		try {
+			await client.query(
+				'ALTER ROLE hafsql_user NOSUPERUSER NOCREATEDB;',
+			)
+		} catch {
+			//
+		}
 	}
 	await client.end()
 	print('[Main] hafsql_owner & hafsql_user roles have been created ✅')

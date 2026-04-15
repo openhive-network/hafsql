@@ -12,7 +12,7 @@ import { handleUpgrade } from './upgrade.ts'
 import { purgeHafSQL } from './purge.ts'
 import { initDatabase, query } from './app/helpers/database.ts'
 import { createWorkers } from './app/helpers/createWorkers.ts'
-import { setupPublicUser } from './app/setup/setup_public_user.ts'
+import { setupApiUser, setupPublicUser } from './app/setup/setup_public_user.ts'
 import { isHafReady } from './app/helpers/isHafReady.ts'
 
 // Running hafsql with the argument `purge` will remove everything and exit
@@ -64,6 +64,8 @@ const entryPoint = async () => {
 		await setup()
 		// check for possible upgrade actions
 		await handleUpgrade()
+		// Grant hafsql_user schema access (needed after demotion from superuser)
+		await setupApiUser()
 		startAPI()
 		print('[Main] Start creating indexes... ⏳')
 		createHiveIndexes()
