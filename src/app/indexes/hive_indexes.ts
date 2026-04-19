@@ -5,19 +5,10 @@ import { sleep } from '../helpers/utils/sleep.ts'
 
 export const createHiveIndexes = async () => {
 	try {
-		// If HAFSQL_DEFER_ALL_INDEXES is set, wait for all tracked apps
-		// to reach live sync before creating any indexes on their tables.
-		// This avoids IO competition during other apps' massive sync.
-		const deferAll = Deno.env.get('HAFSQL_DEFER_ALL_INDEXES') === 'true'
-		if (deferAll) {
-			print(
-				'[Indexes] HAFSQL_DEFER_ALL_INDEXES=true, waiting for hivemind to reach live sync before creating indexes...',
-			)
-			await waitForAppLive('hivemind_app')
-			print(
-				'[Indexes] All apps near live sync, proceeding with index creation...',
-			)
-		}
+		// Wait for hivemind to reach live sync before creating any indexes.
+		// Index creation generates heavy IO that delays hivemind sync.
+		await waitForAppLive('hivemind_app')
+		print('[Indexes] Hivemind is in sync, proceeding with index creation...')
 
 		// Kill all running queries by hafsql
 		await query(
@@ -126,7 +117,7 @@ const isAppNearLive = async (
 /**
  * Wait until a HAF app context reaches near-live sync.
  */
-const waitForAppLive = async (contextName: string): Promise<void> => {
+export const waitForAppLive = async (contextName: string): Promise<void> => {
 	let logged = false
 	while (true) {
 		if (await isAppNearLive(contextName)) {
@@ -251,18 +242,9 @@ export const hiveIndexes: {
 ]
 
 // We don't need this but people need it to run queries on hivemind tables
-// Deferred until hivemind reaches live sync to avoid write amplification
-// during hivemind's massive sync (heavy vote inserts)
 export const createHivemindIndexes = async () => {
 	try {
-		const deferHivemind =
-			Deno.env.get('HAFSQL_DEFER_HIVEMIND_INDEXES') !== 'false'
-		if (deferHivemind) {
-			await waitForAppLive('hivemind_app')
-			print(
-				'[Indexes] Hivemind reached live sync, creating hivemind indexes...',
-			)
-		}
+		await waitForAppLive('hivemind_app')
 		await query(
 			`CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_last_update_rshares_idx ON hivemind_app.hive_votes USING btree (last_update, rshares);`,
 		)

@@ -1,7 +1,8 @@
 import { query } from '../helpers/database.ts'
-import { doesIndexExist } from './hive_indexes.ts'
+import { doesIndexExist, waitForAppLive } from './hive_indexes.ts'
 
 export const createCommentsIndexes = async () => {
+	await waitForAppLive('hivemind_app')
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_comments_table_pending_payout_value_idx ON hafsql.comments_table USING btree (pending_payout_value);',
 	)
@@ -41,6 +42,7 @@ export const createCommentsIndexes = async () => {
 }
 
 export const createRCDelegationsIndexes = async () => {
+	await waitForAppLive('hivemind_app')
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_rc_delegations_table_delegatee_timestamp_idx ON hafsql.rc_delegations_table USING btree (delegatee, timestamp);',
 	)
@@ -50,6 +52,7 @@ export const createRCDelegationsIndexes = async () => {
 }
 
 export const createAccountsIndexes = async () => {
+	await waitForAppLive('hivemind_app')
 	// We had some toast errors on this table when creating indexes
 	// I assume due to number of updates happening on this table data gets corrupted
 	// See if vaccuming before index creation eliminates this issue
@@ -93,6 +96,7 @@ export const createAccountsIndexes = async () => {
 }
 
 export const createMarketIndexes = async () => {
+	await waitForAppLive('hivemind_app')
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_market_open_orders_table_amount_idx ON hafsql.market_open_orders_table USING btree (amount);',
 	)
@@ -105,6 +109,7 @@ export const createMarketIndexes = async () => {
 }
 
 export const createOperationIndexes = async () => {
+	await waitForAppLive('hivemind_app')
 	// timestamp for all
 	// for (const item in operationTables) {
 	// 	await query(
