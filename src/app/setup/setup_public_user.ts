@@ -85,9 +85,6 @@ const grantSchemaAccess = async (forUser: string) => {
 		`GRANT EXECUTE ON FUNCTION hafd.operation_id_to_block_num TO ${forUser};`,
 	)
 	await query(
-		`GRANT EXECUTE ON FUNCTION hafd.operation_id_to_type_id TO ${forUser};`,
-	)
-	await query(
 		`GRANT EXECUTE ON FUNCTION hafd.operation_id_to_pos TO ${forUser};`,
 	)
 	await query(
