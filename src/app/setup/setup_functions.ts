@@ -263,6 +263,90 @@ export const setupFunctions = async () => {
     'Parse large reputation number into user friendly number';`,
 	)
 
+  // get_balance_at(int4, int4)
+  await query(
+    `CREATE OR REPLACE FUNCTION hafsql.get_balance_at(
+      p_account_id int4,
+      p_block_num int4
+    )
+    RETURNS TABLE (
+      account_id int,
+      account_name text,
+      block_num int4,
+      hbd numeric,
+      hive numeric,
+      vests numeric,
+      hive_savings numeric,
+      hbd_savings numeric,
+      hp_equivalent numeric
+    )
+    LANGUAGE plpgsql STABLE AS $$
+    DECLARE
+      v_account_name   text;
+      v_hbd_balance    bigint;
+      v_hive_balance   bigint;
+      v_vests_balance  bigint;
+      v_hive_savings   bigint;
+      v_hbd_savings    bigint;
+      v_hp_equivalent  numeric;
+    BEGIN
+      SELECT a.name INTO v_account_name
+      FROM hafd.accounts a
+      WHERE a.id = p_account_id;
+
+      IF v_account_name IS NULL THEN
+        RETURN;
+      END IF;
+
+      SELECT h.balance INTO v_hbd_balance
+      FROM hafbe_bal.account_balance_history h
+      WHERE h.account = p_account_id AND h.nai = 13
+        AND hafd.operation_id_to_block_num(h.source_op) <= p_block_num
+      ORDER BY hafd.operation_id_to_block_num(h.source_op) DESC, h.source_op DESC
+      LIMIT 1;
+
+      SELECT h.balance INTO v_hive_balance
+      FROM hafbe_bal.account_balance_history h
+      WHERE h.account = p_account_id AND h.nai = 21
+        AND hafd.operation_id_to_block_num(h.source_op) <= p_block_num
+      ORDER BY hafd.operation_id_to_block_num(h.source_op) DESC, h.source_op DESC
+      LIMIT 1;
+
+      SELECT h.balance INTO v_vests_balance
+      FROM hafbe_bal.account_balance_history h
+      WHERE h.account = p_account_id AND h.nai = 37
+        AND hafd.operation_id_to_block_num(h.source_op) <= p_block_num
+      ORDER BY hafd.operation_id_to_block_num(h.source_op) DESC, h.source_op DESC
+      LIMIT 1;
+
+      SELECT s.balance INTO v_hive_savings
+      FROM hafbe_bal.account_savings_history s
+      WHERE s.account = p_account_id AND s.nai = 21
+        AND hafd.operation_id_to_block_num(s.source_op) <= p_block_num
+      ORDER BY hafd.operation_id_to_block_num(s.source_op) DESC, s.source_op DESC
+      LIMIT 1;
+
+      SELECT s.balance INTO v_hbd_savings
+      FROM hafbe_bal.account_savings_history s
+      WHERE s.account = p_account_id AND s.nai = 13
+        AND hafd.operation_id_to_block_num(s.source_op) <= p_block_num
+      ORDER BY hafd.operation_id_to_block_num(source_op) DESC, s.source_op DESC
+      LIMIT 1;
+
+      RETURN QUERY SELECT
+        p_account_id,
+        v_account_name,
+        p_block_num,
+        COALESCE((v_hbd_balance / 1000.0)::numeric, 0),
+        COALESCE((v_hive_balance / 1000.0)::numeric, 0),
+        COALESCE((v_vests_balance / 1000000.0)::numeric, 0),
+        COALESCE((v_hive_savings / 1000.0)::numeric, 0),
+        COALESCE((v_hbd_savings / 1000.0)::numeric, 0),
+        hafsql.vests_to_hive((v_vests_balance / 1000000.0), p_block_num);
+    END;
+    $$;`
+  )
+
 	// hafsql.get_balance(int4, int4 default NULL)
 	// Get account balance - optionally at certain block_num
 	await query(
@@ -273,14 +357,13 @@ export const setupFunctions = async () => {
       CASE WHEN $2 is NULL THEN
         RETURN QUERY
           (SELECT b.hive, b.hbd, b.vests, hafsql.vests_to_hive(b.vests) AS hp_equivalent, b.hive_savings, b.hbd_savings
-          FROM hafsql.balances_table b WHERE b.account = $1);
+          FROM hafsql.balances b WHERE b.account_id = $1);
       ELSE
 		CASE WHEN
-			(SELECT EXISTS(SELECT 1 FROM hafsql.balances_history_table b WHERE b.account = $1 AND b.block_num <= $2 LIMIT 1)) = true
+			(SELECT EXISTS(SELECT 1 FROM hafsql.balances_history b WHERE b.account_id = $1 AND b.block_num <= $2 LIMIT 1)) = true
 		THEN RETURN QUERY
-      (SELECT b.hive, b.hbd, b.vests, hafsql.vests_to_hive(b.vests, $2) AS hp_equivalent, b.hive_savings, b.hbd_savings
-      FROM hafsql.balances_history_table b WHERE b.account = $1 AND b.block_num <= $2
-      ORDER BY b.block_num DESC LIMIT 1);
+      (SELECT b.hive, b.hbd, b.vests, b.hp_equivalent, b.hive_savings, b.hbd_savings
+      FROM hafsql.get_balance_at($1, $2) b);
 		ELSE RETURN QUERY SELECT 0::numeric, 0::numeric, 0::numeric, 0::numeric, 0::numeric, 0::numeric;
 		END CASE;
       END CASE;
