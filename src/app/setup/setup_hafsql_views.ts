@@ -321,13 +321,14 @@ export const setupHafsqlViews = async () => {
     FROM hafbe_bal.account_balance_history e
   )
   SELECT
-    a.name,
+    a.id AS account_id,
+    a.name AS account_name,
     base.block_num,
-    hbd.balance AS hbd,
-    hive.balance AS hive,
-    vests.balance AS vests,
-    hive_savings.balance AS hive_savings,
-    hbd_savings.balance AS hbd_savings,
+    (hbd.balance/1000.0)::numeric AS hbd,
+    (hive.balance/1000.0)::numeric AS hive,
+    (vests.balance/1000000.0)::numeric AS vests,
+    (hive_savings.balance/1000.0)::numeric AS hive_savings,
+    (hbd_savings.balance/1000.0)::numeric AS hbd_savings,
     base.hive_rowid
   FROM base
   JOIN hafd.accounts a ON a.id = base.account
