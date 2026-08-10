@@ -28,8 +28,8 @@ ARG GIT_LAST_COMMITTER
 ARG GIT_LAST_COMMIT_DATE
 LABEL org.opencontainers.image.created="$BUILD_TIME"
 LABEL org.opencontainers.image.url="https://hive.io/"
-LABEL org.opencontainers.image.documentation="https://gitlab.syncad.com/hive/hafsql"
-LABEL org.opencontainers.image.source="https://gitlab.syncad.com/hive/hafsql"
+LABEL org.opencontainers.image.documentation="https://gitlab.com/mahdiyari/hafsql"
+LABEL org.opencontainers.image.source="https://gitlab.com/mahdiyari/hafsql"
 LABEL org.opencontainers.image.revision="$GIT_COMMIT_SHA"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.ref.name="HafSQL"
