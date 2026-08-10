@@ -5,15 +5,21 @@ import { sleep } from '../helpers/utils/sleep.ts'
 
 export const createHiveIndexes = async () => {
 	try {
+		// Wait for hivemind to reach live sync before creating any indexes.
+		// Index creation generates heavy IO that delays hivemind sync.
+		await waitForAppLive('hivemind_app')
+		print('[Indexes] Hivemind is in sync, proceeding with index creation...')
+
 		// Kill all running queries by hafsql
 		await query(
 			`SELECT pg_cancel_backend(sa.pid) FROM pg_catalog.pg_stat_activity sa WHERE sa.application_name=$1 AND sa.query LIKE $2`,
 			['hafsql', 'CREATE%'],
 		)
 		const invalidIndexes = await getInvalidIndexes()
-		invalidIndexes.forEach(async (index) => {
-			await query(`DROP INDEX CONCURRENTLY hafd.${index};`)
-		})
+		for (const index of invalidIndexes) {
+			print(`[Indexes] Dropping invalid index ${index.schema}.${index.name}...`)
+			await query(`DROP INDEX CONCURRENTLY ${index.schema}.${index.name};`)
+		}
 		for (let i = 0; i < hiveIndexes.length; i++) {
 			const name = hiveIndexes[i].name
 			const params = hiveIndexes[i].params
@@ -26,9 +32,9 @@ export const createHiveIndexes = async () => {
 			if (ids.length > 0) {
 				if (ids.length > 1) {
 					condition =
-						`WHERE hafd.operation_id_to_type_id(id) IN (${ids.join()})`
+						`WHERE op_type_id IN (${ids.join()})`
 				} else {
-					condition = `WHERE hafd.operation_id_to_type_id(id) = ${ids[0]}`
+					condition = `WHERE op_type_id = ${ids[0]}`
 				}
 				// for now only used by one index so should be fine
 				if (hiveIndexes[i].condition) {
@@ -49,10 +55,10 @@ export const createHiveIndexes = async () => {
 		print('[Indexes] All indexes have been created! ✅')
 		print('[Indexes] Creating Hivemind indexes...')
 		await createHivemindIndexes()
-	} catch (_e) {
-		print('Retrying index creation... (this is normal)')
+	} catch (e) {
+		print(`[Indexes] Error during index creation: ${e.message}. Retrying in 10s...`)
 		await sleep(10000)
-		createHiveIndexes()
+		await createHiveIndexes()
 	}
 }
 
@@ -75,18 +81,73 @@ export const doesIndexExist = async (name: string) => {
 }
 
 const getInvalidIndexes = async () => {
-	const result = await query<{ relname: string }>(`SELECT c.relname
+	const result = await query<{ nspname: string; relname: string }>(`SELECT n.nspname, c.relname
 		FROM pg_catalog.pg_class c, pg_catalog.pg_namespace n, pg_catalog.pg_index i
 		WHERE  (i.indisvalid = false OR i.indisready = false) AND
 			i.indexrelid = c.oid AND c.relnamespace = n.oid AND
-			n.nspname != 'pg_catalog' AND
-			n.nspname != 'information_schema' AND
-			n.nspname != 'pg_toast'`)
-	const temp = []
-	for (let i = 0; i < result.rows.length; i++) {
-		temp.push(result.rows[i].relname)
+			c.relname LIKE 'hafsql_%'`)
+	return result.rows.map((row) => ({ schema: row.nspname, name: row.relname }))
+}
+
+/**
+ * Check if a HAF app context is near live sync (within threshold blocks of head).
+ * Returns true if the context doesn't exist (app not installed) or is near head.
+ */
+const isAppNearLive = async (
+	contextName: string,
+	threshold = 1000,
+): Promise<boolean> => {
+	try {
+		const result = await query<{ behind: number }>(
+			`SELECT (s.consistent_block - c.current_block_num) AS behind
+			 FROM hafd.contexts c
+			 CROSS JOIN hafd.hive_state s
+			 WHERE c.name = $1`,
+			[contextName],
+		)
+		if (result.rows.length === 0) {
+			return true // context doesn't exist, don't block on it
+		}
+		return result.rows[0].behind < threshold
+	} catch {
+		return false
 	}
-	return temp
+}
+
+/**
+ * Wait until a HAF app context reaches near-live sync.
+ */
+export const waitForAppLive = async (contextName: string): Promise<void> => {
+	let logged = false
+	while (true) {
+		if (await isAppNearLive(contextName)) {
+			return
+		}
+		if (!logged) {
+			try {
+				const result = await query<{
+					current: number
+					head: number
+				}>(
+					`SELECT c.current_block_num AS current, s.consistent_block AS head
+					 FROM hafd.contexts c
+					 CROSS JOIN hafd.hive_state s
+					 WHERE c.name = $1`,
+					[contextName],
+				)
+				if (result.rows.length > 0) {
+					const { current, head } = result.rows[0]
+					print(
+						`[Indexes] Waiting for ${contextName} to reach live sync (${current}/${head})...`,
+					)
+				}
+			} catch {
+				// ignore
+			}
+			logged = true
+		}
+		await sleep(60000)
+	}
 }
 
 /**
@@ -94,9 +155,9 @@ const getInvalidIndexes = async () => {
  */
 const param = (param: string, jsonb = false): string => {
 	if (jsonb) {
-		return `(body_binary::jsonb->'value'->'${param}')`
+		return `(body_value->'${param}')`
 	}
-	return `(body_binary::jsonb->'value'->>'${param}')`
+	return `(body_value->>'${param}')`
 }
 
 // Indexes on hafd.operations
@@ -112,7 +173,7 @@ export const hiveIndexes: {
 	// sorting by ID (op_id) on op_* & vo_* views - needed for sync
 	{
 		name: 'hafsql_hive_operations_op_type_id_id',
-		params: '(hafd.operation_id_to_type_id(id), id)',
+		params: '(op_type_id, id)',
 		ids: [],
 		skip: false,
 	},
@@ -121,7 +182,7 @@ export const hiveIndexes: {
 		name: 'hafsql_author_permlink_idx',
 		params: `(${param('author')}, ${
 			param('permlink')
-		}, hafd.operation_id_to_type_id(id), id DESC)`,
+		}, op_type_id, id DESC)`,
 		ids: [
 			opId.vote,
 			opId.comment,
@@ -139,7 +200,7 @@ export const hiveIndexes: {
 	// voter - op_
 	{
 		name: 'hafsql_voter_idx',
-		params: `(${param('voter')}, hafd.operation_id_to_type_id(id), id)`,
+		params: `(${param('voter')}, op_type_id, id)`,
 		ids: [
 			opId.vote,
 			opId.effective_comment_vote,
@@ -149,7 +210,7 @@ export const hiveIndexes: {
 	// author - op_
 	{
 		name: 'hafsql_author_idx',
-		params: `(${param('author')}, hafd.operation_id_to_type_id(id), id DESC)`,
+		params: `(${param('author')}, op_type_id, id DESC)`,
 		ids: [
 			opId.vote,
 			opId.comment,
@@ -174,7 +235,7 @@ export const hiveIndexes: {
 	// json_metadata ->> content_type - for peakd polls
 	{
 		name: 'hafsql_content_type_idx',
-		params: `(hafsql.get_content_type(body_binary), id DESC)`,
+		params: `(hafsql.get_content_type(body_value), id DESC)`,
 		ids: [opId.comment],
 		skip: false,
 	},
@@ -183,6 +244,7 @@ export const hiveIndexes: {
 // We don't need this but people need it to run queries on hivemind tables
 export const createHivemindIndexes = async () => {
 	try {
+		await waitForAppLive('hivemind_app')
 		await query(
 			`CREATE INDEX CONCURRENTLY IF NOT EXISTS hafsql_last_update_rshares_idx ON hivemind_app.hive_votes USING btree (last_update, rshares);`,
 		)

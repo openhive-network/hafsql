@@ -2,9 +2,9 @@ import { query } from '../helpers/database.ts'
 
 const param = (param: string, jsonb = false) => {
 	if (jsonb) {
-		return `(o.body_binary::jsonb->'value'->'${param}')`
+		return `(o.body_value->'${param}')`
 	}
-	return `(o.body_binary::jsonb->'value'->>'${param}')`
+	return `(o.body_value->>'${param}')`
 }
 const amount = (param: string) => {
 	return `hafsql.asset_amount(${param})`
@@ -12,9 +12,7 @@ const amount = (param: string) => {
 const symbol = (param: string) => {
 	return `hafsql.asset_symbol(${param})`
 }
-const block = (id: string) => {
-	return `hafd.operation_id_to_block_num(${id})`
-}
+const block = () => 'hafd.operation_id_to_block_num(o.id)'
 
 const OPs = 49
 
@@ -28,10 +26,10 @@ export const setupOperationViews = async () => {
       ${param('author')} AS "author",
       ${param('weight')}::int4 AS "weight",
       ${param('permlink')} AS "permlink",
-      ${block('o.id')} AS "block_num"
+      ${block()} AS "block_num"
     FROM hafd.operations o
-    JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
-    WHERE hafd.operation_id_to_type_id(o.id) = 0;`
+    JOIN hafd.blocks hb ON hb.num = ${block()}
+    WHERE o.op_type_id = 0;`
 	await query(OpVote)
 
 	// No dedicated table
@@ -45,11 +43,11 @@ export const setupOperationViews = async () => {
     ${param('title')} AS "title",
     ${param('body')} AS "body",
     hafsql.to_json(${param('json_metadata')}) AS "json_metadata",
-    hafsql.get_content_type(o.body_binary) AS "content_type",
-    ${block('o.id')} AS "block_num"
+    hafsql.get_content_type(o.body_value) AS "content_type",
+    ${block()} AS "block_num"
     FROM hafd.operations o
-    JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
-    WHERE hafd.operation_id_to_type_id(o.id) = 1;`
+    JOIN hafd.blocks hb ON hb.num = ${block()}
+    WHERE o.op_type_id = 1;`
 	await query(OpComment)
 
 	// No dedicated table
@@ -60,10 +58,10 @@ export const setupOperationViews = async () => {
     ${param('required_posting_auths', true)} AS "required_posting_auths",
     ${param('id')} AS "custom_id",
     ${param('json')} AS "json",
-    ${block('o.id')} AS "block_num"
+    ${block()} AS "block_num"
     FROM hafd.operations o
-    JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
-    WHERE hafd.operation_id_to_type_id(o.id) = 18;`
+    JOIN hafd.blocks hb ON hb.num = ${block()}
+    WHERE o.op_type_id = 18;`
 	await query(OpCustomJson)
 
 	// +23
@@ -84,10 +82,10 @@ export const setupOperationViews = async () => {
         THEN (${amount(param('pending_payout'))} /
         ${param('total_vote_weight')}::numeric) * ${param('weight')}::numeric
         ELSE 0 END AS vote_value,
-      ${block('o.id')} as block_num
+      ${block()} as block_num
     FROM hafd.operations o
-    JOIN hafd.blocks hb ON hb.num = ${block('o.id')}
-    WHERE hafd.operation_id_to_type_id(o.id) = ${OPs} + 23;`
+    JOIN hafd.blocks hb ON hb.num = ${block()}
+    WHERE o.op_type_id = ${OPs} + 23;`
 	await query(VOEffectiveCommentVote)
 }
 
