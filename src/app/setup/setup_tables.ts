@@ -8,17 +8,6 @@ export const setupTables = async () => {
     CONSTRAINT hafsql_sync_data_un UNIQUE (table_name)
   );`)
 
-	// Delegations
-	await query(
-		`CREATE TABLE IF NOT EXISTS hafsql.delegations_table (
-      delegator varchar NOT NULL,
-      delegatee varchar NOT NULL,
-      vests numeric NOT NULL,
-      timestamp timestamptz NOT NULL,
-      CONSTRAINT hafsql_delegations_table_un UNIQUE (delegator, delegatee)
-    );`,
-	)
-
 	// RC Delegations
 	await query(
 		`CREATE TABLE IF NOT EXISTS hafsql.rc_delegations_table (

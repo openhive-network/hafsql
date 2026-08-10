@@ -102,6 +102,7 @@ HAFSQL_PUBLICUSER=true
 - SQL functions are in `/src/app/setup/functions.ts`  
 - Breaking schema changes must be handled in `src/upgrade.ts`  
 - Version must be updated in `deno.json`  
+- Docker images are built, tagged, and pushed with `./docker-push.sh` (requires `docker login`)  
 - SQL docs are built by gitlab - just edit md files in `sql_docs`  
   
 Open issues for feedback or requests.

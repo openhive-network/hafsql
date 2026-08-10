@@ -1,17 +1,14 @@
-image: node:latest
-
-before_script:
-  - npm install retypeapp --global
-
 stages:
   - deploy
 
 pages:
   stage: deploy
+  image: node:latest
   script:
-  - retype build
+    - npm install retypeapp --global
+    - retype build
   artifacts:
     paths:
-    - public/
-  only:
-  - main
+      - public/
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
