@@ -56,7 +56,8 @@ export const createHiveIndexes = async () => {
 		print('[Indexes] Creating Hivemind indexes...')
 		await createHivemindIndexes()
 	} catch (e) {
-		print(`[Indexes] Error during index creation: ${e.message}. Retrying in 10s...`)
+		const message = e instanceof Error ? e.message : String(e)
+		print(`[Indexes] Error during index creation: ${message}. Retrying in 10s...`)
 		await sleep(10000)
 		await createHiveIndexes()
 	}

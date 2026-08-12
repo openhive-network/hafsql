@@ -71,6 +71,7 @@ export const scalar = new Router()
         <header class="custom-header scalar-app">
           <a href="/#"><b>HafSQL APIs</b></a>
           <nav>
+            <a href="status">Status</a>
             <a target="_blank" href="https://gitlab.com/mahdiyari/hafsql">GitLab</a>
           </nav>
         </header>

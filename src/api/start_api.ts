@@ -10,8 +10,9 @@ import { apiRouter } from './mod.ts'
 import { query } from '../app/helpers/database.ts'
 import { isHafReady } from '../app/helpers/isHafReady.ts'
 
-let HAF_STATUS = 'unkown'
+let HAF_STATUS = 'unknown'
 const PREFIX = Deno.env.get('API_PREFIX')
+const STARTED_AT = new Date()
 
 export const startAPI = async () => {
 	if (!Deno.args.includes('api_only')) {
@@ -23,8 +24,9 @@ export const startAPI = async () => {
 	const app = new Application()
 	app.use(async (ctx, next) => {
 		try {
+			const isStatusRoute = /\/status\/?$/.test(ctx.request.url.pathname)
 			// Check if HAF and HafSQL are ready
-			if (HAF_STATUS !== 'ready') {
+			if (HAF_STATUS !== 'ready' && !isStatusRoute) {
 				ctx.response.status = 503
 				ctx.response.body = {
 					status: 503,
@@ -61,6 +63,18 @@ export const startAPI = async () => {
 	})
 
 	const router = new Router({ prefix: PREFIX })
+		.get('/status', (ctx) => {
+			const ready = HAF_STATUS === 'ready'
+			ctx.response.headers.set('Cache-Control', 'no-store')
+			ctx.response.status = ready ? 200 : 503
+			ctx.response.body = {
+				status: ready ? 'ready' : 'starting',
+				message: HAF_STATUS,
+				checkedAt: new Date().toISOString(),
+				startedAt: STARTED_AT.toISOString(),
+				uptimeSeconds: Math.floor((Date.now() - STARTED_AT.getTime()) / 1000),
+			}
+		})
 		.use(apiRouter.routes())
 
 	// app.addEventListener('error', (e) => {
@@ -118,7 +132,7 @@ const checkHafStatus = async () => {
 	}
 }
 
-let statusInterval: number
+let statusInterval: ReturnType<typeof setInterval>
 if (!Deno.args.includes('api_only')) {
 	statusInterval = setInterval(checkHafStatus, 5_000)
 }
