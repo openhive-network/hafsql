@@ -94,6 +94,10 @@ HAFSQL_REPUTATIONS=true # depends on HAFSQL_COMMENTS
 HAFSQL_PUBLICUSER=true
 ```
 
+### Public SQL security
+
+Runtime limits for raw public SQL are enforced by the dedicated public PgBouncer in `haf_api_node`. HafSQL applies the database ACL restrictions that a connection pooler cannot enforce: the configured public role cannot create temporary or permanent ParadeDB objects, call dangerous administration/large-object/advisory-lock functions, execute `hive.log_context`, or delete pg_cron history. Before removing an inherited `PUBLIC` privilege, setup preserves it explicitly for every existing non-public PostgreSQL role so other installed HAF applications keep their current effective access.
+
 ## Development
 - APIs are located in `/src/api/routes`  
 - New APIs must be imported in `/src/api/mod.ts`  
