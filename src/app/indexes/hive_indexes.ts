@@ -5,16 +5,19 @@ import { sleep } from '../helpers/utils/sleep.ts'
 
 export const createHiveIndexes = async () => {
 	try {
+		// Kill all running queries by hafsql
+		// We kill all the lingering index creations that are left behind
+		// when we terminate HafSQL while it's in the middle of index creation
+		await query(
+			`SELECT pg_cancel_backend(sa.pid) FROM pg_catalog.pg_stat_activity sa WHERE sa.application_name=$1 AND sa.query LIKE $2`,
+			['hafsql', 'CREATE%'],
+		)
+
 		// Wait for hivemind to reach live sync before creating any indexes.
 		// Index creation generates heavy IO that delays hivemind sync.
 		await waitForAppLive('hivemind_app')
 		print('[Indexes] Hivemind is in sync, proceeding with index creation...')
 
-		// Kill all running queries by hafsql
-		await query(
-			`SELECT pg_cancel_backend(sa.pid) FROM pg_catalog.pg_stat_activity sa WHERE sa.application_name=$1 AND sa.query LIKE $2`,
-			['hafsql', 'CREATE%'],
-		)
 		const invalidIndexes = await getInvalidIndexes()
 		for (const index of invalidIndexes) {
 			print(`[Indexes] Dropping invalid index ${index.schema}.${index.name}...`)
@@ -31,8 +34,7 @@ export const createHiveIndexes = async () => {
 			let condition = ''
 			if (ids.length > 0) {
 				if (ids.length > 1) {
-					condition =
-						`WHERE op_type_id IN (${ids.join()})`
+					condition = `WHERE op_type_id IN (${ids.join()})`
 				} else {
 					condition = `WHERE op_type_id = ${ids[0]}`
 				}
@@ -57,7 +59,9 @@ export const createHiveIndexes = async () => {
 		await createHivemindIndexes()
 	} catch (e) {
 		const message = e instanceof Error ? e.message : String(e)
-		print(`[Indexes] Error during index creation: ${message}. Retrying in 10s...`)
+		print(
+			`[Indexes] Error during index creation: ${message}. Retrying in 10s...`,
+		)
 		await sleep(10000)
 		await createHiveIndexes()
 	}
@@ -82,11 +86,13 @@ export const doesIndexExist = async (name: string) => {
 }
 
 const getInvalidIndexes = async () => {
-	const result = await query<{ nspname: string; relname: string }>(`SELECT n.nspname, c.relname
+	const result = await query<{ nspname: string; relname: string }>(
+		`SELECT n.nspname, c.relname
 		FROM pg_catalog.pg_class c, pg_catalog.pg_namespace n, pg_catalog.pg_index i
 		WHERE  (i.indisvalid = false OR i.indisready = false) AND
 			i.indexrelid = c.oid AND c.relnamespace = n.oid AND
-			c.relname LIKE 'hafsql_%'`)
+			c.relname LIKE 'hafsql_%'`,
+	)
 	return result.rows.map((row) => ({ schema: row.nspname, name: row.relname }))
 }
 
@@ -181,9 +187,7 @@ export const hiveIndexes: {
 	// author, permlink - used in rewards and reputations
 	{
 		name: 'hafsql_author_permlink_idx',
-		params: `(${param('author')}, ${
-			param('permlink')
-		}, op_type_id, id DESC)`,
+		params: `(${param('author')}, ${param('permlink')}, op_type_id, id DESC)`,
 		ids: [
 			opId.vote,
 			opId.comment,
