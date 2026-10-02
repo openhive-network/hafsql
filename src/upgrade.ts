@@ -98,6 +98,20 @@ export const handleUpgrade = async () => {
 		await setup()
 	}
 
+	// Upgrading from <= 2.6.1
+	// Rebuild comments, including their deletion status and rewards.
+	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.6.1'))) {
+		print('Upgrading from version <= 2.6.1 - need to resync comments')
+		await transaction(async (client) => {
+			await client.query('DROP TABLE IF EXISTS hafsql.comments_table CASCADE;')
+			await client.query(
+				`UPDATE hafsql.sync_data SET last_block_num=0 WHERE table_name IN ('comments', 'delete_comments', 'paid_rewards', 'pending_rewards')`,
+			)
+		})
+		await setup()
+		print('Upgrade script done ✅')
+	}
+
 	// Update the version
 	if (oldVersion !== newVersion) {
 		await query(
