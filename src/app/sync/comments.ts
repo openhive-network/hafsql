@@ -164,8 +164,8 @@ const updateEditedComment = async (
 	if (JSON.stringify(metadata) !== JSON.stringify(oldComment.metadata)) {
 		params.push({ name: 'metadata', value: JSON.stringify(metadata) })
 	}
-	const oldBody = comment.body
-	const newBody = oldComment.body
+	const oldBody = oldComment.body
+	const newBody = comment.body
 	if (oldBody.length > 0 && oldBody !== newBody) {
 		const editedBody = patchBody(oldBody, newBody)
 		params.push({ name: 'body', value: editedBody })
