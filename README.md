@@ -1,5 +1,5 @@
 # HafSQL
-This version is compatible with HAF 1.27.7rc16 - For production wait for stable release
+This version is compatible with latest HAF
 
 ## Documentation
 - [SQL Documentations](https://mahdiyari.gitlab.io/hafsql/)
@@ -9,94 +9,8 @@ This version is compatible with HAF 1.27.7rc16 - For production wait for stable 
 - [Docker compose yaml files](https://gitlab.com/mahdiyari/haf_dockers)
 
 ***
-## How to run
-
-
-### Option 1: If you already have HAF running
-The following command will start the HafSQL docker container and serve the API and documentations on port 3000.  
-The container will check and wait for HAF to be ready before processing the data.  
-
-To include [environment variables](#options):
-```sh
-cp .env.defaults .env
-# Edit .env
-# Then
-docker run -itd --env-file .env -p 3000:3000 --name hafsql mahdiyari/hafsql:{version}
-# replace {version} with actual version number e.g. 2.2.6
-```
-Make sure the IP address on `HAFSQL_PGHOST` is correct. You can find the correct IP address by:
-```sh
-docker inspect \
-  -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' container_name_or_id
-```
-
-> Note: HafSQL needs `haf_admin`, `hafsql_owner`, and `hafsql_user` pg_hba entries.
-
-
-### Option 2: Run only HAF + HafSQL
-The following docker compose repository will setup both HAF and HafSQL with one command:  
-[HAF Dockers](https://gitlab.com/mahdiyari/haf_dockers)  
-  
-Note: It takes around 24hrs for HafSQL to become ready.
-
-## Uninstall
-To remove HafSQL just provide the `purge` argument:
-```sh
-docker run -it --rm --env-file .env mahdiyari/hafsql:latest purge
-```
-It will remove everything related to HafSQL and exit.
-
-
-### Requirements
-HafSQL:  
-400GB of compressed storage space (ZFS LZ4)  
-8GB of free RAM  
-  
-
-### Options
-The following environment variables are available as described in `.env.defaults`.
-You can use --env or --env-file while running the docker container to pass the varibales.
-
-```conf
-# Default haf values
-# Shouldn't need to change any except the PGHOST in case of different IP address
-HAFSQL_PGDATABASE=haf_block_log
-HAFSQL_PGUSER=haf_admin
-HAFSQL_PGHOST=172.17.0.2
-HAFSQL_PGPORT=5432
-HAFSQL_PGPOOLSIZE=5 # lazy - must be >= 3
-
-HAFSQL_INDEXMAXTHREADS=8
-
-# Modular syncing
-# Don't modify if providing a public API node
-# The followings are useful for people who want to run a very minimal instance
-# Set to false to skip syncing that table
-HAFSQL_BALANCES=true
-HAFSQL_ACCOUNTS=true
-HAFSQL_FOLLOWS=true # follows, mutes, blacklists
-HAFSQL_COMMUNITIES=true
-HAFSQL_RC_DELEGATIONS=true
-HAFSQL_DELEGATIONS=true
-HAFSQL_PROPOSALS=true
-HAFSQL_COMMENTS=true
-HAFSQL_REBLOGS=true # depends on HAFSQL_COMMENTS
-HAFSQL_REWARDS=true # depends on HAFSQL_COMMENTS
-HAFSQL_REPUTATIONS=true # depends on HAFSQL_COMMENTS
-
-# Operation filtering is already avilable directly on HAF
-# so the above should be enough
-
-# Creates hafsql_public role and grant SELECT on hafsql views
-# user: hafsql_public - password: hafsql_public
-# pg_hba entry: host haf_block_log hafsql_public all md5
-# Would recommend leaving unchanged
-HAFSQL_PUBLICUSER=true
-```
-
-### Public SQL security
-
-Runtime limits for raw public SQL are enforced by the dedicated public PgBouncer in `haf_api_node`. HafSQL applies the database ACL restrictions that a connection pooler cannot enforce: the configured public role cannot create temporary or permanent ParadeDB objects, call dangerous administration/large-object/advisory-lock functions, execute `hive.log_context`, or delete pg_cron history. Before removing an inherited `PUBLIC` privilege, setup preserves it explicitly for every existing non-public PostgreSQL role so other installed HAF applications keep their current effective access.
+## Running  
+HafSQL now runs alongside HAF and other HAF apps in the official haf_api_node stack  
 
 ## Development
 - APIs are located in `/src/api/routes`  
