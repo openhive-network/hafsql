@@ -130,8 +130,8 @@ const insertComment = async (comment: CommentOp, client: customClient) => {
       (title, body, tags, author, permlink, parent_author, parent_permlink, metadata, created, root_author, root_permlink, category)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
 		[
-			comment.title,
-			comment.body,
+			cleanString(comment.title),
+			cleanString(comment.body),
 			JSON.stringify(tags),
 			comment.author,
 			comment.permlink,
@@ -168,10 +168,10 @@ const updateEditedComment = async (
 	const newBody = comment.body
 	if (oldBody.length > 0 && oldBody !== newBody) {
 		const editedBody = patchBody(oldBody, newBody)
-		params.push({ name: 'body', value: editedBody })
+		params.push({ name: 'body', value: cleanString(editedBody) })
 	}
 	if (comment.title !== oldComment.title) {
-		params.push({ name: 'title', value: comment.title })
+		params.push({ name: 'title', value: cleanString(comment.title) })
 	}
 	if (params.length < 1) {
 		return
