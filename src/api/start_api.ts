@@ -127,8 +127,9 @@ const checkHafStatus = async () => {
 		}
 		HAF_STATUS = 'ready'
 		clearInterval(statusInterval)
-	} catch {
+	} catch (e) {
 		// sync_data table won't be available when waiting for haf to be ready
+		print(`[API] Status check failed: ${e instanceof Error ? e.message : e}`)
 	}
 }
 

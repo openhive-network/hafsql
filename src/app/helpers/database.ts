@@ -1,8 +1,8 @@
-import { Client, Pool, PoolType, QueryResultRow } from '../../deps.ts'
+import { Client, Pool, QueryResultRow } from '../../deps.ts'
 import { print } from './utils/print.ts'
 
 // Lazy loaded per worker
-const POOL_SIZE = Number(Deno.env.get('HAFSQL_PGPOOLSIZE')) || 5
+const POOL_SIZE = Number(Deno.env.get('HAFSQL_PGPOOLSIZE')) || 7
 const PG_HOST = Deno.env.get('HAFSQL_PGHOST') || '172.17.0.2'
 const PG_PORT = Number(Deno.env.get('HAFSQL_PGPORT')) || 5432
 const PG_DATABASE = Deno.env.get('HAFSQL_PGDATABASE') || 'haf_block_log'
