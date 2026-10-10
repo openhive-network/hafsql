@@ -76,29 +76,16 @@ export const balancesAPI = new Router()
 	/**
 	 * GET /balances/total-balances
 	 * @summary Total balances
-	 * @description Returns the historical sum of account balances computed daily.<br/>
+	 * @description Returns the sum of account balances.<br/>
 	 * Note: Pending balances such as pending convert or pending escrow are not taken into account.
 	 * @tag Balances
-	 * @queryParam {integer} [start] - Block number used for pagination
-	 * @queryParam {integer} [limit=100] - Max number of returned items -
-	 * Can be negative for going backwards and to reverse the sorting<br/>
-	 * <sub>min: -1000 | max: 1000</sub>
 	 * @response 200 - A JSON object of balances
 	 * @response 400 - Bad request value
 	 * @responseContent {} 200.application/json
 	 * @responseContent {BadRequest} 400.application/json
 	 */
 	.get('/balances/total-balances', async (ctx) => {
-		const validKeys = ['start', 'limit']
-		validateSearchParams(ctx, validKeys, false)
-		const params = ctx.request.url.searchParams
-		const limit = validateLimit(ctx, 100, 1000)
-		let num = MAX_NUM
-		if (params.has('start')) {
-			const start = params.get('start')
-			num = validateBlockNum(ctx, start)
-		}
-		const result = await getTotalBalances(num, limit)
+		const result = await getTotalBalances()
 		return ctx.response.body = BigJSONparser(BigJSONstringifier(result))
 	})
 
@@ -135,16 +122,9 @@ const getRichList = async (symbol: string, limit: number) => {
 	return result.rows
 }
 
-const getTotalBalances = async (num: number, limit: number) => {
+const getTotalBalances = async () => {
 	const result = await queryAPI(
-		`SELECT *,
-      (SELECT timestamp FROM hafsql.haf_blocks WHERE block_num=tb.block_num)
-      FROM hafsql.total_balances tb
-      WHERE block_num
-      ${limit < 0 && num !== MAX_NUM ? '> $1' : '< $1'}
-      ORDER BY block_num ${limit < 0 ? 'ASC' : 'DESC'}
-      LIMIT $2`,
-		[num, limit < 0 ? -limit : limit],
+		`SELECT * FROM hafsql.total_balances tb`,
 	)
 	return result.rows
 }
