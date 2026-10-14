@@ -47,8 +47,8 @@ export const setupHafsqlViews = async () => {
 	await query(`CREATE OR REPLACE VIEW hafsql.delegations
   AS SELECT a.name as delegator,
     b.name as delegatee,
-    x.balance as vests,
-    hafsql.vests_to_hive(x.balance/1000000) AS hp_equivalent,
+    (x.balance / 1000000.0)::numeric(27, 6) as vests,
+    hafsql.vests_to_hive(x.balance / 1000000.0) AS hp_equivalent,
     hafsql.get_timestamp(x.source_op) as "timestamp"
    FROM hafbe_bal.current_accounts_delegations x
    join hafd.accounts a on x.delegator=a.id
