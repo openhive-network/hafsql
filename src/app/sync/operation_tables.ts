@@ -628,13 +628,14 @@ const fillAccountUpdate = async (ops: Operations[], client: customClient) => {
 		memos.push(value.memo_key)
 		metadatas.push(value.json_metadata)
 	}
+	// Empty metadata means "unchanged" on chain - store NULL, not {}
 	await client.query`INSERT INTO hafsql.operation_account_update_table
     (id, account, owner, active, posting, memo_key, json_metadata)
     SELECT UNNEST(${ids}::int8[]),
     UNNEST(${accounts}::text[]), UNNEST(${owners}::jsonb[]),
     UNNEST(${actives}::jsonb[]), UNNEST(${postings}::jsonb[]),
     UNNEST(${memos}::text[]),
-    hafsql.to_json(UNNEST(${metadatas}::text[]))
+    hafsql.to_json(NULLIF(UNNEST(${metadatas}::text[]), ''))
     ON CONFLICT (id) DO NOTHING;`
 }
 
@@ -1402,6 +1403,7 @@ const fillAccountUpdate2 = async (ops: Operations[], client: customClient) => {
 		postingMetadatas.push(value.posting_json_metadata)
 		exes.push(JSON.stringify(value.extensions))
 	}
+	// Empty metadata means "unchanged" on chain - store NULL, not {}
 	await client.query`INSERT INTO hafsql.operation_account_update2_table
     (id, account, owner, active, posting, memo_key,
 		json_metadata, posting_json_metadata, extensions)
@@ -1409,8 +1411,8 @@ const fillAccountUpdate2 = async (ops: Operations[], client: customClient) => {
 		UNNEST(${owners}::jsonb[]),
     UNNEST(${actives}::jsonb[]), UNNEST(${postings}::jsonb[]),
     UNNEST(${memos}::text[]),
-    hafsql.to_json(UNNEST(${metadatas}::text[])),
-    hafsql.to_json(UNNEST(${postingMetadatas}::text[])),
+    hafsql.to_json(NULLIF(UNNEST(${metadatas}::text[]), '')),
+    hafsql.to_json(NULLIF(UNNEST(${postingMetadatas}::text[]), '')),
     UNNEST(${exes}::jsonb[])
     ON CONFLICT (id) DO NOTHING;`
 }

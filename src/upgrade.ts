@@ -112,6 +112,49 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
+	// Upgrading from <= 2.6.5
+	// Empty json_metadata/posting_json_metadata in account updates means "unchanged"
+	// but was stored as {} and overwrote the account metadata. Store NULL and repair accounts.
+	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.6.5'))) {
+		print('Upgrading from version <= 2.6.5 - repairing account metadata')
+		await transaction(async (client) => {
+			await client.query(`UPDATE hafsql.operation_account_update_table t
+				SET json_metadata = NULL
+				FROM hafd.operations o
+				WHERE o.id = t.id AND t.json_metadata = '{}'::jsonb
+				AND o.body_value->>'json_metadata' = ''`)
+			await client.query(`UPDATE hafsql.operation_account_update2_table t
+				SET json_metadata = CASE WHEN o.body_value->>'json_metadata' = '' THEN NULL ELSE t.json_metadata END,
+				posting_json_metadata = CASE WHEN o.body_value->>'posting_json_metadata' = '' THEN NULL ELSE t.posting_json_metadata END
+				FROM hafd.operations o
+				WHERE o.id = t.id
+				AND (t.json_metadata = '{}'::jsonb OR t.posting_json_metadata = '{}'::jsonb)
+				AND (o.body_value->>'json_metadata' = '' OR o.body_value->>'posting_json_metadata' = '')`)
+			// Latest non-empty value wins, same as the accounts sync
+			await client.query(`UPDATE hafsql.accounts_table t
+				SET json_metadata = l.json_metadata
+				FROM (
+					SELECT DISTINCT ON (account) account, json_metadata FROM (
+						SELECT a.id AS account, x.id, x.json_metadata FROM hafsql.operation_account_create_table x JOIN hafd.accounts a ON a.name = x.new_account_name
+						UNION ALL SELECT a.id, x.id, x.json_metadata FROM hafsql.operation_account_create_with_delegation_table x JOIN hafd.accounts a ON a.name = x.new_account_name
+						UNION ALL SELECT a.id, x.id, x.json_metadata FROM hafsql.operation_create_claimed_account_table x JOIN hafd.accounts a ON a.name = x.new_account_name
+						UNION ALL SELECT a.id, x.id, x.json_metadata FROM hafsql.operation_account_update_table x JOIN hafd.accounts a ON a.name = x.account
+						UNION ALL SELECT a.id, x.id, x.json_metadata FROM hafsql.operation_account_update2_table x JOIN hafd.accounts a ON a.name = x.account
+					) s ORDER BY account, (json_metadata IS NULL), id DESC
+				) l
+				WHERE l.account = t.account AND t.json_metadata IS DISTINCT FROM l.json_metadata`)
+			await client.query(`UPDATE hafsql.accounts_table t
+				SET posting_metadata = l.posting_json_metadata
+				FROM (
+					SELECT DISTINCT ON (a.id) a.id AS account, x.posting_json_metadata
+					FROM hafsql.operation_account_update2_table x JOIN hafd.accounts a ON a.name = x.account
+					ORDER BY a.id, (x.posting_json_metadata IS NULL), x.id DESC
+				) l
+				WHERE l.account = t.account AND t.posting_metadata IS DISTINCT FROM l.posting_json_metadata`)
+		})
+		print('Upgrade script done ✅')
+	}
+
 	// Update the version
 	if (oldVersion !== newVersion) {
 		await query(

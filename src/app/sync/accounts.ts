@@ -374,7 +374,10 @@ const handleAccountUpdate = async (
 	const posting = element.posting
 	const memo_key = element.memo_key
 	const timestamp = element.timestamp
-	const json_metadata = JSON.stringify(element.json_metadata)
+	// NULL = empty on chain = unchanged
+	const json_metadata = element.json_metadata == null
+		? null
+		: JSON.stringify(element.json_metadata)
 	const accountId = await getUserId(account, client)
 	let additional = ''
 	const addParams = []
@@ -398,7 +401,7 @@ const handleAccountUpdate = async (
 		addParams.push(posting)
 	}
 	await client.query(
-		`UPDATE hafsql.accounts_table SET ${additional} memo_key=$1, json_metadata=$2, last_update=$3 WHERE account=$4`,
+		`UPDATE hafsql.accounts_table SET ${additional} memo_key=$1, json_metadata=COALESCE($2::jsonb, json_metadata), last_update=$3 WHERE account=$4`,
 		[memo_key, json_metadata, timestamp, accountId, ...addParams],
 	)
 }
@@ -411,7 +414,10 @@ const handleAccountUpdate2 = async (
 	const account = <string> element.account
 	const timestamp = element.timestamp
 	const json_metadata = JSON.stringify(element.json_metadata)
-	const posting_metadata = JSON.stringify(element.posting_json_metadata)
+	// NULL = empty on chain = unchanged
+	const posting_metadata = element.posting_json_metadata == null
+		? null
+		: JSON.stringify(element.posting_json_metadata)
 	const owner = <object> element.owner
 	const active = element.active
 	const posting = element.posting
@@ -449,7 +455,7 @@ const handleAccountUpdate2 = async (
 		addParams.push(memo_key)
 	}
 	await client.query(
-		`UPDATE hafsql.accounts_table SET ${additional} posting_metadata=$1, last_update=$2 WHERE account=$3`,
+		`UPDATE hafsql.accounts_table SET ${additional} posting_metadata=COALESCE($1::jsonb, posting_metadata), last_update=$2 WHERE account=$3`,
 		[posting_metadata, timestamp, accountId, ...addParams],
 	)
 }
