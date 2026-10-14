@@ -409,10 +409,11 @@ export const setupFunctions = async () => {
     DECLARE
       opid int8;
     BEGIN
+      -- o.timestamp is UTC without time zone - compare in UTC regardless of session TimeZone
       CASE WHEN highest = FALSE THEN
-        SELECT o.id INTO opid FROM hafsql.haf_operations o WHERE o.timestamp >= $1 ORDER BY o."timestamp", o.id LIMIT 1;
+        SELECT o.id INTO opid FROM hafsql.haf_operations o WHERE o.timestamp >= ($1 AT TIME ZONE 'UTC') ORDER BY o."timestamp", o.id LIMIT 1;
       ELSE
-        SELECT o.id INTO opid FROM hafsql.haf_operations o WHERE o.timestamp >= $1 ORDER BY o."timestamp", o.id DESC LIMIT 1;
+        SELECT o.id INTO opid FROM hafsql.haf_operations o WHERE o.timestamp >= ($1 AT TIME ZONE 'UTC') ORDER BY o."timestamp", o.id DESC LIMIT 1;
       END CASE;
       RETURN opid;
     END
@@ -433,7 +434,7 @@ export const setupFunctions = async () => {
     RETURNS timestamptz
     AS $$
     BEGIN
-      RETURN (SELECT b.created_at FROM hafd.operations o JOIN hafd.blocks b ON b.num = hafd.operation_id_to_block_num(o.id) WHERE o.id = operation_id);
+      RETURN (SELECT b.created_at AT TIME ZONE 'UTC' FROM hafd.operations o JOIN hafd.blocks b ON b.num = hafd.operation_id_to_block_num(o.id) WHERE o.id = operation_id);
     END
     $$
     LANGUAGE plpgsql
@@ -450,7 +451,7 @@ export const setupFunctions = async () => {
     RETURNS timestamptz
     AS $$
     BEGIN
-      RETURN (SELECT b.timestamp FROM hafsql.haf_blocks b WHERE b.block_num = blockNum);
+      RETURN (SELECT b.timestamp AT TIME ZONE 'UTC' FROM hafsql.haf_blocks b WHERE b.block_num = blockNum);
     END
     $$
     LANGUAGE plpgsql

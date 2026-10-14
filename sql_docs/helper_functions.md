@@ -123,6 +123,15 @@ But if you want to also include the operations that happened at that timestamp, 
 
 And it would be the other way around for operations that happened before a certain timestamp. i.e. if it was `id <` instead of `id >`
 !!!
+!!!warning Time zone
+The input is a `timestamptz`. A timestamp without an offset is read in your session's time zone, not UTC.
+Blockchain times are UTC, so either include the offset or use a UTC session:
+```sql
+SELECT hafsql.id_from_timestamp('2024-11-19 06:12:24+00') -- always UTC
+-- or
+SET TIME ZONE 'UTC';
+```
+!!!
 ***
 ### get_timestamp(operation_id int8)
 Returns timestamp from operation id.
