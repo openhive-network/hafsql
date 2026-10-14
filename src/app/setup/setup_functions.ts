@@ -14,10 +14,21 @@ export const setupFunctions = async () => {
     DECLARE
       amount numeric;
     BEGIN
-      SELECT ($1::jsonb->>'amount')::numeric / power(10, ($1::jsonb->>'precision')::numeric) INTO STRICT amount;
-      RETURN amount::numeric;
-    EXCEPTION WHEN OTHERS THEN
-      RETURN 0;
+      -- Fast path without a subtransaction (no EXCEPTION block). Longer input may be
+      -- deeply nested JSON that pg_input_is_valid can't parse (stack depth) - use the old path
+      IF length($1) <= 8192 THEN
+        RETURN CASE
+          WHEN NOT pg_input_is_valid($1, 'jsonb') THEN 0
+          WHEN NOT pg_input_is_valid($1::jsonb->>'amount', 'numeric')
+            OR NOT pg_input_is_valid($1::jsonb->>'precision', 'numeric') THEN 0
+          ELSE ($1::jsonb->>'amount')::numeric / power(10, ($1::jsonb->>'precision')::numeric) END;
+      END IF;
+      BEGIN
+        SELECT ($1::jsonb->>'amount')::numeric / power(10, ($1::jsonb->>'precision')::numeric) INTO STRICT amount;
+        RETURN amount::numeric;
+      EXCEPTION WHEN OTHERS THEN
+        RETURN 0;
+      END;
     END
     $$
     LANGUAGE plpgsql
@@ -35,13 +46,24 @@ export const setupFunctions = async () => {
     DECLARE
       symbol text;
     BEGIN
-      SELECT CASE
-        WHEN $1::jsonb->>'nai' = '@@000000013' THEN 'HBD'
-        WHEN $1::jsonb->>'nai' = '@@000000037' THEN 'VESTS'
-        ELSE 'HIVE' END INTO STRICT symbol;
-      RETURN symbol;
-    EXCEPTION WHEN OTHERS THEN
-      RETURN 'HIVE';
+      -- Fast path without a subtransaction (no EXCEPTION block). Longer input may be
+      -- deeply nested JSON that pg_input_is_valid can't parse (stack depth) - use the old path
+      IF length($1) <= 8192 THEN
+        RETURN CASE
+          WHEN NOT pg_input_is_valid($1, 'jsonb') THEN 'HIVE'
+          WHEN $1::jsonb->>'nai' = '@@000000013' THEN 'HBD'
+          WHEN $1::jsonb->>'nai' = '@@000000037' THEN 'VESTS'
+          ELSE 'HIVE' END;
+      END IF;
+      BEGIN
+        SELECT CASE
+          WHEN $1::jsonb->>'nai' = '@@000000013' THEN 'HBD'
+          WHEN $1::jsonb->>'nai' = '@@000000037' THEN 'VESTS'
+          ELSE 'HIVE' END INTO STRICT symbol;
+        RETURN symbol;
+      EXCEPTION WHEN OTHERS THEN
+        RETURN 'HIVE';
+      END;
     END
     $$
     LANGUAGE plpgsql
@@ -59,13 +81,22 @@ export const setupFunctions = async () => {
     DECLARE
       isjson boolean;
     BEGIN
-      SELECT CASE
-        WHEN jsonb_typeof($1::jsonb) = 'string' THEN FALSE
-        WHEN jsonb_typeof($1::jsonb) = 'object' THEN TRUE
-        ELSE FALSE END INTO isjson;
-      RETURN isjson;
-    EXCEPTION WHEN OTHERS THEN
-      RETURN false;
+      -- Fast path without a subtransaction (no EXCEPTION block). Longer input may be
+      -- deeply nested JSON that pg_input_is_valid can't parse (stack depth) - use the old path
+      IF length($1) <= 8192 THEN
+        RETURN CASE
+          WHEN NOT pg_input_is_valid($1, 'jsonb') THEN FALSE
+          ELSE jsonb_typeof($1::jsonb) = 'object' END;
+      END IF;
+      BEGIN
+        SELECT CASE
+          WHEN jsonb_typeof($1::jsonb) = 'string' THEN FALSE
+          WHEN jsonb_typeof($1::jsonb) = 'object' THEN TRUE
+          ELSE FALSE END INTO isjson;
+        RETURN isjson;
+      EXCEPTION WHEN OTHERS THEN
+        RETURN false;
+      END;
     END
     $$
     LANGUAGE plpgsql
@@ -83,11 +114,21 @@ export const setupFunctions = async () => {
     DECLARE
       jsonified jsonb;
     BEGIN
-      SELECT CASE WHEN hafsql.is_json($1) THEN $1::jsonb ELSE '{}'::jsonb END
-        INTO jsonified;
-      RETURN jsonified;
-    EXCEPTION WHEN OTHERS THEN
-      RETURN '{}'::jsonb;
+      -- Fast path without a subtransaction (no EXCEPTION block). Longer input may be
+      -- deeply nested JSON that pg_input_is_valid can't parse (stack depth) - use the old path
+      IF length($1) <= 8192 THEN
+        RETURN CASE
+          WHEN NOT pg_input_is_valid($1, 'jsonb') THEN '{}'::jsonb
+          WHEN jsonb_typeof($1::jsonb) = 'object' THEN $1::jsonb
+          ELSE '{}'::jsonb END;
+      END IF;
+      BEGIN
+        SELECT CASE WHEN hafsql.is_json($1) THEN $1::jsonb ELSE '{}'::jsonb END
+          INTO jsonified;
+        RETURN jsonified;
+      EXCEPTION WHEN OTHERS THEN
+        RETURN '{}'::jsonb;
+      END;
     END
     $$
     LANGUAGE plpgsql
