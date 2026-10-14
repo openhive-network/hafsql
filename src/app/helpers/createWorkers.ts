@@ -17,16 +17,12 @@ export const createWorkers = async () => {
 		!(await getBlockRange('operations'))
 	) {
 		isSyncing.one = true
-		if (Deno.env.get('HAFSQL_COMMENTS') !== 'false') {
-			// comments
-			createWorker('../sync/comments.ts').postMessage('start')
-			print('[Main] Starting comments worker 👷‍')
-		}
-		if (Deno.env.get('HAFSQL_ACCOUNTS') !== 'false') {
-			// accounts
-			createWorker('../sync/accounts.ts').postMessage('start')
-			print('[Accounts] Starting accounts worker 👷')
-		}
+		// comments
+		createWorker('../sync/comments.ts').postMessage('start')
+		print('[Main] Starting comments worker 👷‍')
+		// accounts
+		createWorker('../sync/accounts.ts').postMessage('start')
+		print('[Accounts] Starting accounts worker 👷')
 	}
 
 	// author permlink
@@ -36,18 +32,13 @@ export const createWorkers = async () => {
 		!(await getBlockRange('operations'))
 	) {
 		isSyncing.three = true
-		if (
-			Deno.env.get('HAFSQL_REWARDS') !== 'false' &&
-			Deno.env.get('HAFSQL_COMMENTS') !== 'false'
-		) {
-			// paid_rewards
-			createWorker('../sync/paid_rewards.ts').postMessage('start')
-			print('[Main] Starting paid_rewards worker 👷')
+		// paid_rewards
+		createWorker('../sync/paid_rewards.ts').postMessage('start')
+		print('[Main] Starting paid_rewards worker 👷')
 
-			// pending_rewards
-			createWorker('../sync/pending_rewards.ts').postMessage('start')
-			print('[Main] Starting pending_rewards worker 👷')
-		}
+		// pending_rewards
+		createWorker('../sync/pending_rewards.ts').postMessage('start')
+		print('[Main] Starting pending_rewards worker 👷')
 	}
 
 	// We check for the hive index because sometimes the instance_isready messes it up
@@ -63,11 +54,9 @@ export const createWorkers = async () => {
 
 	if (isSyncing.five === false && !(await getBlockRange('operations'))) {
 		isSyncing.five = true
-		if (Deno.env.get('HAFSQL_MARKET') !== 'false') {
-			// market
-			createWorker('../sync/market.ts').postMessage('start')
-			print('[Main] Starting market worker 👷')
-		}
+		// market
+		createWorker('../sync/market.ts').postMessage('start')
+		print('[Main] Starting market worker 👷')
 	}
 }
 
