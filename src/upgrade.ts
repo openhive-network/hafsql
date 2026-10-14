@@ -236,6 +236,42 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
+	// Upgrading from <= 2.6.9
+	// Reward balances, power down amounts and proxy now come from balance_tracker / hafbe
+	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.6.9'))) {
+		print(
+			'Upgrading from version <= 2.6.9 - dropping accounts_table columns now read from btracker/hafbe',
+		)
+		await query(`ALTER TABLE hafsql.accounts_table
+			DROP COLUMN IF EXISTS reward_hive_balance,
+			DROP COLUMN IF EXISTS reward_hbd_balance,
+			DROP COLUMN IF EXISTS reward_vests_balance,
+			DROP COLUMN IF EXISTS to_withdraw,
+			DROP COLUMN IF EXISTS vesting_withdraw_rate,
+			DROP COLUMN IF EXISTS withdrawn,
+			DROP COLUMN IF EXISTS proxy;`)
+		// next_vesting_withdrawal drifted 3s per weekly payout - recompute active power downs
+		await query(
+			`UPDATE hafsql.accounts_table t SET next_vesting_withdrawal = m.next
+			FROM (
+				SELECT w.account, hafsql.get_timestamp(hafd.operation_id_to_block_num(wv.id) - 1)
+					+ interval '1 week' * (1 + (
+						SELECT count(DISTINCT hafd.operation_id_to_block_num(f.id))
+						FROM hafsql.operation_fill_vesting_withdraw_table f
+						WHERE f.from_account = a.name AND f.id > wv.id)) AS next
+				FROM hafbe_bal.account_withdraws w
+				JOIN hafd.accounts a ON a.id = w.account
+				CROSS JOIN LATERAL (
+					SELECT v.id FROM hafsql.operation_withdraw_vesting_table v
+					WHERE v.account = a.name ORDER BY v.id DESC LIMIT 1
+				) wv
+				WHERE w.to_withdraw > w.withdrawn
+			) m
+			WHERE t.account = m.account AND t.next_vesting_withdrawal IS DISTINCT FROM m.next`,
+		)
+		print('Upgrade script done ✅')
+	}
+
 	// Update the version
 	if (oldVersion !== newVersion) {
 		await query(

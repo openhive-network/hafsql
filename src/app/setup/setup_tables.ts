@@ -50,15 +50,8 @@ export const setupTables = async () => {
       last_update timestamptz,
       last_owner_update timestamptz,
       recovery int4,
-      reward_hive_balance numeric(21, 3) NOT NULL DEFAULT 0,
-      reward_hbd_balance numeric(21, 3) NOT NULL DEFAULT 0,
-      reward_vests_balance numeric(27, 6) NOT NULL DEFAULT 0,
       next_vesting_withdrawal timestamptz,
-      to_withdraw numeric(27, 6) NOT NULL DEFAULT 0,
-      vesting_withdraw_rate numeric(27, 6) NOT NULL DEFAULT 0,
-      withdrawn numeric(27, 6) NOT NULL DEFAULT 0,
       withdraw_routes jsonb,
-      proxy int4,
       CONSTRAINT hafsql_accounts_table_un UNIQUE (account)
     );`,
 	)

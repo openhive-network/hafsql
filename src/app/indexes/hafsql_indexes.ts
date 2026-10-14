@@ -46,7 +46,9 @@ export const createAccountsIndexes = async () => {
 	// We had some toast errors on this table when creating indexes
 	// I assume due to number of updates happening on this table data gets corrupted
 	// See if vaccuming before index creation eliminates this issue
-	const exists = await doesIndexExist('hafsql_accounts_table_proxy_idx')
+	const exists = await doesIndexExist(
+		'hafsql_accounts_table_withdraw_routes_idx',
+	)
 	if (!exists) {
 		await query('VACUUM FULL ANALYZE hafsql.accounts_table;')
 	}
@@ -79,9 +81,6 @@ export const createAccountsIndexes = async () => {
 	)
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_withdraw_routes_idx ON hafsql.accounts_table USING gin (withdraw_routes);',
-	)
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_proxy_idx ON hafsql.accounts_table (proxy);',
 	)
 }
 

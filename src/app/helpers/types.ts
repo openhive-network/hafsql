@@ -257,11 +257,6 @@ export interface AccountUpdate2 {
 	timestamp: string
 	id: bigint
 }
-export interface WitnessProxy {
-	account: string
-	proxy: string
-	id: bigint
-}
 export interface ChangedRecovery {
 	account: string
 	new_recovery_account: string
@@ -283,25 +278,6 @@ export interface RecoverAccount {
 export interface Pow {
 	worker_account: string
 	worker: string
-	id: bigint
-}
-export interface AuthorReward {
-	account: string
-	hbd_payout: string
-	hive_payout: string
-	vesting_payout: string
-	id: bigint
-}
-export interface CurationReward {
-	account: string
-	reward: string
-	id: bigint
-}
-export interface ClaimReward {
-	account: string
-	reward_hive: string
-	reward_hbd: string
-	reward_vests: string
 	id: bigint
 }
 export interface WithdrawVesting {
@@ -327,7 +303,6 @@ export interface AccountsData {
 	memo_key?: string
 	json_metadata?: object
 	posting_json_metadata?: object
-	proxy?: string
 	account?: string
 	new_recovery_account?: string
 	from_account?: string
@@ -338,13 +313,6 @@ export interface AccountsData {
 	new_owner_authority?: object
 	worker_account?: string
 	worker?: string
-	hbd_payout?: string
-	hive_payout?: string
-	vesting_payout?: string
-	reward?: string
-	reward_hive?: string
-	reward_hbd?: string
-	reward_vests?: string
 	vesting_shares?: string
 	withdrawn?: string
 	id: bigint
@@ -353,15 +321,10 @@ export interface AccountsData {
 		| 'account_create'
 		| 'account_update'
 		| 'account_update2'
-		| 'account_witness_proxy'
-		| 'proxy_cleared'
 		| 'changed_recovery_account'
 		| 'set_withdraw_vesting_route'
 		| 'recover_account'
 		| 'pow'
-		| 'author_reward'
-		| 'curation_reward'
-		| 'claim_reward'
 		| 'withdraw_vesting'
 		| 'fill_vesting_withdraw'
 }

@@ -243,22 +243,32 @@ export const setupHafsqlViews = async () => {
     ha.last_update,
     ha.last_owner_update,
     recoveryt."name" AS "recovery",
-    ha.reward_hive_balance,
-    ha.reward_hbd_balance,
-    ha.reward_vests_balance,
-    hafsql.vests_to_hive(ha.reward_vests_balance) AS reward_vests_balance_hp,
-    ha.next_vesting_withdrawal,
-    ha.to_withdraw,
-    ha.vesting_withdraw_rate,
-    ha.withdrawn,
+    rw.reward_hive_balance,
+    rw.reward_hbd_balance,
+    rw.reward_vests_balance,
+    hafsql.vests_to_hive(rw.reward_vests_balance) AS reward_vests_balance_hp,
+    CASE WHEN w.to_withdraw > w.withdrawn THEN ha.next_vesting_withdrawal END AS next_vesting_withdrawal,
+    (COALESCE(w.to_withdraw, 0) / 1000000.0)::numeric(27, 6) AS to_withdraw,
+    -- hived rounds the rate up since HF21 (btracker's vesting_withdraw_rate rounds down)
+    (CEIL(COALESCE(w.to_withdraw, 0) / 13.0) / 1000000.0)::numeric(27, 6) AS vesting_withdraw_rate,
+    (COALESCE(w.withdrawn, 0) / 1000000.0)::numeric(27, 6) AS withdrawn,
     ha.withdraw_routes,
-    (SELECT "name" FROM hafd.accounts WHERE id = ha.proxy) AS proxy,
+    (SELECT "name" FROM hafd.accounts WHERE id = (SELECT p.proxy_id FROM hafbe_app.current_account_proxies p WHERE p.account_id = x.id)) AS proxy,
     (SELECT ABS(SUM(balance)/1000.0) FROM hafbe_bal.transfer_saving_id tsi WHERE tsi.account=x.id AND tsi.nai=21) AS pending_hive_savings_withdrawal,
     (SELECT ABS(SUM(balance)/1000.0) FROM hafbe_bal.transfer_saving_id tsi WHERE tsi.account=x.id AND tsi.nai=13) AS pending_hbd_savings_withdrawal
-    FROM hafd.accounts x, hafsql.accounts_table ha, hafd.accounts creatort, hafd.accounts recoveryt
-    WHERE x.id = ha.account
-    AND ha.creator = creatort.id
-    AND ha."recovery" = recoveryt.id;`)
+    FROM hafd.accounts x
+    JOIN hafsql.accounts_table ha ON ha.account = x.id
+    JOIN hafd.accounts creatort ON creatort.id = ha.creator
+    JOIN hafd.accounts recoveryt ON recoveryt.id = ha."recovery"
+    -- Reward balances, power down and proxy are tracked by balance_tracker / hafbe
+    LEFT JOIN hafbe_bal.account_withdraws w ON w.account = x.id
+    LEFT JOIN LATERAL (
+      SELECT
+        (COALESCE(SUM(r.balance) FILTER (WHERE r.nai = 21), 0) / 1000.0)::numeric(21, 3) AS reward_hive_balance,
+        (COALESCE(SUM(r.balance) FILTER (WHERE r.nai = 13), 0) / 1000.0)::numeric(21, 3) AS reward_hbd_balance,
+        (COALESCE(SUM(r.balance) FILTER (WHERE r.nai = 37), 0) / 1000000.0)::numeric(27, 6) AS reward_vests_balance
+      FROM hafbe_bal.account_rewards r WHERE r.account = x.id
+    ) rw ON true;`)
 
 	// Operations
 	await query(`CREATE OR REPLACE VIEW hafsql.haf_operations
