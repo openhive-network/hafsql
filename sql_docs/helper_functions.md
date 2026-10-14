@@ -7,7 +7,7 @@ order: 98
 Useful functions to make life easier. PostgreSQL clients like DBeaver can also list the available functions for you.
 ***
 ### asset_amount(text)
-Returns asset amount (text) from the NAI object (text)
+Returns asset amount (numeric) from the NAI object (text)
 ```sql
 SELECT hafsql.asset_amount('{"nai": "@@000000021", "amount": "1000", "precision": 3}')
 -- 1
@@ -21,15 +21,15 @@ SELECT hafsql.asset_symbol('{"nai": "@@000000021", "amount": "1000", "precision"
 ```
 ***
 ### is_json(text)
-Returns TRUE for valid JSONB object (text) otherwise FALSE
+Returns TRUE if the text is a valid JSON object, otherwise FALSE (arrays, strings and numbers are FALSE)
 ```sql
 SELECT hafsql.is_json('{"test": "test"}')
 -- TRUE
 ```
 ***
 ### to_json(text)
-Cast text to JSONB - Handles the error and returns `{}` for invalid JSON text.
-JSONB string (although considered valid by PostgreSQL) is considered invalid in this function i.e. `'"test"'`
+Cast text to JSONB - Handles the error and returns `{}` for anything that is not a JSON object.
+Invalid JSON, but also valid JSON arrays, strings and numbers (i.e. `'"test"'`), return `{}`
 ```sql
 SELECT hafsql.to_json('"test"')
 -- {}
@@ -38,8 +38,8 @@ SELECT hafsql.to_json('"test"')
 ### vests_to_hive(numeric, int4 default NULL)
 Return HIVE equivalent (numeric) of the VESTS (numeric) optionally at certain block number (int4) as a historical value.
 ```sql
-SELECT hafsql.vests_to_hive(1000000) -- at head block
--- 588.960
+SELECT hafsql.vests_to_hive(1000000) -- at head block (changes over time)
+-- 622.364
 
 SELECT hafsql.vests_to_hive(1000000, 50000) -- at block 50000
 -- 1000000.000
@@ -48,8 +48,8 @@ SELECT hafsql.vests_to_hive(1000000, 50000) -- at block 50000
 ### rc_to_hive(numeric, int4 default NULL)
 Returns HIVE (numeric) equivalent of RC (numeric) optionally at certain block number (int4).
 ```sql
-SELECT hafsql.rc_to_hive(10000000000) -- at head block
--- 5.890
+SELECT hafsql.rc_to_hive(10000000000) -- at head block (changes over time)
+-- 6.224
 
 SELECT hafsql.rc_to_hive(10000000000, 50000) -- at block 50000
 -- 10000.000
@@ -58,8 +58,8 @@ SELECT hafsql.rc_to_hive(10000000000, 50000) -- at block 50000
 ### get_trx_id(int8)
 Returns transaction id (text) from the operation id (int8).
 ```sql
-SELECT hafsql.get_trx_id(690587791523849)
--- 3c1eae5754cc4f70cf0efb12f9e4f9671a8df2a0
+SELECT hafsql.get_trx_id(390044641782661141)
+-- 77c98007ca62c7e39d8f9f21a5372544c86026dc
 ```
 ***
 ### last_op_id_from_block_num(int4)
@@ -67,7 +67,7 @@ Returns the highest operation id (numeric) existing inside a block.
 Can be used to filter operations based on block number.
 ```sql
 SELECT hafsql.last_op_id_from_block_num(5000000)
--- 21474836480000832
+-- 21474836480000003
 ```
 !!!
 In any given block, there can be multiple operations. So for example, if you want all the operations
@@ -82,7 +82,7 @@ Returns the lowest operation id (numeric) existing inside a block.
 Can be used to filter operations based on block number.
 ```sql
 SELECT hafsql.first_op_id_from_block_num(5000000)
--- 21474836480000009
+-- 21474836480000000
 ```
 !!!
 Check the note above this function.
@@ -111,10 +111,10 @@ Returns the highest/lowest operation id from timestamp depending on the second a
 Can be used to filter operations based on timestamp.
 ```sql
 SELECT hafsql.id_from_timestamp('2024-11-19 06:12:24.000') -- lowest
--- 390044641782661159
+-- 390044641782661120
 
 SELECT hafsql.id_from_timestamp('2024-11-19 06:12:24.000', TRUE) -- highest
--- 390044641782666816
+-- 390044641782661142
 ```
 !!!
 In any given timestamp, i.e. one block, there can be multiple operations. So for example, if you want all the operations
@@ -133,30 +133,26 @@ SET TIME ZONE 'UTC';
 ```
 !!!
 ***
-### get_timestamp(operation_id int8)
-Returns timestamp from operation id.
+### get_timestamp(operation_id int8 | block_num int4)
+Returns the timestamp (UTC) from an operation id or a block number.
 ```sql
-SELECT hafsql.get_timestamp(390044641782666816)
--- 2024-11-19 06:12:24.000
+SELECT hafsql.get_timestamp(390044641782661141) -- operation id
+-- 2024-11-19 06:12:24+00
+
+SELECT hafsql.get_timestamp(90814345) -- block number
+-- 2024-11-19 06:12:24+00
 ```
 ***
 ### hafd.operation_id_to_block_num(id int8)
 Get block_num from operation id.
 ```sql
-SELECT hafd.operation_id_to_block_num(390044641782666816)
+SELECT hafd.operation_id_to_block_num(390044641782661141)
 -- 90814345
-```
-***
-### hafd.operation_id_to_type_id(id int8)
-Get op_type_id (type of the operation) from operation id.
-```sql
-SELECT hafd.operation_id_to_type_id(390044641782666816)
--- 64
 ```
 ***
 ### hafd.operation_id_to_pos(id int8)
 Get position of the operation in the block from operation id.
 ```sql
-SELECT hafd.operation_id_to_pos(390044641782666816)
--- 22
+SELECT hafd.operation_id_to_pos(390044641782661141)
+-- 21
 ```

@@ -42,4 +42,27 @@ operation_effective_comment_vote_view
 There should be no difference in how you run your queries against a table or a view. But they will be listed under different categories in your database client.
 
 ### Parsed data
-For things like `delegations` or `reputations`, we have to parse the data from operations to get the final value. So we need separate tables for them. You can use the tables, but we have created views for them as well to make them more user-friendly. For example `delegations_table` doesn't include the HP (Hive Power) values and only includes the VESTS. So we created `delegations` view which has the HP values as well. Thus, it is recommended to use a view over a table if it exists.
+For things like `comments` or `accounts`, the final value has to be parsed from many operations.
+HafSQL keeps its own tables for those (`*_table`) and exposes them through `views` that add
+user-friendly values like HP equivalents. It is recommended to use a view over a table if it exists.
+
+Some views are built on top of other HAF applications running on the same database instead of
+HafSQL's own tables:
+
+| HafSQL view | Data from |
+| --- | --- |
+| `balances`, `balances_history`, `total_balances`, `delegations`, `rc_delegations` | balance tracker (`hafbe_bal`) |
+| `accounts` (reward balances, power down, proxy) | balance tracker (`hafbe_bal`) and HAF block explorer (`hafbe_app`) |
+| `proposal_approvals` | HAF block explorer (`hafbe_app`) |
+| `follows`, `mutes`, `blacklists`, `reblogs`, `community_subs`, `community_roles` | hivemind (`hivemind_app`) |
+| `reputations` | reputation tracker (`reptracker_app`) |
+
+!!!
+`balances_history` is computed per balance change. Always filter it by account **and** a `block_num` range,
+otherwise "latest rows" queries on busy accounts can be slow:
+```sql
+SELECT * FROM hafsql.balances_history
+WHERE account_name = 'gtg' AND block_num BETWEEN 90000000 AND 90100000
+ORDER BY block_num
+```
+!!!
