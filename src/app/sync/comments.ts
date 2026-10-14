@@ -12,7 +12,6 @@ import { createCommentsIndexes } from '../indexes/hafsql_indexes.ts'
 import { cleanString } from '../helpers/utils/clean_string.ts'
 import { getBlockRange } from '../helpers/utils/get_block_range.ts'
 import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
-import { getLastBlockNum } from '../helpers/utils/get_last_block_num.ts'
 import { customClient, query, transaction } from '../helpers/database.ts'
 
 let started = false
@@ -283,17 +282,8 @@ const getIneffectiveDeleteComments = async () => {
 	}
 }
 
+// getBlockRange keeps this behind the comments sync
 const getDeletedComments = async (blockRange: number[]) => {
-	const end = await getLastBlockNum('comments')
-	// Always lag behind the comments_table indexing
-	if (blockRange[0] > end) {
-		blockRange[0] = end
-		blockRange[1] = end
-		return []
-	}
-	if (blockRange[1] > end) {
-		blockRange[1] = end
-	}
 	const result = await query<DeletedComment>(
 		`SELECT id, author, permlink FROM hafsql.operation_delete_comment_table
       WHERE id >= hafsql.first_op_id_from_block_num($1)

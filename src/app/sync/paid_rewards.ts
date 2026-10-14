@@ -1,5 +1,4 @@
 import { getBlockRange } from '../helpers/utils/get_block_range.ts'
-import { getLastBlockNum } from '../helpers/utils/get_last_block_num.ts'
 import { print } from '../helpers/utils/print.ts'
 import { sleep } from '../helpers/utils/sleep.ts'
 import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
@@ -40,17 +39,8 @@ const fillPaidRewards = async () => {
 	}
 }
 
+// getBlockRange keeps this behind the comments sync
 const getPaidComments = async (blockRange: number[]) => {
-	// Always lag behind the comments_table indexing
-	const lastComment = await getLastBlockNum('comments')
-	if (blockRange[0] > lastComment) {
-		blockRange[0] = lastComment
-		blockRange[1] = lastComment
-		return []
-	}
-	if (blockRange[1] > lastComment) {
-		blockRange[1] = lastComment
-	}
 	const result = await query<PaidComments>(
 		`SELECT author, permlink, payout, author_rewards, total_payout_value, curator_payout_value, beneficiary_payout_value FROM hafsql.operation_comment_reward_table
       WHERE id >= hafsql.first_op_id_from_block_num($1)

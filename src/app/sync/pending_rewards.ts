@@ -72,17 +72,8 @@ const fillPendingRewards = async () => {
 	}
 }
 
+// getBlockRange keeps this behind the comments sync
 const getEffectiveVotes = async (blockRange: number[]) => {
-	// Always lag behind the comments_table indexing
-	const end = await getLastBlockNum('comments')
-	if (blockRange[0] > end) {
-		blockRange[0] = end
-		blockRange[1] = end
-		return []
-	}
-	if (blockRange[1] > end) {
-		blockRange[1] = end
-	}
 	const result = await query<EffectiveCommentVote>(
 		`SELECT author, permlink, pending_payout FROM hafsql.operation_effective_comment_vote_view
       WHERE id >= hafsql.first_op_id_from_block_num($1)
