@@ -214,7 +214,6 @@ const setupSyncDataTable = async () => {
 		'comments',
 		'pending_rewards',
 		'paid_rewards',
-		'delete_comments',
 		'accounts',
 		'operations',
 		'market',

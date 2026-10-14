@@ -2,7 +2,7 @@ import { customClient, query } from '../database.ts'
 import { BlockRange } from '../types.ts'
 
 // These update comments_table so they must not pass the comments sync
-const dependsOnComments = ['paid_rewards', 'pending_rewards', 'delete_comments']
+const dependsOnComments = ['paid_rewards', 'pending_rewards']
 
 export const getBlockRange = async (
 	table: string,

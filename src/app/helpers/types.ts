@@ -6,6 +6,7 @@ export interface BlockRange {
 }
 
 export interface CommentOp {
+	id: string
 	timestamp: string
 	author: string
 	permlink: string
@@ -21,6 +22,7 @@ export interface CommentObj {
 	body: string
 	tags: string[]
 	metadata: object
+	deleted: boolean
 }
 
 export interface CustomJson {

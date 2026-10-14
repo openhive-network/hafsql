@@ -188,6 +188,36 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
+	// Upgrading from <= 2.6.7
+	// Deletes moved from a separate worker into the comments worker.
+	// Apply deletes the old worker had not reached yet, drop its sync row,
+	// and ask the comments worker to rebuild comments re-posted after a delete.
+	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.6.7'))) {
+		print(
+			'Upgrading from version <= 2.6.7 - merging delete_comments into comments',
+		)
+		await transaction(async (client) => {
+			await client.query(`UPDATE hafsql.comments_table c SET deleted = true
+				FROM hafsql.operation_delete_comment_table d
+				WHERE c.author = d.author AND c.permlink = d.permlink
+				AND d.id >= hafd.operation_id((SELECT last_block_num FROM hafsql.sync_data WHERE table_name = 'delete_comments') + 1, 0)
+				AND d.id < hafd.operation_id((SELECT last_block_num FROM hafsql.sync_data WHERE table_name = 'comments') + 1, 0)
+				AND NOT EXISTS (
+					SELECT 1 FROM hafsql.operation_ineffective_delete_comment_table i
+					WHERE i.author = d.author AND i.permlink = d.permlink
+					AND hafd.operation_id_to_block_num(i.id) = hafd.operation_id_to_block_num(d.id))`)
+			await client.query(
+				`DELETE FROM hafsql.sync_data WHERE table_name = 'delete_comments'`,
+			)
+			// Picked up by the comments worker on start (repairRecreatedComments)
+			await client.query(
+				`INSERT INTO hafsql.version (name, version) VALUES ('repair_recreated_comments', '1')
+				ON CONFLICT DO NOTHING`,
+			)
+		})
+		print('Upgrade script done ✅')
+	}
+
 	// Update the version
 	if (oldVersion !== newVersion) {
 		await query(

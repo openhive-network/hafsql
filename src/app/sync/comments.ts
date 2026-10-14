@@ -1,7 +1,6 @@
 import { DiffMatchPatch } from '../../deps.ts'
 import { print } from '../helpers/utils/print.ts'
 import {
-	AuthorPermlink,
 	CommentObj,
 	CommentOp,
 	DeletedComment,
@@ -12,6 +11,7 @@ import { createCommentsIndexes } from '../indexes/hafsql_indexes.ts'
 import { cleanString } from '../helpers/utils/clean_string.ts'
 import { getBlockRange } from '../helpers/utils/get_block_range.ts'
 import { updateLastBlockNum } from '../helpers/utils/update_last_block_num.ts'
+import { getLastBlockNum } from '../helpers/utils/get_last_block_num.ts'
 import { customClient, query, transaction } from '../helpers/database.ts'
 
 let started = false
@@ -24,7 +24,6 @@ self.onmessage = (e: MessageEvent) => {
 			started = true
 			print('[Comments] Start massive sync... ⏳')
 			syncComments()
-			syncDeletedComments()
 		}
 	}
 }
@@ -37,6 +36,7 @@ const syncComments = async () => {
 	const intervalTime = 250
 	if (firstRun) {
 		firstRun = false
+		await repairRecreatedComments()
 		await fillComments()
 		print('[Comments] Massive sync done ✅')
 		print('[Comments] Creating indexes... ⏳')
@@ -59,25 +59,56 @@ const fillComments = async () => {
 	}
 }
 
-// Get comment operations from hafd.operations
+type DeleteOp = DeletedComment & { type: 'delete' }
+
+// Get comment and effective delete operations, merged in op order
+// Deletes are handled here (not in a separate worker) so a re-post after a delete is seen in order
 const getComments = async (blockRange: number[]) => {
-	const result = await query<CommentOp>(
-		`SELECT "timestamp", author, permlink, parent_author, parent_permlink, title, body, json_metadata
+	const comments = await query<CommentOp>(
+		`SELECT id, "timestamp", author, permlink, parent_author, parent_permlink, title, body, json_metadata
       FROM hafsql.operation_comment_view
 			WHERE id >= hafsql.first_op_id_from_block_num($1)
 			AND id <= hafsql.last_op_id_from_block_num($2)
 			ORDER BY id ASC`,
 		[blockRange[0], blockRange[1]],
 	)
-	return result.rows
+	const deletes = await query<DeletedComment>(
+		`SELECT d.id, d.author, d.permlink FROM hafsql.operation_delete_comment_table d
+			WHERE d.id >= hafsql.first_op_id_from_block_num($1)
+			AND d.id <= hafsql.last_op_id_from_block_num($2)
+			AND ${effectiveDelete}
+			ORDER BY d.id ASC`,
+		[blockRange[0], blockRange[1]],
+	)
+	const ops: (CommentOp | DeleteOp)[] = [
+		...comments.rows,
+		...deletes.rows.map((d) => ({ ...d, type: 'delete' as const })),
+	]
+	return ops.sort((a, b) => BigInt(a.id) < BigInt(b.id) ? -1 : 1)
 }
 
+// A delete_comment is ineffective when an ineffective_delete_comment follows it in the same block
+const effectiveDelete = `NOT EXISTS (
+	SELECT 1 FROM hafsql.operation_ineffective_delete_comment_table i
+	WHERE i.author = d.author AND i.permlink = d.permlink
+	AND hafd.operation_id_to_block_num(i.id) = hafd.operation_id_to_block_num(d.id))`
+
 // Create a transaction then insert or update comments
-const insertComments = async (comments: CommentOp[], blockRange: number[]) => {
+const insertComments = async (
+	comments: (CommentOp | DeleteOp)[],
+	blockRange: number[],
+) => {
 	try {
 		await transaction(async (client) => {
-			for (let i = 0; i < comments.length; i++) {
-				await insertComment(comments[i], client)
+			for (const op of comments) {
+				if ('type' in op) {
+					await client.query(
+						'UPDATE hafsql.comments_table SET deleted=true WHERE author=$1 AND permlink=$2;',
+						[op.author, op.permlink],
+					)
+				} else {
+					await insertComment(op, client)
+				}
 			}
 			await updateLastBlockNum('comments', blockRange[1], client)
 		})
@@ -96,10 +127,16 @@ const insertComments = async (comments: CommentOp[], blockRange: number[]) => {
 
 const insertComment = async (comment: CommentOp, client: customClient) => {
 	const oldComment = await getComment(comment.author, comment.permlink, client)
-	if (oldComment !== null) {
+	if (oldComment !== null && !oldComment.deleted) {
 		// edited comments
 		await updateEditedComment(comment, oldComment, client)
 		return
+	}
+	if (oldComment !== null) {
+		// Re-posted after a delete - it is a new comment (new id, like hivemind)
+		await client.query('DELETE FROM hafsql.comments_table WHERE id=$1', [
+			oldComment.id,
+		])
 	}
 	// new comments
 	const tags = extractTags(comment.json_metadata)
@@ -201,7 +238,7 @@ const getComment = async (
 	client: customClient,
 ) => {
 	const result = await client.query<CommentObj>(
-		'SELECT id, title, body, tags, metadata FROM hafsql.comments_table WHERE author=$1 AND permlink=$2',
+		'SELECT id, title, body, tags, metadata, deleted FROM hafsql.comments_table WHERE author=$1 AND permlink=$2',
 		[author, permlink],
 	)
 	if (result?.rowCount && result?.rowCount > 0) {
@@ -247,90 +284,89 @@ const patchBody = (oldBody: string, newBody: string) => {
 }
 
 /**
- ********** Delted comments handling ***********
- * This won't go past the synced comments
- * Will always lag behind
+ * One-off repair requested by upgrade.ts (marker in hafsql.version).
+ * Comments re-posted after a delete were treated as edits and stayed deleted.
+ * Rebuild them by replaying their comment ops after the last effective delete.
+ * Safe to re-run - repaired rows are no longer deleted.
  */
-
-const syncDeletedComments = async () => {
-	// 10s should be enough to not be spammy during reindex
-	// 3s might be better to also feel better during live sync
-	// TODO: test and adjust
-	const intervalTime = 3000
-	await fillDeleted()
-	await sleep(intervalTime)
-	syncDeletedComments()
-}
-
-const fillDeleted = async () => {
-	await getIneffectiveDeleteComments()
-	let blockRange = await getBlockRange('delete_comments')
-	while (blockRange) {
-		const deletedCms = await getDeletedComments(blockRange)
-		await insertDeletedComments(deletedCms, blockRange)
-		blockRange = await getBlockRange('delete_comments')
-	}
-}
-
-// Comments that didn't get deleted despite having a delete operation
-let notDeletedComments: AuthorPermlink[] = []
-const getIneffectiveDeleteComments = async () => {
-	const result = await query<AuthorPermlink>(
-		'SELECT author, permlink FROM hafsql.operation_ineffective_delete_comment_table',
+const repairRecreatedComments = async () => {
+	const marker = await query(
+		'SELECT 1 FROM hafsql.version WHERE name=$1',
+		['repair_recreated_comments'],
 	)
-	if (result.rows.length > 0) {
-		notDeletedComments = result.rows
+	if (marker.rows.length === 0) {
+		return
 	}
-}
-
-// getBlockRange keeps this behind the comments sync
-const getDeletedComments = async (blockRange: number[]) => {
-	const result = await query<DeletedComment>(
-		`SELECT id, author, permlink FROM hafsql.operation_delete_comment_table
-      WHERE id >= hafsql.first_op_id_from_block_num($1)
-			AND id <= hafsql.last_op_id_from_block_num($2)
-			ORDER BY id ASC`,
-		[blockRange[0], blockRange[1]],
-	)
-	return result.rows
-}
-
-const insertDeletedComments = async (
-	deletedCms: DeletedComment[],
-	blockRange: number[],
-) => {
-	try {
-		await transaction(async (client) => {
-			for (let i = 0; i < deletedCms.length; i++) {
-				const { author, permlink } = deletedCms[i]
-				let notDeleted = false
-				for (let k = 0; k < notDeletedComments.length; k++) {
-					if (
-						author === notDeletedComments[k].author &&
-						permlink === notDeletedComments[k].permlink
-					) {
-						notDeleted = true
-					}
-				}
-				if (notDeleted) {
-					continue
+	print('[Comments] Repairing comments re-posted after delete... ⏳')
+	// Don't replay ops the live sync hasn't reached - it will handle them
+	const lastBlock = await getLastBlockNum('comments')
+	const maxId = (await query<{ max: number }>(
+		'SELECT COALESCE(MAX(id), 0) AS max FROM hafsql.comments_table',
+	)).rows[0].max
+	const batch = 1000000
+	let repaired = 0
+	for (let start = 0; start <= maxId; start += batch) {
+		const rows = await query<
+			{ id: number; author: string; permlink: string; last_delete: string }
+		>(
+			`SELECT c.id, c.author, c.permlink, ld.last_delete
+				FROM hafsql.comments_table c,
+				LATERAL (SELECT MAX(d.id) AS last_delete FROM hafsql.operation_delete_comment_table d
+					WHERE d.author = c.author AND d.permlink = c.permlink AND ${effectiveDelete}) ld
+				WHERE c.id BETWEEN $1 AND $2 AND c.deleted
+				AND EXISTS (SELECT 1 FROM hafd.operations o
+					WHERE o.op_type_id = 1
+					AND o.body_value->>'author' = c.author AND o.body_value->>'permlink' = c.permlink
+					AND o.id > ld.last_delete AND o.id <= hafsql.last_op_id_from_block_num($3))`,
+			[start, start + batch - 1, lastBlock],
+		)
+		for (const row of rows.rows) {
+			const ops = await query<CommentOp>(
+				`SELECT id, "timestamp", author, permlink, parent_author, parent_permlink, title, body, json_metadata
+					FROM hafsql.operation_comment_view
+					WHERE author = $1 AND permlink = $2
+					AND id > $3 AND id <= hafsql.last_op_id_from_block_num($4)
+					ORDER BY id ASC`,
+				[row.author, row.permlink, row.last_delete, lastBlock],
+			)
+			await transaction(async (client) => {
+				// Rewards on the row belong to the re-post - a paid comment can't be deleted
+				const old = (await client.query<Record<string, string>>(
+					`SELECT pending_payout_value, payout, author_rewards_hive, author_rewards_hbd,
+						curation_rewards, beneficiary_rewards
+						FROM hafsql.comments_table WHERE id = $1 FOR UPDATE`,
+					[row.id],
+				)).rows[0]
+				for (const op of ops.rows) {
+					await insertComment(op, client)
 				}
 				await client.query(
-					'UPDATE hafsql.comments_table SET deleted=true WHERE author=$1 AND permlink=$2;',
-					[author, permlink],
+					`UPDATE hafsql.comments_table SET pending_payout_value = $3, payout = $4,
+						author_rewards_hive = $5, author_rewards_hbd = $6,
+						curation_rewards = $7, beneficiary_rewards = $8
+						WHERE author = $1 AND permlink = $2`,
+					[
+						row.author,
+						row.permlink,
+						old.pending_payout_value,
+						old.payout,
+						old.author_rewards_hive,
+						old.author_rewards_hbd,
+						old.curation_rewards,
+						old.beneficiary_rewards,
+					],
 				)
-			}
-			await updateLastBlockNum('delete_comments', blockRange[1], client)
-		})
-		// deno-lint-ignore no-explicit-any
-	} catch (e: any) {
-		// probably a deadlock - retry
-		if (e.message === 'deadlock detected') {
-			await sleep(5000)
-			return insertDeletedComments(deletedCms, blockRange)
-		} else {
-			print(e)
-			throw e
+			})
+			repaired++
 		}
+		print(
+			`[Comments] Repair: ${
+				Math.min(start + batch, maxId)
+			}/${maxId} - ${repaired} rebuilt`,
+		)
 	}
+	await query('DELETE FROM hafsql.version WHERE name=$1', [
+		'repair_recreated_comments',
+	])
+	print(`[Comments] Repair done - ${repaired} comments rebuilt ✅`)
 }
