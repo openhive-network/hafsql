@@ -155,6 +155,39 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
+	// Upgrading from <= 2.6.6
+	// Edits with an empty title blanked the title - restore the latest non-empty title.
+	// Batched by id without a transaction to avoid one long transaction - safe to re-run.
+	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.6.6'))) {
+		print('Upgrading from version <= 2.6.6 - restoring comment titles')
+		const maxId = (await query<{ max: number }>(
+			'SELECT COALESCE(MAX(id), 0) AS max FROM hafsql.comments_table',
+		)).rows[0].max
+		const batch = 1000000
+		for (let start = 0; start <= maxId; start += batch) {
+			await query(
+				`UPDATE hafsql.comments_table c SET title = l.title
+				FROM (
+					SELECT c2.id, (SELECT replace(o.body_value->>'title', 'u0000', '')
+						FROM hafd.operations o
+						WHERE o.op_type_id = 1
+						AND o.body_value->>'author' = c2.author
+						AND o.body_value->>'permlink' = c2.permlink
+						AND o.body_value->>'title' <> ''
+						ORDER BY o.id DESC LIMIT 1) AS title
+					FROM hafsql.comments_table c2
+					WHERE c2.id BETWEEN $1 AND $2 AND c2.title = '' AND c2.last_edited IS NOT NULL AND NOT c2.deleted
+				) l
+				WHERE l.id = c.id AND l.title IS NOT NULL`,
+				[start, start + batch - 1],
+			)
+			print(
+				`[Upgrade] Comment titles: ${Math.min(start + batch, maxId)}/${maxId}`,
+			)
+		}
+		print('Upgrade script done ✅')
+	}
+
 	// Update the version
 	if (oldVersion !== newVersion) {
 		await query(

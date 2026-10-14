@@ -169,7 +169,8 @@ const updateEditedComment = async (
 		const editedBody = patchBody(oldBody, newBody)
 		params.push({ name: 'body', value: cleanString(editedBody) })
 	}
-	if (comment.title !== oldComment.title) {
+	// Empty title on edit means unchanged (same as hivemind)
+	if (comment.title !== '' && comment.title !== oldComment.title) {
 		params.push({ name: 'title', value: cleanString(comment.title) })
 	}
 	if (params.length < 1) {
