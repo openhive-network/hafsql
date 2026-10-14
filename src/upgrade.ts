@@ -218,6 +218,24 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
+	// Upgrading from <= 2.6.8
+	// RC delegations and proposal approvals now come from balance_tracker / hafbe
+	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.6.8'))) {
+		print(
+			'Upgrading from version <= 2.6.8 - removing rc_delegations & proposal_approvals tables',
+		)
+		await transaction(async (client) => {
+			await client.query('DROP TABLE IF EXISTS hafsql.rc_delegations_table;')
+			await client.query(
+				'DROP TABLE IF EXISTS hafsql.proposal_approvals_table;',
+			)
+			await client.query(
+				`DELETE FROM hafsql.sync_data WHERE table_name IN ('rc_delegations', 'proposal_approvals')`,
+			)
+		})
+		print('Upgrade script done ✅')
+	}
+
 	// Update the version
 	if (oldVersion !== newVersion) {
 		await query(

@@ -41,16 +41,6 @@ export const createCommentsIndexes = async () => {
 	)
 }
 
-export const createRCDelegationsIndexes = async () => {
-	await waitForAppLive('hivemind_app')
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_rc_delegations_table_delegatee_timestamp_idx ON hafsql.rc_delegations_table USING btree (delegatee, timestamp);',
-	)
-	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_rc_delegations_table_delegator_timestamp_idx ON hafsql.rc_delegations_table USING btree (delegator, timestamp);',
-	)
-}
-
 export const createAccountsIndexes = async () => {
 	await waitForAppLive('hivemind_app')
 	// We had some toast errors on this table when creating indexes

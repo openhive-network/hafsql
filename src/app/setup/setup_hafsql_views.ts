@@ -54,14 +54,17 @@ export const setupHafsqlViews = async () => {
    join hafd.accounts a on x.delegator=a.id
    join hafd.accounts b on x.delegatee=b.id;`)
 
-	// RC Delegations
+	// RC Delegations - tracked by balance_tracker
 	await query(`CREATE OR REPLACE VIEW hafsql.rc_delegations
-  AS SELECT x.delegator,
-    x.delegatee,
-    x.rc,
-    hafsql.rc_to_hive(x.rc::numeric) as hp_equivalent,
-    x.timestamp
-    FROM hafsql.rc_delegations_table x;`)
+  AS SELECT a.name AS delegator,
+    b.name AS delegatee,
+    x.max_rc AS rc,
+    hafsql.rc_to_hive(x.max_rc::numeric) as hp_equivalent,
+    hb.created_at AT TIME ZONE 'UTC' AS "timestamp"
+    FROM hafbe_bal.current_rc_delegations x
+    JOIN hafd.accounts a ON a.id = x.delegator
+    JOIN hafd.accounts b ON b.id = x.delegatee
+    JOIN hafd.blocks hb ON hb.num = hafd.operation_id_to_block_num(x.source_op);`)
 
 	// Comments
 	await query(`CREATE OR REPLACE VIEW hafsql.comments
@@ -196,11 +199,12 @@ export const setupHafsqlViews = async () => {
     JOIN hivemind_app.hive_accounts a ON hr.blogger_id=a.id
     JOIN hivemind_app.hive_permlink_data hpd ON hpd.id=p.permlink_id`)
 
-	// Proposal Approvlas
+	// Proposal Approvals - tracked by hafbe
 	await query(`CREATE OR REPLACE VIEW hafsql.proposal_approvals
-  AS SELECT x.id AS proposal_id,
-    x.voter
-    FROM hafsql.proposal_approvals_table x;`)
+  AS SELECT x.proposal_id,
+    a.name AS voter
+    FROM hafbe_app.current_proposal_votes x
+    JOIN hafd.accounts a ON a.id = x.voter_id;`)
 
 	// Reputations
 	await query(`CREATE OR REPLACE VIEW hafsql.reputations

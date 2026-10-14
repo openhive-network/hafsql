@@ -74,30 +74,6 @@ export interface Delegations {
 	id: bigint
 }
 
-export interface RcCustomJson {
-	json: string
-	timestamp: string
-}
-
-export interface RcDelegationParams {
-	from: string
-	delegatees: string[]
-	max_rc?: string | number
-}
-
-export interface RcDelegation {
-	length: 2
-	0: string | number
-	1: RcDelegationParams
-}
-
-export interface RcDelegationAppended {
-	from: string
-	delegatees: string[]
-	max_rc: string | number
-	timestamp: string
-}
-
 export interface CustomJsonFollow {
 	id: bigint
 	json: string
@@ -109,27 +85,6 @@ export interface Follows {
 	following: number[]
 	what: string[]
 	id: bigint
-}
-
-export interface ProposalApprovals {
-	id: bigint
-	voter: string
-	proposal_ids: number[]
-	approve: boolean
-}
-
-export interface ExpiredAccount {
-	id: bigint
-	account: string
-}
-
-export interface ApprovalsAndExpired {
-	type: 'approval' | 'expired'
-	id: bigint
-	voter?: string
-	proposal_ids?: number[]
-	approve?: boolean
-	account?: string
 }
 
 export interface CommunityJson {

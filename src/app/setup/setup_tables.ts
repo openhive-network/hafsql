@@ -8,26 +8,6 @@ export const setupTables = async () => {
     CONSTRAINT hafsql_sync_data_un UNIQUE (table_name)
   );`)
 
-	// RC Delegations
-	await query(
-		`CREATE TABLE IF NOT EXISTS hafsql.rc_delegations_table (
-      delegator varchar NOT NULL,
-      delegatee varchar NOT NULL,
-      rc varchar NOT NULL,
-      timestamp timestamptz NOT NULL,
-      CONSTRAINT hafsql_rc_delegations_table_un UNIQUE (delegator, delegatee)
-    );`,
-	)
-
-	// Proposal Approvals
-	await query(
-		`CREATE TABLE IF NOT EXISTS hafsql.proposal_approvals_table (
-      id int4 NOT NULL,
-      voter varchar NOT NULL,
-      CONSTRAINT hafsql_proposal_approvals_table_un UNIQUE (id, voter)
-    );`,
-	)
-
 	// Comments
 	await query(`CREATE TABLE IF NOT EXISTS hafsql.comments_table (
     id serial4 NOT NULL,
@@ -209,8 +189,6 @@ export const setupTables = async () => {
 
 const setupSyncDataTable = async () => {
 	const tableNames = [
-		'rc_delegations',
-		'proposal_approvals',
 		'comments',
 		'pending_rewards',
 		'paid_rewards',
