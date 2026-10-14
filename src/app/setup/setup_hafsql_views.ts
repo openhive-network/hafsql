@@ -310,9 +310,8 @@ export const setupHafsqlViews = async () => {
   AS WITH base AS (
     SELECT
       e.*,
-      hafd.operation_id_to_block_num(o.id) AS block_num
+      hafd.operation_id_to_block_num(e.source_op) AS block_num
     FROM hafbe_bal.account_balance_history e
-    JOIN hafd.operations o ON o.id = e.source_op
   )
   SELECT
     a.id AS account_id,
@@ -329,51 +328,46 @@ export const setupHafsqlViews = async () => {
   LEFT JOIN LATERAL (
     SELECT abh.balance
     FROM hafbe_bal.account_balance_history abh
-    JOIN hafd.operations o ON o.id = abh.source_op
     WHERE abh.account = base.account
       AND abh.nai = 13
-      AND hafd.operation_id_to_block_num(o.id) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(o.id) DESC, abh.source_op DESC
+      AND hafd.operation_id_to_block_num(abh.source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(abh.source_op) DESC, abh.source_op DESC
     LIMIT 1
   ) hbd ON true
   LEFT JOIN LATERAL (
     SELECT abh.balance
     FROM hafbe_bal.account_balance_history abh
-    JOIN hafd.operations o ON o.id = abh.source_op
     WHERE abh.account = base.account
       AND abh.nai = 21
-      AND hafd.operation_id_to_block_num(o.id) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(o.id) DESC, abh.source_op DESC
+      AND hafd.operation_id_to_block_num(abh.source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(abh.source_op) DESC, abh.source_op DESC
     LIMIT 1
   ) hive ON true
   LEFT JOIN LATERAL (
     SELECT abh.balance
     FROM hafbe_bal.account_balance_history abh
-    JOIN hafd.operations o ON o.id = abh.source_op
     WHERE abh.account = base.account
       AND abh.nai = 37
-      AND hafd.operation_id_to_block_num(o.id) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(o.id) DESC, abh.source_op DESC
+      AND hafd.operation_id_to_block_num(abh.source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(abh.source_op) DESC, abh.source_op DESC
     LIMIT 1
   ) vests ON true
   LEFT JOIN LATERAL (
     SELECT ash.balance
     FROM hafbe_bal.account_savings_history ash
-    JOIN hafd.operations o ON o.id = ash.source_op
     WHERE ash.account = base.account
       AND ash.nai = 21
-      AND hafd.operation_id_to_block_num(o.id) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(o.id) DESC, ash.source_op DESC
+      AND hafd.operation_id_to_block_num(ash.source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(ash.source_op) DESC, ash.source_op DESC
     LIMIT 1
   ) hive_savings ON true
   LEFT JOIN LATERAL (
     SELECT ash.balance
     FROM hafbe_bal.account_savings_history ash
-    JOIN hafd.operations o ON o.id = ash.source_op
     WHERE ash.account = base.account
       AND ash.nai = 13
-      AND hafd.operation_id_to_block_num(o.id) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(o.id) DESC, ash.source_op DESC
+      AND hafd.operation_id_to_block_num(ash.source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(ash.source_op) DESC, ash.source_op DESC
     LIMIT 1
   ) hbd_savings ON true;`)
 

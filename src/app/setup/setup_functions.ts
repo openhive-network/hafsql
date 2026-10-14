@@ -362,7 +362,7 @@ export const setupFunctions = async () => {
           FROM hafsql.balances b WHERE b.account_id = $1);
       ELSE
 		CASE WHEN
-			(SELECT EXISTS(SELECT 1 FROM hafsql.balances_history b WHERE b.account_id = $1 AND b.block_num <= $2 LIMIT 1)) = true
+			(SELECT EXISTS(SELECT 1 FROM hafbe_bal.account_balance_history h WHERE h.account = $1 AND hafd.operation_id_to_block_num(h.source_op) <= $2)) = true
 		THEN RETURN QUERY
       (SELECT b.hive, b.hbd, b.vests, b.hp_equivalent, b.hive_savings, b.hbd_savings
       FROM hafsql.get_balance_at($1, $2) b);
