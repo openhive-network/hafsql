@@ -183,26 +183,18 @@ export const setupHafsqlViews = async () => {
 	// Reblogs
 	await query(`CREATE OR REPLACE VIEW hafsql.reblogs
   AS SELECT
-    s.account_id,
-    s.account_name,
-    s.post_id,
-    s.author,
-    hpd."permlink",
-    s.block_num,
-    s.created_at 
-    FROM (SELECT
     a.haf_id AS account_id,
     a."name" AS account_name,
     hr.post_id,
     b.name AS author,
+    hpd."permlink",
     hr.block_num,
     hr.created_at
     FROM hivemind_app.hive_reblogs hr
-    JOIN hivemind_app.hive_posts p ON hr.post_id=p.id 
+    JOIN hivemind_app.hive_posts p ON hr.post_id=p.id
     JOIN hivemind_app.hive_accounts b ON p.author_id=b.id
     JOIN hivemind_app.hive_accounts a ON hr.blogger_id=a.id
-    ) s
-    JOIN hivemind_app.hive_permlink_data hpd ON hpd.id=s.post_id`)
+    JOIN hivemind_app.hive_permlink_data hpd ON hpd.id=p.permlink_id`)
 
 	// Proposal Approvlas
 	await query(`CREATE OR REPLACE VIEW hafsql.proposal_approvals
