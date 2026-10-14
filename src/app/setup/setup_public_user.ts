@@ -5,9 +5,9 @@ import { sleep } from '../helpers/utils/sleep.ts'
 const username = Deno.env.get('HAFSQL_PUBLICUSERNAME') || 'hafsql_public'
 const password = Deno.env.get('HAFSQL_PUBLICPASSWORD') || 'hafsql_public'
 const statementTimeout = Deno.env.get('HAFSQL_PUBLIC_STATEMENT_TIMEOUT') ||
-	'15s'
+	'45s'
 const workMem = Deno.env.get('HAFSQL_PUBLIC_WORK_MEM')
-const tempFileLimit = Deno.env.get('HAFSQL_PUBLIC_TEMP_FILE_LIMIT') || '256MB'
+const tempFileLimit = Deno.env.get('HAFSQL_PUBLIC_TEMP_FILE_LIMIT') || '512MB'
 
 const identifier = (value: string) => {
 	if (!/^[a-z_][a-z0-9_]*$/i.test(value)) {
