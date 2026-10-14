@@ -272,6 +272,24 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
+	// Upgrading from <= 2.6.10
+	// 1w market buckets put Sunday trades into the next week.
+	// Rebuild them from the 1d buckets (a week is exactly 7 daily buckets).
+	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.6.10'))) {
+		print('Upgrading from version <= 2.6.10 - rebuilding 1w market buckets')
+		await transaction(async (client) => {
+			await client.query('DELETE FROM hafsql.market_bucket_1w_table')
+			await client.query(`INSERT INTO hafsql.market_bucket_1w_table
+				(timestamp, open, high, low, close, base_vol, quote_vol)
+				SELECT date_trunc('week', timestamp AT TIME ZONE 'UTC') AT TIME ZONE 'UTC',
+					(array_agg(open ORDER BY timestamp))[1], MAX(high), MIN(low),
+					(array_agg(close ORDER BY timestamp DESC))[1], SUM(base_vol), SUM(quote_vol)
+				FROM hafsql.market_bucket_1d_table
+				GROUP BY 1`)
+		})
+		print('Upgrade script done ✅')
+	}
+
 	// Update the version
 	if (oldVersion !== newVersion) {
 		await query(
