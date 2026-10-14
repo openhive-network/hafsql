@@ -1,5 +1,10 @@
 import { query } from '../helpers/database.ts'
 
+// Volatility labels:
+// - STABLE: the result follows the chain head (current price, balance, sync progress)
+// - IMMUTABLE: pure, or reads data that never changes once a block is irreversible
+//   (op ids, trx ids, block timestamps) - lets the planner fold e.g. id >= first_op_id_from_block_num(123)
+// All are read-only so PARALLEL SAFE (EXCEPTION blocks are allowed in parallel workers)
 export const setupFunctions = async () => {
 	// hafsql.asset_amount(text)
 	// Get the asset amount from the asset object
@@ -17,6 +22,7 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`)
 	await query(`COMMENT ON FUNCTION hafsql.asset_amount (text) IS
     'Return the calculated amount(float) of an asset object like {"nai": "@@000000021", "amount": "2123", "precision": 3}';`)
@@ -40,6 +46,7 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`)
 	await query(`COMMENT ON FUNCTION hafsql.asset_symbol (text) IS
     'Return the symbol(text) of an asset object like {"nai": "@@000000021", "amount": "2123", "precision": 3}';`)
@@ -63,6 +70,7 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`)
 	await query(`COMMENT ON FUNCTION hafsql.is_json (text) IS
     'Test if input text is valid JSON. Returns true, false, or NULL on NULL input.';`)
@@ -84,6 +92,7 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`)
 	await query(
 		`COMMENT ON FUNCTION hafsql.to_json (text) IS
@@ -111,7 +120,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    STABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.vests_to_hive (numeric, int4) IS
@@ -129,7 +139,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    STABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.rc_to_hive (numeric, int4) IS
@@ -157,6 +168,7 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`)
 	await query(`COMMENT ON FUNCTION hafsql.get_trx_id (int8) IS
     'Return trx_id from op_id';`)
@@ -178,6 +190,7 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`,
 	)
 	await query(
@@ -202,6 +215,7 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`,
 	)
 	await query(
@@ -235,7 +249,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE
+    STABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`,
 	)
 	await query(
@@ -258,6 +273,7 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`,
 	)
 	await query(
@@ -282,7 +298,7 @@ export const setupFunctions = async () => {
       hbd_savings numeric,
       hp_equivalent numeric
     )
-    LANGUAGE plpgsql STABLE AS $$
+    LANGUAGE plpgsql STABLE PARALLEL SAFE AS $$
     DECLARE
       v_account_name   text;
       v_hbd_balance    bigint;
@@ -372,7 +388,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    STABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.get_balance (int4, int4) IS
@@ -393,7 +410,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    STABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.get_balance (text, int4) IS
@@ -419,7 +437,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    IMMUTABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.id_from_timestamp (timestamptz, boolean) IS
@@ -438,7 +457,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    IMMUTABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.get_timestamp (int8) IS
@@ -455,7 +475,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    IMMUTABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.get_timestamp (int4) IS
@@ -475,7 +496,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    IMMUTABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.get_content_type (jsonb) IS
