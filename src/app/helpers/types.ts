@@ -274,6 +274,7 @@ export interface WithdrawRoute {
 export interface RecoverAccount {
 	account_to_recover: string
 	new_owner_authority: object
+	timestamp: string
 	id: bigint
 }
 export interface Pow {

@@ -334,6 +334,42 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
+	// Upgrading from <= 2.7.0
+	// last_update / last_owner_update used the block time but hived uses the previous block's,
+	// recover_account didn't set last_owner_update and changed_recovery_account wrongly did.
+	// Only account_update(2) / recover_account set them now - recompute both for every account.
+	// hafd.operation_id_to_block_num isn't STRICT and returns garbage for NULL - guard with CASE.
+	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.7.0'))) {
+		print(
+			'Upgrading from version <= 2.7.0 - recomputing last_update and last_owner_update',
+		)
+		await query(
+			`UPDATE hafsql.accounts_table t
+			SET last_update = n.last_update, last_owner_update = n.last_owner_update
+			FROM (
+				SELECT a.id AS account,
+					CASE WHEN u.last_id IS NOT NULL
+						THEN hafsql.get_timestamp(hafd.operation_id_to_block_num(u.last_id) - 1) END AS last_update,
+					CASE WHEN GREATEST(u.owner_id, r.id) IS NOT NULL
+						THEN hafsql.get_timestamp(hafd.operation_id_to_block_num(GREATEST(u.owner_id, r.id)) - 1) END AS last_owner_update
+				FROM hafd.accounts a
+				LEFT JOIN (
+					SELECT account, MAX(id) AS last_id, MAX(id) FILTER (WHERE owner IS NOT NULL) AS owner_id FROM (
+						SELECT account, id, owner FROM hafsql.operation_account_update_table
+						UNION ALL SELECT account, id, owner FROM hafsql.operation_account_update2_table
+					) x GROUP BY account
+				) u ON u.account = a.name
+				LEFT JOIN (
+					SELECT account_to_recover AS account, MAX(id) AS id
+					FROM hafsql.operation_recover_account_table GROUP BY account_to_recover
+				) r ON r.account = a.name
+			) n
+			WHERE n.account = t.account
+			AND (t.last_update IS DISTINCT FROM n.last_update OR t.last_owner_update IS DISTINCT FROM n.last_owner_update)`,
+		)
+		print('Upgrade script done ✅')
+	}
+
 	// Update the version
 	if (oldVersion !== newVersion) {
 		await query(

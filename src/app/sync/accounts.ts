@@ -105,7 +105,8 @@ const getData = async (blockRange: number[]) => {
     ORDER BY id;`,
 	)
 	const accountUpdate = await query<AccountUpdate>(
-		`SELECT account, owner, active, posting, memo_key, json_metadata, hafsql.get_timestamp(id) as timestamp, id,
+		// last_update / last_owner_update use hived's head block time - the previous block
+		`SELECT account, owner, active, posting, memo_key, json_metadata, hafsql.get_timestamp(hafd.operation_id_to_block_num(id) - 1) as timestamp, id,
       id < COALESCE((SELECT hardfork_vop_id FROM hafd.applied_hardforks WHERE hardfork_num = 21), 9223372036854775807) AS pre_hf21
       FROM hafsql.operation_account_update_table
       WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
@@ -113,7 +114,7 @@ const getData = async (blockRange: number[]) => {
       ORDER BY id;`,
 	)
 	const accountUpdate2 = await query<AccountUpdate2>(
-		`SELECT account, owner, active, posting, memo_key, json_metadata, posting_json_metadata, hafsql.get_timestamp(id) AS timestamp, id FROM hafsql.operation_account_update2_table
+		`SELECT account, owner, active, posting, memo_key, json_metadata, posting_json_metadata, hafsql.get_timestamp(hafd.operation_id_to_block_num(id) - 1) AS timestamp, id FROM hafsql.operation_account_update2_table
       WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY id;`,
@@ -131,7 +132,7 @@ const getData = async (blockRange: number[]) => {
       ORDER BY id;`,
 	)
 	const recoverAccount = await query<RecoverAccount>(
-		`SELECT account_to_recover, new_owner_authority, id FROM hafsql.operation_recover_account_table
+		`SELECT account_to_recover, new_owner_authority, hafsql.get_timestamp(hafd.operation_id_to_block_num(id) - 1) AS timestamp, id FROM hafsql.operation_recover_account_table
       WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY id;`,
@@ -388,8 +389,8 @@ const handleRecoverAccount = async (
 	const owner = element.new_owner_authority
 	const accountId = await getUserId(account, client)
 	await client.query(
-		`UPDATE hafsql.accounts_table SET owner=$1 WHERE account=$2`,
-		[owner, accountId],
+		`UPDATE hafsql.accounts_table SET owner=$1, last_owner_update=$2 WHERE account=$3`,
+		[owner, element.timestamp, accountId],
 	)
 }
 
@@ -404,8 +405,8 @@ const handleChangedRecovery = async (
 	const accountId = await getUserId(account, client)
 	const recoveryId = await getUserId(new_recovery_account, client)
 	await client.query(
-		`UPDATE hafsql.accounts_table SET recovery=$1, last_owner_update=$2 WHERE account=$3`,
-		[recoveryId, timestamp, accountId],
+		`UPDATE hafsql.accounts_table SET recovery=$1 WHERE account=$2`,
+		[recoveryId, accountId],
 	)
 }
 
