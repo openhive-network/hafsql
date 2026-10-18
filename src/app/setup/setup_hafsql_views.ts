@@ -230,10 +230,12 @@ export const setupHafsqlViews = async () => {
     (SELECT COUNT(1) FROM hafsql.follows f WHERE f.following_name = x.name) AS followers,
     (SELECT COUNT(1) FROM hafsql.follows f WHERE f.follower_name = x.name) AS followings,
     (SELECT r.rep FROM hafsql.reputations r WHERE r.account_name = x.name) AS reputation,
-    (SELECT COALESCE(SUM(d.vests), 0) FROM hafsql.delegations d WHERE d.delegatee = x.name) AS incoming_vests,
-    (SELECT COALESCE(SUM(d.hp_equivalent), 0) FROM hafsql.delegations d WHERE d.delegatee = x.name) AS incoming_hp,
-    (SELECT COALESCE(SUM(d.vests), 0) FROM hafsql.delegations d WHERE d.delegator = x.name) AS outgoing_vests,
-    (SELECT COALESCE(SUM(d.hp_equivalent), 0) FROM hafsql.delegations d WHERE d.delegator = x.name) AS outgoing_hp,
+    (COALESCE(ad.received_vests, 0) / 1000000.0)::numeric(27, 6) AS incoming_vests,
+    -- vests_to_hive runs a query - skip it for accounts without delegations
+    CASE WHEN ad.received_vests > 0 THEN hafsql.vests_to_hive(ad.received_vests / 1000000.0) ELSE 0 END AS incoming_hp,
+    -- Not ad.delegated_vests - it includes delegations still being returned (and is stale for some accounts)
+    (SELECT COALESCE(SUM(d.balance), 0) / 1000000.0 FROM hafbe_bal.current_accounts_delegations d WHERE d.delegator = x.id)::numeric(27, 6) AS outgoing_vests,
+    (SELECT CASE WHEN SUM(d.balance) > 0 THEN hafsql.vests_to_hive(SUM(d.balance) / 1000000.0) ELSE 0 END FROM hafbe_bal.current_accounts_delegations d WHERE d.delegator = x.id) AS outgoing_hp,
     creatort."name" AS creator,
     ha.created_at,
     ha."owner",
@@ -264,6 +266,7 @@ export const setupHafsqlViews = async () => {
     JOIN hafd.accounts recoveryt ON recoveryt.id = ha."recovery"
     -- Reward balances, power down and proxy are tracked by balance_tracker / hafbe
     LEFT JOIN hafbe_bal.account_withdraws w ON w.account = x.id
+    LEFT JOIN hafbe_bal.account_delegations ad ON ad.account = x.id
     LEFT JOIN LATERAL (
       SELECT
         (COALESCE(SUM(r.balance) FILTER (WHERE r.nai = 21), 0) / 1000.0)::numeric(21, 3) AS reward_hive_balance,
