@@ -112,11 +112,11 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
-	// Upgrading from <= 2.6.5
+	// Upgrading from < 2.7.0
 	// Empty json_metadata/posting_json_metadata in account updates means "unchanged"
 	// but was stored as {} and overwrote the account metadata. Store NULL and repair accounts.
-	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.6.5'))) {
-		print('Upgrading from version <= 2.6.5 - repairing account metadata')
+	if (semver.lessThan(semver.parse(oldVersion), semver.parse('2.7.0'))) {
+		print('Upgrading from version < 2.7.0 - repairing account metadata')
 		await transaction(async (client) => {
 			await client.query(`UPDATE hafsql.operation_account_update_table t
 				SET json_metadata = NULL
@@ -155,11 +155,11 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
-	// Upgrading from <= 2.6.6
+	// Upgrading from < 2.7.0
 	// Edits with an empty title blanked the title - restore the latest non-empty title.
 	// Batched by id without a transaction to avoid one long transaction - safe to re-run.
-	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.6.6'))) {
-		print('Upgrading from version <= 2.6.6 - restoring comment titles')
+	if (semver.lessThan(semver.parse(oldVersion), semver.parse('2.7.0'))) {
+		print('Upgrading from version < 2.7.0 - restoring comment titles')
 		const maxId = (await query<{ max: number }>(
 			'SELECT COALESCE(MAX(id), 0) AS max FROM hafsql.comments_table',
 		)).rows[0].max
@@ -188,13 +188,13 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
-	// Upgrading from <= 2.6.7
+	// Upgrading from < 2.7.0
 	// Deletes moved from a separate worker into the comments worker.
 	// Apply deletes the old worker had not reached yet, drop its sync row,
 	// and ask the comments worker to rebuild comments re-posted after a delete.
-	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.6.7'))) {
+	if (semver.lessThan(semver.parse(oldVersion), semver.parse('2.7.0'))) {
 		print(
-			'Upgrading from version <= 2.6.7 - merging delete_comments into comments',
+			'Upgrading from version < 2.7.0 - merging delete_comments into comments',
 		)
 		await transaction(async (client) => {
 			await client.query(`UPDATE hafsql.comments_table c SET deleted = true
@@ -218,11 +218,11 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
-	// Upgrading from <= 2.6.8
+	// Upgrading from < 2.7.0
 	// RC delegations and proposal approvals now come from balance_tracker / hafbe
-	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.6.8'))) {
+	if (semver.lessThan(semver.parse(oldVersion), semver.parse('2.7.0'))) {
 		print(
-			'Upgrading from version <= 2.6.8 - removing rc_delegations & proposal_approvals tables',
+			'Upgrading from version < 2.7.0 - removing rc_delegations & proposal_approvals tables',
 		)
 		await transaction(async (client) => {
 			await client.query('DROP TABLE IF EXISTS hafsql.rc_delegations_table;')
@@ -236,11 +236,11 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
-	// Upgrading from <= 2.6.9
+	// Upgrading from < 2.7.0
 	// Reward balances, power down amounts and proxy now come from balance_tracker / hafbe
-	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.6.9'))) {
+	if (semver.lessThan(semver.parse(oldVersion), semver.parse('2.7.0'))) {
 		print(
-			'Upgrading from version <= 2.6.9 - dropping accounts_table columns now read from btracker/hafbe',
+			'Upgrading from version < 2.7.0 - dropping accounts_table columns now read from btracker/hafbe',
 		)
 		await query(`ALTER TABLE hafsql.accounts_table
 			DROP COLUMN IF EXISTS reward_hive_balance,
@@ -272,11 +272,11 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
-	// Upgrading from <= 2.6.10
+	// Upgrading from < 2.7.0
 	// 1w market buckets put Sunday trades into the next week.
 	// Rebuild them from the 1d buckets (a week is exactly 7 daily buckets).
-	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.6.10'))) {
-		print('Upgrading from version <= 2.6.10 - rebuilding 1w market buckets')
+	if (semver.lessThan(semver.parse(oldVersion), semver.parse('2.7.0'))) {
+		print('Upgrading from version < 2.7.0 - rebuilding 1w market buckets')
 		await transaction(async (client) => {
 			await client.query('DELETE FROM hafsql.market_bucket_1w_table')
 			await client.query(`INSERT INTO hafsql.market_bucket_1w_table
