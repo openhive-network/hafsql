@@ -37,6 +37,22 @@ export const setupPublicUser = async () => {
 				literal(statementTimeout)
 			};`,
 		)
+		// Users can raise statement_timeout with SET LOCAL and PgBouncer's query_timeout
+		// only drops the client - the query keeps running. Terminate them server-side.
+		// A bare number is milliseconds for statement_timeout but seconds for interval
+		const timeoutInterval = /^\d+$/.test(statementTimeout)
+			? `${statementTimeout}ms`
+			: statementTimeout
+		await query(
+			`SELECT cron.schedule('hafsql-public-query-timeout', '10 seconds', $1)`,
+			[
+				`SELECT pg_terminate_backend(pid) FROM pg_stat_activity
+				WHERE usename = ${literal(username)} AND state = 'active'
+				AND now() - query_start > ${
+					literal(timeoutInterval)
+				}::interval + interval '5 seconds'`,
+			],
+		)
 		if (workMem) {
 			await query(
 				`ALTER USER ${publicRole} SET work_mem=${literal(workMem)};`,
