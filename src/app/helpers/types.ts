@@ -245,6 +245,7 @@ export interface AccountUpdate {
 	json_metadata: object
 	timestamp: string
 	id: bigint
+	pre_hf21: boolean
 }
 export interface AccountUpdate2 {
 	account: string
@@ -303,6 +304,7 @@ export interface AccountsData {
 	memo_key?: string
 	json_metadata?: object
 	posting_json_metadata?: object
+	pre_hf21?: boolean
 	account?: string
 	new_recovery_account?: string
 	from_account?: string

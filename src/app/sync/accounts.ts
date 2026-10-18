@@ -105,7 +105,9 @@ const getData = async (blockRange: number[]) => {
     ORDER BY id;`,
 	)
 	const accountUpdate = await query<AccountUpdate>(
-		`SELECT account, owner, active, posting, memo_key, json_metadata, hafsql.get_timestamp(id) as timestamp, id FROM hafsql.operation_account_update_table
+		`SELECT account, owner, active, posting, memo_key, json_metadata, hafsql.get_timestamp(id) as timestamp, id,
+      id < COALESCE((SELECT hardfork_vop_id FROM hafd.applied_hardforks WHERE hardfork_num = 21), 9223372036854775807) AS pre_hf21
+      FROM hafsql.operation_account_update_table
       WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY id;`,
@@ -286,11 +288,13 @@ const handleAccountUpdate = async (
 	const json_metadata = element.json_metadata == null
 		? null
 		: JSON.stringify(element.json_metadata)
+	// Before HF21 account_update json_metadata also set posting_json_metadata
+	const posting_metadata = element.pre_hf21 ? json_metadata : null
 	const accountId = await getUserId(account, client)
 	let additional = ''
 	const addParams = []
 	let i = 0
-	const paramsStart = 5
+	const paramsStart = 6
 	if (owner) {
 		additional += `owner=$${paramsStart + i} ,`
 		addParams.push(owner)
@@ -309,8 +313,16 @@ const handleAccountUpdate = async (
 		addParams.push(posting)
 	}
 	await client.query(
-		`UPDATE hafsql.accounts_table SET ${additional} memo_key=$1, json_metadata=COALESCE($2::jsonb, json_metadata), last_update=$3 WHERE account=$4`,
-		[memo_key, json_metadata, timestamp, accountId, ...addParams],
+		`UPDATE hafsql.accounts_table SET ${additional} memo_key=$1, json_metadata=COALESCE($2::jsonb, json_metadata),
+			posting_metadata=COALESCE($5::jsonb, posting_metadata), last_update=$3 WHERE account=$4`,
+		[
+			memo_key,
+			json_metadata,
+			timestamp,
+			accountId,
+			posting_metadata,
+			...addParams,
+		],
 	)
 }
 

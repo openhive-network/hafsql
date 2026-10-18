@@ -290,6 +290,27 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
+	// Upgrading from <= 2.7.0
+	// Before HF21 account_update json_metadata also set posting_json_metadata.
+	// account_update2 only exists since HF21, so a non-NULL posting_metadata is already newer.
+	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.7.0'))) {
+		print(
+			'Upgrading from version <= 2.7.0 - restoring pre-HF21 posting metadata',
+		)
+		await query(
+			`UPDATE hafsql.accounts_table t SET posting_metadata = l.json_metadata
+			FROM (
+				SELECT DISTINCT ON (a.id) a.id AS account, x.json_metadata
+				FROM hafsql.operation_account_update_table x JOIN hafd.accounts a ON a.name = x.account
+				WHERE x.json_metadata IS NOT NULL
+				AND x.id < (SELECT hardfork_vop_id FROM hafd.applied_hardforks WHERE hardfork_num = 21)
+				ORDER BY a.id, x.id DESC
+			) l
+			WHERE l.account = t.account AND t.posting_metadata IS NULL`,
+		)
+		print('Upgrade script done ✅')
+	}
+
 	// Update the version
 	if (oldVersion !== newVersion) {
 		await query(
