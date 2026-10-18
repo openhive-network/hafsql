@@ -16,8 +16,8 @@ HafSQL now runs alongside HAF and other HAF apps in the official haf_api_node st
 - APIs are located in `/src/api/routes`  
 - New APIs must be imported in `/src/api/mod.ts`  
 - API documentation UI is in `/src/api/ui/scalar.ts`  
-- SQL views are located in `/src/app/setup/extra_views.ts` and `setup_operation_views.ts`  
-- SQL functions are in `/src/app/setup/functions.ts`  
+- SQL views are located in `/src/app/setup/setup_hafsql_views.ts` and `setup_operation_views.ts`  
+- SQL functions are in `/src/app/setup/setup_functions.ts`  
 - Breaking schema changes must be handled in `src/upgrade.ts`  
 - Version must be updated in `deno.json`  
 - Docker images are built, tagged, and pushed with `./docker-push.sh` (requires `docker login`)  

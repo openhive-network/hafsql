@@ -288,7 +288,7 @@ const fillBuckets = async (
 	}
 }
 
-// Credits to grok ai
+// Credits to grok ai (2026 oct. update: grok was wrong :) opus 5.5 fixed it)
 const getBucketStart = (date: Date, bucketSize: string) => {
 	let ms = 1000 * 60 // 1 minute in milliseconds
 	switch (bucketSize) {
@@ -307,14 +307,14 @@ const getBucketStart = (date: Date, bucketSize: string) => {
 		case '1d': // 1 day
 			return new Date(date.setUTCHours(0, 0, 0, 0)).toISOString()
 		case '1w':
-			// Assuming weeks start on Monday for simplicity
+			// Weeks start on Monday (getUTCDay: 0 = Sunday)
 			return new Date(
 				date.setUTCHours(0, 0, 0, 0) -
-					(date.getUTCDay() - 1) * 24 * 60 * 60 * 1000,
+					((date.getUTCDay() + 6) % 7) * 24 * 60 * 60 * 1000,
 			).toISOString()
 		case '4w':
-			// First day of the month at midnight
-			return new Date(date.getUTCFullYear(), date.getUTCMonth(), 1)
+			// First day of the month at midnight UTC
+			return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1))
 				.toISOString()
 		default:
 			throw new Error('Unsupported bucket size')

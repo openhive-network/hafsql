@@ -291,8 +291,8 @@ const getByAuthority = async (
 const getByProxy = async (username: string) => {
 	const result = await queryArrayAPI(
 		`SELECT name FROM hafsql.accounts WHERE 
-			id IN (SELECT account FROM hafsql.accounts_table WHERE
-				proxy=(SELECT id FROM hafd.accounts WHERE name=$1))`,
+			id IN (SELECT account_id FROM hafbe_app.current_account_proxies WHERE
+				proxy_id=(SELECT id FROM hafd.accounts WHERE name=$1))`,
 		[username],
 	)
 	return result.rows

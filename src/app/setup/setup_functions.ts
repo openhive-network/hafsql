@@ -1,5 +1,10 @@
 import { query } from '../helpers/database.ts'
 
+// Volatility labels:
+// - STABLE: the result follows the chain head (current price, balance, sync progress)
+// - IMMUTABLE: pure, or reads data that never changes once a block is irreversible
+//   (op ids, trx ids, block timestamps) - lets the planner fold e.g. id >= first_op_id_from_block_num(123)
+// All are read-only so PARALLEL SAFE (EXCEPTION blocks are allowed in parallel workers)
 export const setupFunctions = async () => {
 	// hafsql.asset_amount(text)
 	// Get the asset amount from the asset object
@@ -9,14 +14,26 @@ export const setupFunctions = async () => {
     DECLARE
       amount numeric;
     BEGIN
-      SELECT ($1::jsonb->>'amount')::numeric / power(10, ($1::jsonb->>'precision')::numeric) INTO STRICT amount;
-      RETURN amount::numeric;
-    EXCEPTION WHEN OTHERS THEN
-      RETURN 0;
+      -- Fast path without a subtransaction (no EXCEPTION block). Longer input may be
+      -- deeply nested JSON that pg_input_is_valid can't parse (stack depth) - use the old path
+      IF length($1) <= 8192 THEN
+        RETURN CASE
+          WHEN NOT pg_input_is_valid($1, 'jsonb') THEN 0
+          WHEN NOT pg_input_is_valid($1::jsonb->>'amount', 'numeric')
+            OR NOT pg_input_is_valid($1::jsonb->>'precision', 'numeric') THEN 0
+          ELSE ($1::jsonb->>'amount')::numeric / power(10, ($1::jsonb->>'precision')::numeric) END;
+      END IF;
+      BEGIN
+        SELECT ($1::jsonb->>'amount')::numeric / power(10, ($1::jsonb->>'precision')::numeric) INTO STRICT amount;
+        RETURN amount::numeric;
+      EXCEPTION WHEN OTHERS THEN
+        RETURN 0;
+      END;
     END
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`)
 	await query(`COMMENT ON FUNCTION hafsql.asset_amount (text) IS
     'Return the calculated amount(float) of an asset object like {"nai": "@@000000021", "amount": "2123", "precision": 3}';`)
@@ -29,17 +46,29 @@ export const setupFunctions = async () => {
     DECLARE
       symbol text;
     BEGIN
-      SELECT CASE
-        WHEN $1::jsonb->>'nai' = '@@000000013' THEN 'HBD'
-        WHEN $1::jsonb->>'nai' = '@@000000037' THEN 'VESTS'
-        ELSE 'HIVE' END INTO STRICT symbol;
-      RETURN symbol;
-    EXCEPTION WHEN OTHERS THEN
-      RETURN 'HIVE';
+      -- Fast path without a subtransaction (no EXCEPTION block). Longer input may be
+      -- deeply nested JSON that pg_input_is_valid can't parse (stack depth) - use the old path
+      IF length($1) <= 8192 THEN
+        RETURN CASE
+          WHEN NOT pg_input_is_valid($1, 'jsonb') THEN 'HIVE'
+          WHEN $1::jsonb->>'nai' = '@@000000013' THEN 'HBD'
+          WHEN $1::jsonb->>'nai' = '@@000000037' THEN 'VESTS'
+          ELSE 'HIVE' END;
+      END IF;
+      BEGIN
+        SELECT CASE
+          WHEN $1::jsonb->>'nai' = '@@000000013' THEN 'HBD'
+          WHEN $1::jsonb->>'nai' = '@@000000037' THEN 'VESTS'
+          ELSE 'HIVE' END INTO STRICT symbol;
+        RETURN symbol;
+      EXCEPTION WHEN OTHERS THEN
+        RETURN 'HIVE';
+      END;
     END
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`)
 	await query(`COMMENT ON FUNCTION hafsql.asset_symbol (text) IS
     'Return the symbol(text) of an asset object like {"nai": "@@000000021", "amount": "2123", "precision": 3}';`)
@@ -52,17 +81,27 @@ export const setupFunctions = async () => {
     DECLARE
       isjson boolean;
     BEGIN
-      SELECT CASE
-        WHEN jsonb_typeof($1::jsonb) = 'string' THEN FALSE
-        WHEN jsonb_typeof($1::jsonb) = 'object' THEN TRUE
-        ELSE FALSE END INTO isjson;
-      RETURN isjson;
-    EXCEPTION WHEN OTHERS THEN
-      RETURN false;
+      -- Fast path without a subtransaction (no EXCEPTION block). Longer input may be
+      -- deeply nested JSON that pg_input_is_valid can't parse (stack depth) - use the old path
+      IF length($1) <= 8192 THEN
+        RETURN CASE
+          WHEN NOT pg_input_is_valid($1, 'jsonb') THEN FALSE
+          ELSE jsonb_typeof($1::jsonb) = 'object' END;
+      END IF;
+      BEGIN
+        SELECT CASE
+          WHEN jsonb_typeof($1::jsonb) = 'string' THEN FALSE
+          WHEN jsonb_typeof($1::jsonb) = 'object' THEN TRUE
+          ELSE FALSE END INTO isjson;
+        RETURN isjson;
+      EXCEPTION WHEN OTHERS THEN
+        RETURN false;
+      END;
     END
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`)
 	await query(`COMMENT ON FUNCTION hafsql.is_json (text) IS
     'Test if input text is valid JSON. Returns true, false, or NULL on NULL input.';`)
@@ -75,15 +114,26 @@ export const setupFunctions = async () => {
     DECLARE
       jsonified jsonb;
     BEGIN
-      SELECT CASE WHEN hafsql.is_json($1) THEN $1::jsonb ELSE '{}'::jsonb END
-        INTO jsonified;
-      RETURN jsonified;
-    EXCEPTION WHEN OTHERS THEN
-      RETURN '{}'::jsonb;
+      -- Fast path without a subtransaction (no EXCEPTION block). Longer input may be
+      -- deeply nested JSON that pg_input_is_valid can't parse (stack depth) - use the old path
+      IF length($1) <= 8192 THEN
+        RETURN CASE
+          WHEN NOT pg_input_is_valid($1, 'jsonb') THEN '{}'::jsonb
+          WHEN jsonb_typeof($1::jsonb) = 'object' THEN $1::jsonb
+          ELSE '{}'::jsonb END;
+      END IF;
+      BEGIN
+        SELECT CASE WHEN hafsql.is_json($1) THEN $1::jsonb ELSE '{}'::jsonb END
+          INTO jsonified;
+        RETURN jsonified;
+      EXCEPTION WHEN OTHERS THEN
+        RETURN '{}'::jsonb;
+      END;
     END
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`)
 	await query(
 		`COMMENT ON FUNCTION hafsql.to_json (text) IS
@@ -111,7 +161,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    STABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.vests_to_hive (numeric, int4) IS
@@ -129,7 +180,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    STABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.rc_to_hive (numeric, int4) IS
@@ -157,6 +209,7 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`)
 	await query(`COMMENT ON FUNCTION hafsql.get_trx_id (int8) IS
     'Return trx_id from op_id';`)
@@ -178,6 +231,7 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`,
 	)
 	await query(
@@ -202,6 +256,7 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`,
 	)
 	await query(
@@ -235,7 +290,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE
+    STABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`,
 	)
 	await query(
@@ -258,6 +314,7 @@ export const setupFunctions = async () => {
     $$
     LANGUAGE plpgsql
     IMMUTABLE
+    PARALLEL SAFE
     RETURNS NULL ON NULL INPUT;`,
 	)
 	await query(
@@ -282,7 +339,7 @@ export const setupFunctions = async () => {
       hbd_savings numeric,
       hp_equivalent numeric
     )
-    LANGUAGE plpgsql STABLE AS $$
+    LANGUAGE plpgsql STABLE PARALLEL SAFE AS $$
     DECLARE
       v_account_name   text;
       v_hbd_balance    bigint;
@@ -362,7 +419,7 @@ export const setupFunctions = async () => {
           FROM hafsql.balances b WHERE b.account_id = $1);
       ELSE
 		CASE WHEN
-			(SELECT EXISTS(SELECT 1 FROM hafsql.balances_history b WHERE b.account_id = $1 AND b.block_num <= $2 LIMIT 1)) = true
+			(SELECT EXISTS(SELECT 1 FROM hafbe_bal.account_balance_history h WHERE h.account = $1 AND hafd.operation_id_to_block_num(h.source_op) <= $2)) = true
 		THEN RETURN QUERY
       (SELECT b.hive, b.hbd, b.vests, b.hp_equivalent, b.hive_savings, b.hbd_savings
       FROM hafsql.get_balance_at($1, $2) b);
@@ -372,7 +429,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    STABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.get_balance (int4, int4) IS
@@ -393,7 +451,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    STABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.get_balance (text, int4) IS
@@ -409,16 +468,18 @@ export const setupFunctions = async () => {
     DECLARE
       opid int8;
     BEGIN
+      -- o.timestamp is UTC without time zone - compare in UTC regardless of session TimeZone
       CASE WHEN highest = FALSE THEN
-        SELECT o.id INTO opid FROM hafsql.haf_operations o WHERE o.timestamp >= $1 ORDER BY o."timestamp", o.id LIMIT 1;
+        SELECT o.id INTO opid FROM hafsql.haf_operations o WHERE o.timestamp >= ($1 AT TIME ZONE 'UTC') ORDER BY o."timestamp", o.id LIMIT 1;
       ELSE
-        SELECT o.id INTO opid FROM hafsql.haf_operations o WHERE o.timestamp >= $1 ORDER BY o."timestamp", o.id DESC LIMIT 1;
+        SELECT o.id INTO opid FROM hafsql.haf_operations o WHERE o.timestamp >= ($1 AT TIME ZONE 'UTC') ORDER BY o."timestamp", o.id DESC LIMIT 1;
       END CASE;
       RETURN opid;
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    IMMUTABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.id_from_timestamp (timestamptz, boolean) IS
@@ -433,11 +494,12 @@ export const setupFunctions = async () => {
     RETURNS timestamptz
     AS $$
     BEGIN
-      RETURN (SELECT b.created_at FROM hafd.operations o JOIN hafd.blocks b ON b.num = hafd.operation_id_to_block_num(o.id) WHERE o.id = operation_id);
+      RETURN (SELECT b.created_at AT TIME ZONE 'UTC' FROM hafd.operations o JOIN hafd.blocks b ON b.num = hafd.operation_id_to_block_num(o.id) WHERE o.id = operation_id);
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    IMMUTABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.get_timestamp (int8) IS
@@ -450,11 +512,12 @@ export const setupFunctions = async () => {
     RETURNS timestamptz
     AS $$
     BEGIN
-      RETURN (SELECT b.timestamp FROM hafsql.haf_blocks b WHERE b.block_num = blockNum);
+      RETURN (SELECT b.timestamp AT TIME ZONE 'UTC' FROM hafsql.haf_blocks b WHERE b.block_num = blockNum);
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    IMMUTABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.get_timestamp (int4) IS
@@ -474,7 +537,8 @@ export const setupFunctions = async () => {
     END
     $$
     LANGUAGE plpgsql
-    IMMUTABLE;`,
+    IMMUTABLE
+    PARALLEL SAFE;`,
 	)
 	await query(
 		`COMMENT ON FUNCTION hafsql.get_content_type (jsonb) IS

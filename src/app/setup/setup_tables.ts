@@ -8,26 +8,6 @@ export const setupTables = async () => {
     CONSTRAINT hafsql_sync_data_un UNIQUE (table_name)
   );`)
 
-	// RC Delegations
-	await query(
-		`CREATE TABLE IF NOT EXISTS hafsql.rc_delegations_table (
-      delegator varchar NOT NULL,
-      delegatee varchar NOT NULL,
-      rc varchar NOT NULL,
-      timestamp timestamptz NOT NULL,
-      CONSTRAINT hafsql_rc_delegations_table_un UNIQUE (delegator, delegatee)
-    );`,
-	)
-
-	// Proposal Approvals
-	await query(
-		`CREATE TABLE IF NOT EXISTS hafsql.proposal_approvals_table (
-      id int4 NOT NULL,
-      voter varchar NOT NULL,
-      CONSTRAINT hafsql_proposal_approvals_table_un UNIQUE (id, voter)
-    );`,
-	)
-
 	// Comments
 	await query(`CREATE TABLE IF NOT EXISTS hafsql.comments_table (
     id serial4 NOT NULL,
@@ -70,15 +50,8 @@ export const setupTables = async () => {
       last_update timestamptz,
       last_owner_update timestamptz,
       recovery int4,
-      reward_hive_balance numeric(21, 3) NOT NULL DEFAULT 0,
-      reward_hbd_balance numeric(21, 3) NOT NULL DEFAULT 0,
-      reward_vests_balance numeric(27, 6) NOT NULL DEFAULT 0,
       next_vesting_withdrawal timestamptz,
-      to_withdraw numeric(27, 6) NOT NULL DEFAULT 0,
-      vesting_withdraw_rate numeric(27, 6) NOT NULL DEFAULT 0,
-      withdrawn numeric(27, 6) NOT NULL DEFAULT 0,
       withdraw_routes jsonb,
-      proxy int4,
       CONSTRAINT hafsql_accounts_table_un UNIQUE (account)
     );`,
 	)
@@ -209,12 +182,9 @@ export const setupTables = async () => {
 
 const setupSyncDataTable = async () => {
 	const tableNames = [
-		'rc_delegations',
-		'proposal_approvals',
 		'comments',
 		'pending_rewards',
 		'paid_rewards',
-		'delete_comments',
 		'accounts',
 		'operations',
 		'market',

@@ -4,7 +4,6 @@ import { print } from './utils/print.ts'
 
 const isSyncing = {
 	one: false,
-	two: false,
 	three: false,
 	four: false,
 	five: false,
@@ -18,36 +17,12 @@ export const createWorkers = async () => {
 		!(await getBlockRange('operations'))
 	) {
 		isSyncing.one = true
-		if (Deno.env.get('HAFSQL_COMMENTS') !== 'false') {
-			// comments
-			createWorker('../sync/comments.ts').postMessage('start')
-			print('[Main] Starting comments worker 👷‍')
-		}
-		if (Deno.env.get('HAFSQL_PROPOSALS') !== 'false') {
-			// proposals
-			createWorker('../sync/proposals.ts').postMessage('start')
-			print('[Main] Starting proposal worker 👷')
-		}
-
-		if (Deno.env.get('HAFSQL_ACCOUNTS') !== 'false') {
-			// accounts
-			createWorker('../sync/accounts.ts').postMessage('start')
-			print('[Accounts] Starting accounts worker 👷')
-		}
-	}
-
-	// custom_json id
-	if (
-		isSyncing.two === false &&
-		(await doesIndexExist('hafsql_id_opid_idx')) &&
-		!(await getBlockRange('operations'))
-	) {
-		isSyncing.two = true
-		if (Deno.env.get('HAFSQL_RC_DELEGATIONS') !== 'false') {
-			// rc_delegations
-			createWorker('../sync/rc_delegations.ts').postMessage('start')
-			print('[Main] Starting RC delegations worker 👷')
-		}
+		// comments
+		createWorker('../sync/comments.ts').postMessage('start')
+		print('[Main] Starting comments worker 👷‍')
+		// accounts
+		createWorker('../sync/accounts.ts').postMessage('start')
+		print('[Accounts] Starting accounts worker 👷')
 	}
 
 	// author permlink
@@ -57,18 +32,13 @@ export const createWorkers = async () => {
 		!(await getBlockRange('operations'))
 	) {
 		isSyncing.three = true
-		if (
-			Deno.env.get('HAFSQL_REWARDS') !== 'false' &&
-			Deno.env.get('HAFSQL_COMMENTS') !== 'false'
-		) {
-			// paid_rewards
-			createWorker('../sync/paid_rewards.ts').postMessage('start')
-			print('[Main] Starting paid_rewards worker 👷')
+		// paid_rewards
+		createWorker('../sync/paid_rewards.ts').postMessage('start')
+		print('[Main] Starting paid_rewards worker 👷')
 
-			// pending_rewards
-			createWorker('../sync/pending_rewards.ts').postMessage('start')
-			print('[Main] Starting pending_rewards worker 👷')
-		}
+		// pending_rewards
+		createWorker('../sync/pending_rewards.ts').postMessage('start')
+		print('[Main] Starting pending_rewards worker 👷')
 	}
 
 	// We check for the hive index because sometimes the instance_isready messes it up
@@ -84,11 +54,9 @@ export const createWorkers = async () => {
 
 	if (isSyncing.five === false && !(await getBlockRange('operations'))) {
 		isSyncing.five = true
-		if (Deno.env.get('HAFSQL_MARKET') !== 'false') {
-			// market
-			createWorker('../sync/market.ts').postMessage('start')
-			print('[Main] Starting market worker 👷')
-		}
+		// market
+		createWorker('../sync/market.ts').postMessage('start')
+		print('[Main] Starting market worker 👷')
 	}
 }
 

@@ -9,16 +9,12 @@ import {
 	AccountsData,
 	AccountUpdate,
 	AccountUpdate2,
-	AuthorReward,
 	ChangedRecovery,
-	ClaimReward,
-	CurationReward,
 	FillVestingWithdraw,
 	Pow,
 	RecoverAccount,
 	WithdrawRoute,
 	WithdrawVesting,
-	WitnessProxy,
 } from '../helpers/types.ts'
 import { createAccountsIndexes } from '../indexes/hafsql_indexes.ts'
 import { customClient, query, transaction } from '../helpers/database.ts'
@@ -77,12 +73,8 @@ const prepareTable = async () => {
 	}
 }
 
-let massiveSync = true
 const fillAccounts = async () => {
 	let blockRange = await getBlockRange('accounts')
-	if (blockRange && blockRange[1] - blockRange[0] < 49999) {
-		massiveSync = false
-	}
 	while (blockRange) {
 		await prepareTable()
 		const data = await getData(blockRange)
@@ -124,18 +116,6 @@ const getData = async (blockRange: number[]) => {
       AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY id;`,
 	)
-	const accountWitnessProxy = await query<WitnessProxy>(
-		`SELECT account, proxy, id FROM hafsql.operation_account_witness_proxy_table
-      WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
-      AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
-      ORDER BY id;`,
-	)
-	const proxyCleared = await query<WitnessProxy>(
-		`SELECT account, proxy, id FROM hafsql.operation_proxy_cleared_table
-      WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
-      AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
-      ORDER BY id;`,
-	)
 	const changedRecoveryAccount = await query<ChangedRecovery>(
 		`SELECT account, new_recovery_account, hafsql.get_timestamp(id) AS timestamp, id FROM hafsql.operation_changed_recovery_account_table
       WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
@@ -160,31 +140,6 @@ const getData = async (blockRange: number[]) => {
       AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       ORDER BY id;`,
 	)
-	const authorReward = await query<AuthorReward>(
-		`SELECT author AS account, hbd_payout, hive_payout, vesting_payout, id FROM hafsql.operation_author_reward_table
-      WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
-      AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
-      AND payout_must_be_claimed = true
-      UNION ALL
-      SELECT benefactor AS account, hbd_payout, hive_payout, vesting_payout, id FROM hafsql.operation_comment_benefactor_reward_table
-      WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
-      AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
-      AND payout_must_be_claimed = true
-      ORDER BY id;`,
-	)
-	const curationReward = await query<CurationReward>(
-		`SELECT curator AS account, reward, id FROM hafsql.operation_curation_reward_table
-      WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
-      AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
-      AND payout_must_be_claimed = true
-      ORDER BY id;`,
-	)
-	const claimReward = await query<ClaimReward>(
-		`SELECT account, reward_hive, reward_hbd, reward_vests, id FROM hafsql.operation_claim_reward_balance_table
-      WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
-      AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
-      ORDER BY id;`,
-	)
 	// 13 weeks ago = 2620800 blocks ago
 	// process only the last 13 weeks - older withdraws are already done at this point
 	const headBlock = (await query<{ block_num: number }>(
@@ -192,7 +147,7 @@ const getData = async (blockRange: number[]) => {
 	)).rows[0].block_num
 	const weeksAgo13 = (headBlock - 2620800) || 0
 	const withdrawVesting = await query<WithdrawVesting>(
-		`SELECT account, vesting_shares, hafsql.get_timestamp(id) AS timestamp, id FROM hafsql.operation_withdraw_vesting_table
+		`SELECT account, vesting_shares, hafsql.get_timestamp(hafd.operation_id_to_block_num(id) - 1) AS timestamp, id FROM hafsql.operation_withdraw_vesting_table
       WHERE id >= hafsql.first_op_id_from_block_num(${blockRange[0]})
       AND id <= hafsql.last_op_id_from_block_num(${blockRange[1]})
       AND id >= hafsql.first_op_id_from_block_num(${weeksAgo13})
@@ -219,12 +174,6 @@ const getData = async (blockRange: number[]) => {
 	accountUpdate2.rows.forEach((element) => {
 		data.push({ ...element, type: 'account_update2' })
 	})
-	accountWitnessProxy.rows.forEach((element) => {
-		data.push({ ...element, type: 'account_witness_proxy' })
-	})
-	proxyCleared.rows.forEach((element) => {
-		data.push({ ...element, type: 'proxy_cleared' })
-	})
 	changedRecoveryAccount.rows.forEach((element) => {
 		data.push({ ...element, type: 'changed_recovery_account' })
 	})
@@ -236,15 +185,6 @@ const getData = async (blockRange: number[]) => {
 	})
 	pow.rows.forEach((element) => {
 		data.push({ ...element, type: 'pow' })
-	})
-	authorReward.rows.forEach((element) => {
-		data.push({ ...element, type: 'author_reward' })
-	})
-	curationReward.rows.forEach((element) => {
-		data.push({ ...element, type: 'curation_reward' })
-	})
-	claimReward.rows.forEach((element) => {
-		data.push({ ...element, type: 'claim_reward' })
 	})
 	withdrawVesting.rows.forEach((element) => {
 		data.push({ ...element, type: 'withdraw_vesting' })
@@ -284,48 +224,16 @@ const processData = async (data: AccountsData[], blockRange: number[]) => {
 				await handleChangedRecovery(element, client)
 			} else if (type === 'set_withdraw_vesting_route') {
 				await handleSetWithdrawRoute(element, client)
-			} else if (type === 'account_witness_proxy') {
-				await handleWitnessProxy(element, client)
-			} else if (type === 'proxy_cleared') {
-				await handleProxyCleared(element, client)
 			} else if (type === 'pow') {
 				await handlePow(element, client)
-			} else if (type === 'author_reward') {
-				await handleAuthorReward(element, client)
-			} else if (type === 'curation_reward') {
-				await handleCurationReward(element, client)
-			} else if (type === 'claim_reward') {
-				await handleClaimReward(element, client)
 			} else if (type === 'withdraw_vesting') {
 				await handleWithdrawVesting(element, client)
 			} else if (type === 'fill_vesting_withdraw') {
 				await handleFillVestingWithdraw(element, client)
 			}
 		}
-		if (massiveSync) {
-			await processRewards(client)
-		}
 		await updateLastBlockNum('accounts', blockRange[1], client)
 	})
-}
-
-const rewardsCache: Record<
-	string,
-	{ reward_hive: string; reward_hbd: string; reward_vests: string }
-> = {}
-const processRewards = async (client: customClient) => {
-	const keys = Object.keys(rewardsCache)
-	for (let i = 0; i < keys.length; i++) {
-		const accountId = keys[i]
-		const { reward_hbd, reward_hive, reward_vests } = rewardsCache[accountId]
-		await client.query(
-			`UPDATE hafsql.accounts_table SET reward_hive_balance = reward_hive_balance + $1,
-        reward_hbd_balance = reward_hbd_balance + $2, reward_vests_balance = reward_vests_balance + $3
-        WHERE account = $4`,
-			[reward_hive, reward_hbd, reward_vests, accountId],
-		)
-		delete rewardsCache[accountId]
-	}
 }
 
 const handleAccountCreated = async (
@@ -374,7 +282,10 @@ const handleAccountUpdate = async (
 	const posting = element.posting
 	const memo_key = element.memo_key
 	const timestamp = element.timestamp
-	const json_metadata = JSON.stringify(element.json_metadata)
+	// NULL = empty on chain = unchanged
+	const json_metadata = element.json_metadata == null
+		? null
+		: JSON.stringify(element.json_metadata)
 	const accountId = await getUserId(account, client)
 	let additional = ''
 	const addParams = []
@@ -398,7 +309,7 @@ const handleAccountUpdate = async (
 		addParams.push(posting)
 	}
 	await client.query(
-		`UPDATE hafsql.accounts_table SET ${additional} memo_key=$1, json_metadata=$2, last_update=$3 WHERE account=$4`,
+		`UPDATE hafsql.accounts_table SET ${additional} memo_key=$1, json_metadata=COALESCE($2::jsonb, json_metadata), last_update=$3 WHERE account=$4`,
 		[memo_key, json_metadata, timestamp, accountId, ...addParams],
 	)
 }
@@ -411,7 +322,10 @@ const handleAccountUpdate2 = async (
 	const account = <string> element.account
 	const timestamp = element.timestamp
 	const json_metadata = JSON.stringify(element.json_metadata)
-	const posting_metadata = JSON.stringify(element.posting_json_metadata)
+	// NULL = empty on chain = unchanged
+	const posting_metadata = element.posting_json_metadata == null
+		? null
+		: JSON.stringify(element.posting_json_metadata)
 	const owner = <object> element.owner
 	const active = element.active
 	const posting = element.posting
@@ -449,7 +363,7 @@ const handleAccountUpdate2 = async (
 		addParams.push(memo_key)
 	}
 	await client.query(
-		`UPDATE hafsql.accounts_table SET ${additional} posting_metadata=$1, last_update=$2 WHERE account=$3`,
+		`UPDATE hafsql.accounts_table SET ${additional} posting_metadata=COALESCE($1::jsonb, posting_metadata), last_update=$2 WHERE account=$3`,
 		[posting_metadata, timestamp, accountId, ...addParams],
 	)
 }
@@ -515,34 +429,6 @@ const handleSetWithdrawRoute = async (
 	}
 }
 
-const handleWitnessProxy = async (
-	element: AccountsData,
-	client: customClient,
-) => {
-	// account, proxy
-	const account = <string> element.account
-	const proxy = <string> element.proxy
-	const accountId = await getUserId(account, client)
-	const proxyId = await getUserId(proxy, client)
-	await client.query(
-		`UPDATE hafsql.accounts_table SET proxy=$1 WHERE account=$2`,
-		[proxyId, accountId],
-	)
-}
-
-const handleProxyCleared = async (
-	element: AccountsData,
-	client: customClient,
-) => {
-	// account, proxy
-	const account = <string> element.account
-	const accountId = await getUserId(account, client)
-	await client.query(
-		`UPDATE hafsql.accounts_table SET proxy=$1 WHERE account=$2`,
-		[null, accountId],
-	)
-}
-
 const handlePow = async (element: AccountsData, client: customClient) => {
 	// worker_account, worker
 	const account = <string> element.worker_account
@@ -559,164 +445,23 @@ const handlePow = async (element: AccountsData, client: customClient) => {
 	)
 }
 
-const handleAuthorReward = async (
-	element: AccountsData,
-	client: customClient,
-) => {
-	// account, hbd_payout, hive_payout, vesting_payout
-	const account = <string> element.account
-	const hbd_payout = <string> element.hbd_payout
-	const hive_payout = <string> element.hive_payout
-	const vesting_payout = <string> element.vesting_payout
-	const accountId = <number> await getUserId(account, client)
-	if (accountId < 4) {
-		return
-	}
-	if (massiveSync) {
-		if (!Object.hasOwn(rewardsCache, accountId)) {
-			rewardsCache[accountId] = {
-				reward_hbd: hbd_payout,
-				reward_hive: hive_payout,
-				reward_vests: vesting_payout,
-			}
-		} else {
-			// Number should be fine unless proven otherwise
-			if (Number(hbd_payout) !== 0) {
-				rewardsCache[accountId].reward_hbd =
-					(Number(rewardsCache[accountId].reward_hbd) + Number(hbd_payout))
-						.toString()
-			}
-			if (Number(hive_payout) !== 0) {
-				rewardsCache[accountId].reward_hive =
-					(Number(rewardsCache[accountId].reward_hive) +
-						Number(hive_payout))
-						.toString()
-			}
-			if (Number(vesting_payout) !== 0) {
-				rewardsCache[accountId].reward_vests =
-					(Number(rewardsCache[accountId].reward_vests) +
-						Number(vesting_payout))
-						.toString()
-			}
-		}
-	} else {
-		await client.query(
-			`UPDATE hafsql.accounts_table SET reward_hive_balance = reward_hive_balance + $1,
-        reward_hbd_balance = reward_hbd_balance + $2, reward_vests_balance = reward_vests_balance + $3
-        WHERE account = $4`,
-			[hive_payout, hbd_payout, vesting_payout, accountId],
-		)
-	}
-}
-
-const handleCurationReward = async (
-	element: AccountsData,
-	client: customClient,
-) => {
-	// account, reward
-	const account = <string> element.account
-	const reward = <string> element.reward
-	const accountId = <number> await getUserId(account, client)
-	if (accountId < 4) {
-		return
-	}
-	if (massiveSync) {
-		if (!Object.hasOwn(rewardsCache, accountId)) {
-			rewardsCache[accountId] = {
-				reward_hbd: '0',
-				reward_hive: '0',
-				reward_vests: reward,
-			}
-		} else {
-			rewardsCache[accountId].reward_vests =
-				(Number(rewardsCache[accountId].reward_vests) + Number(reward))
-					.toString()
-		}
-	} else {
-		await client.query(
-			`UPDATE hafsql.accounts_table SET reward_vests_balance = reward_vests_balance + $1
-        WHERE account = $2`,
-			[reward, accountId],
-		)
-	}
-}
-
-const handleClaimReward = async (
-	element: AccountsData,
-	client: customClient,
-) => {
-	// account, reward_hive, reward_hbd, reward_vests
-	const account = <string> element.account
-	const reward_hive = <string> element.reward_hive
-	const reward_hbd = <string> element.reward_hbd
-	const reward_vests = <string> element.reward_vests
-	const accountId = <number> await getUserId(account, client)
-	if (accountId < 4) {
-		return
-	}
-	if (massiveSync) {
-		if (!Object.hasOwn(rewardsCache, accountId)) {
-			rewardsCache[accountId] = {
-				reward_hbd: `-${reward_hbd}`,
-				reward_hive: `-${reward_hive}`,
-				reward_vests: `-${reward_vests}`,
-			}
-		} else {
-			if (Number(reward_hive) !== 0) {
-				rewardsCache[accountId].reward_hive =
-					(Number(rewardsCache[accountId].reward_hive) -
-						Number(reward_hive))
-						.toString()
-			}
-			if (Number(reward_hbd) !== 0) {
-				rewardsCache[accountId].reward_hbd =
-					(Number(rewardsCache[accountId].reward_hbd) - Number(reward_hbd))
-						.toString()
-			}
-			if (Number(reward_vests) !== 0) {
-				rewardsCache[accountId].reward_vests =
-					(Number(rewardsCache[accountId].reward_vests) -
-						Number(reward_vests))
-						.toString()
-			}
-		}
-	} else {
-		await client.query(
-			`UPDATE hafsql.accounts_table SET reward_hive_balance = reward_hive_balance - $1,
-            reward_hbd_balance = reward_hbd_balance - $2, reward_vests_balance = reward_vests_balance - $3
-            WHERE account = $4`,
-			[reward_hive, reward_hbd, reward_vests, accountId],
-		)
-	}
-}
-
+// Power down amounts come from balance_tracker (hafbe_bal.account_withdraws).
+// We only keep next_vesting_withdrawal - the view hides it when the power down is not active.
+// Same as hived: withdraw_vesting sets head block time (previous block) + 1 week,
+// then each weekly payout moves it 1 week forward (multiple fills per payout with routes)
 const handleWithdrawVesting = async (
 	element: AccountsData,
 	client: customClient,
 ) => {
-	// account, vesting_shares, timestamp
+	// account, vesting_shares, timestamp (of the previous block)
 	const account = <string> element.account
-	const vesting_shares = element.vesting_shares
-	const timestamp = <string> element.timestamp
 	const accountId = await getUserId(account)
-	if (Number(vesting_shares) === 0) {
-		await client.query(
-			`UPDATE hafsql.accounts_table SET to_withdraw=$1, vesting_withdraw_rate=$1, withdrawn=$1, next_vesting_withdrawal=$2
-        WHERE account=$3`,
-			[0, null, accountId],
-		)
-		return
-	}
-	// 1 week - 3 seconds
-	// because the actual timestamp of operations is -3 of the blocks
-	const withdrawalInterval = 604797000
-	const nextWithdrawal = new Date(
-		new Date(timestamp + 'Z').getTime() + withdrawalInterval,
+	const nextWithdrawal = Number(element.vesting_shares) === 0 ? null : new Date(
+		new Date(<string | Date> element.timestamp).getTime() + 604800000,
 	).toISOString()
 	await client.query(
-		`UPDATE hafsql.accounts_table SET to_withdraw=$1, vesting_withdraw_rate=$2::numeric/13, next_vesting_withdrawal=$3
-      WHERE account = $4`,
-		[vesting_shares, vesting_shares, nextWithdrawal, accountId],
+		`UPDATE hafsql.accounts_table SET next_vesting_withdrawal=$1 WHERE account=$2`,
+		[nextWithdrawal, accountId],
 	)
 }
 
@@ -724,34 +469,12 @@ const handleFillVestingWithdraw = async (
 	element: AccountsData,
 	client: customClient,
 ) => {
-	// account, withdrawn, "timestamp"
+	// account, timestamp
 	const account = <string> element.account
-	const withdrawn = element.withdrawn
-	const timestamp = <string> element.timestamp
 	const accountId = await getUserId(account)
-	const isLastOne = (await client.query<{ is_last: boolean }>(
-		`SELECT to_withdraw - $1::numeric <= 0 AS is_last FROM hafsql.accounts_table WHERE account = $2`,
-		[withdrawn, accountId],
-	)).rows[0].is_last
-	if (isLastOne) {
-		await client.query(
-			`UPDATE hafsql.accounts_table SET to_withdraw=$1, vesting_withdraw_rate=$1, withdrawn=$1, next_vesting_withdrawal=$2
-        WHERE account=$3`,
-			[0, null, accountId],
-		)
-		return
-	}
-	const withdrawalInterval = 604797000
-	const nextWithdrawal = new Date(
-		new Date(timestamp + 'Z').getTime() + withdrawalInterval,
-	).toISOString()
 	await client.query(
-		`UPDATE hafsql.accounts_table SET
-      to_withdraw = to_withdraw - $1,
-      vesting_withdraw_rate = LEAST(to_withdraw - $1, vesting_withdraw_rate),
-      next_vesting_withdrawal = $2,
-      withdrawn = withdrawn + $1
-      WHERE account = $3`,
-		[withdrawn, nextWithdrawal, accountId],
+		`UPDATE hafsql.accounts_table SET next_vesting_withdrawal = next_vesting_withdrawal + interval '1 week'
+			WHERE account=$1 AND next_vesting_withdrawal <= $2`,
+		[accountId, element.timestamp],
 	)
 }

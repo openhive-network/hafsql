@@ -1,6 +1,9 @@
 import { customClient, query } from '../database.ts'
 import { BlockRange } from '../types.ts'
 
+// These update comments_table so they must not pass the comments sync
+const dependsOnComments = ['paid_rewards', 'pending_rewards']
+
 export const getBlockRange = async (
 	table: string,
 	client: customClient = { query },
@@ -20,11 +23,11 @@ export const getBlockRange = async (
 	if (table === 'operations') {
 		return rangeArray
 	}
-	// Lag other tables behind operations table to avoid race conditions
-	// where a sync tries to fetch block X but operations has not finished adding block X
+	// Lag other tables behind the table they read from to avoid race conditions
+	// where a sync tries to fetch block X but that table has not finished adding block X
 	const result = await client.query<{ last_block_num: number }>(
 		`SELECT last_block_num FROM hafsql.sync_data WHERE table_name = $1`,
-		['operations'],
+		[dependsOnComments.includes(table) ? 'comments' : 'operations'],
 	)
 	const lower = rangeArray[0]
 	let higher = rangeArray[1]

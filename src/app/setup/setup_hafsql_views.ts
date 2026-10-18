@@ -47,21 +47,24 @@ export const setupHafsqlViews = async () => {
 	await query(`CREATE OR REPLACE VIEW hafsql.delegations
   AS SELECT a.name as delegator,
     b.name as delegatee,
-    x.balance as vests,
-    hafsql.vests_to_hive(x.balance/1000000) AS hp_equivalent,
+    (x.balance / 1000000.0)::numeric(27, 6) as vests,
+    hafsql.vests_to_hive(x.balance / 1000000.0) AS hp_equivalent,
     hafsql.get_timestamp(x.source_op) as "timestamp"
    FROM hafbe_bal.current_accounts_delegations x
    join hafd.accounts a on x.delegator=a.id
    join hafd.accounts b on x.delegatee=b.id;`)
 
-	// RC Delegations
+	// RC Delegations - tracked by balance_tracker
 	await query(`CREATE OR REPLACE VIEW hafsql.rc_delegations
-  AS SELECT x.delegator,
-    x.delegatee,
-    x.rc,
-    hafsql.rc_to_hive(x.rc::numeric) as hp_equivalent,
-    x.timestamp
-    FROM hafsql.rc_delegations_table x;`)
+  AS SELECT a.name AS delegator,
+    b.name AS delegatee,
+    x.max_rc AS rc,
+    hafsql.rc_to_hive(x.max_rc::numeric) as hp_equivalent,
+    hb.created_at AT TIME ZONE 'UTC' AS "timestamp"
+    FROM hafbe_bal.current_rc_delegations x
+    JOIN hafd.accounts a ON a.id = x.delegator
+    JOIN hafd.accounts b ON b.id = x.delegatee
+    JOIN hafd.blocks hb ON hb.num = hafd.operation_id_to_block_num(x.source_op);`)
 
 	// Comments
 	await query(`CREATE OR REPLACE VIEW hafsql.comments
@@ -74,9 +77,9 @@ export const setupHafsqlViews = async () => {
     x.parent_permlink,
     x.created,
     x.last_edited,
-    CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) < '7 days' THEN (x.created + INTERVAL '7 days') ELSE '1969-12-31 23:59:59' END AS cashout_time,
-    CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) < '7 days' THEN (x.created + INTERVAL '7 days') - NOW() AT TIME ZONE 'UTC' ELSE '00:00:00.000' END AS remaining_till_cashout,
-    CASE WHEN (NOW() AT TIME ZONE 'UTC' - x.created) >= '7 days' THEN (x.created + INTERVAL '7 days') ELSE '1969-12-31 23:59:59' END AS last_payout,
+    CASE WHEN (NOW() - x.created) < '7 days' THEN (x.created + INTERVAL '7 days') ELSE '1969-12-31 23:59:59+00' END AS cashout_time,
+    CASE WHEN (NOW() - x.created) < '7 days' THEN (x.created + INTERVAL '7 days') - NOW() ELSE '00:00:00.000' END AS remaining_till_cashout,
+    CASE WHEN (NOW() - x.created) >= '7 days' THEN (x.created + INTERVAL '7 days') ELSE '1969-12-31 23:59:59+00' END AS last_payout,
     x.tags,
     x.category AS category,
     x.metadata AS json_metadata,
@@ -88,8 +91,10 @@ export const setupHafsqlViews = async () => {
     x.payout AS total_payout_value,
     x.curation_rewards AS curator_payout_value,
     x.beneficiary_rewards AS beneficiary_payout_value,
-    COALESCE((SELECT SUM(rshares) FROM hafsql.operation_effective_comment_vote_view WHERE author=x.author AND permlink=x.permlink), 0) AS total_rshares,
-    COALESCE((SELECT SUM(CASE WHEN rshares < 0 THEN -1 * rshares ELSE rshares END) FROM hafsql.operation_effective_comment_vote_view WHERE author=x.author AND permlink=x.permlink), 0) AS net_rshares,
+    -- Only the latest vote of each voter counts (a changed vote replaces the previous one)
+    COALESCE((SELECT SUM(v.rshares) FROM (SELECT DISTINCT ON (voter) rshares FROM hafsql.operation_effective_comment_vote_view WHERE author=x.author AND permlink=x.permlink ORDER BY voter, id DESC) v), 0) AS total_rshares,
+    COALESCE((SELECT SUM(v.rshares) FROM (SELECT DISTINCT ON (voter) rshares FROM hafsql.operation_effective_comment_vote_view WHERE author=x.author AND permlink=x.permlink ORDER BY voter, id DESC) v), 0) AS net_rshares,
+    COALESCE((SELECT SUM(ABS(v.rshares)) FROM (SELECT DISTINCT ON (voter) rshares FROM hafsql.operation_effective_comment_vote_view WHERE author=x.author AND permlink=x.permlink ORDER BY voter, id DESC) v), 0) AS abs_rshares,
     COALESCE((SELECT total_vote_weight FROM hafsql.operation_effective_comment_vote_view WHERE author=x.author and permlink=x.permlink ORDER BY id DESC LIMIT 1), 0) AS total_vote_weight,
     COALESCE((SELECT extensions->0->'value'->>'beneficiaries' FROM hafsql.operation_comment_options_table WHERE author=x.author and permlink=x.permlink ORDER BY id DESC LIMIT 1), '[]') AS beneficiaries,
     COALESCE((SELECT max_accepted_payout FROM hafsql.operation_comment_options_table WHERE author=x.author and permlink=x.permlink ORDER BY id DESC LIMIT 1), 1000000.0) AS max_accepted_payout,
@@ -183,32 +188,25 @@ export const setupHafsqlViews = async () => {
 	// Reblogs
 	await query(`CREATE OR REPLACE VIEW hafsql.reblogs
   AS SELECT
-    s.account_id,
-    s.account_name,
-    s.post_id,
-    s.author,
-    hpd."permlink",
-    s.block_num,
-    s.created_at 
-    FROM (SELECT
     a.haf_id AS account_id,
     a."name" AS account_name,
     hr.post_id,
     b.name AS author,
+    hpd."permlink",
     hr.block_num,
     hr.created_at
     FROM hivemind_app.hive_reblogs hr
-    JOIN hivemind_app.hive_posts p ON hr.post_id=p.id 
+    JOIN hivemind_app.hive_posts p ON hr.post_id=p.id
     JOIN hivemind_app.hive_accounts b ON p.author_id=b.id
     JOIN hivemind_app.hive_accounts a ON hr.blogger_id=a.id
-    ) s
-    JOIN hivemind_app.hive_permlink_data hpd ON hpd.id=s.post_id`)
+    JOIN hivemind_app.hive_permlink_data hpd ON hpd.id=p.permlink_id`)
 
-	// Proposal Approvlas
+	// Proposal Approvals - tracked by hafbe
 	await query(`CREATE OR REPLACE VIEW hafsql.proposal_approvals
-  AS SELECT x.id AS proposal_id,
-    x.voter
-    FROM hafsql.proposal_approvals_table x;`)
+  AS SELECT x.proposal_id,
+    a.name AS voter
+    FROM hafbe_app.current_proposal_votes x
+    JOIN hafd.accounts a ON a.id = x.voter_id;`)
 
 	// Reputations
 	await query(`CREATE OR REPLACE VIEW hafsql.reputations
@@ -247,22 +245,32 @@ export const setupHafsqlViews = async () => {
     ha.last_update,
     ha.last_owner_update,
     recoveryt."name" AS "recovery",
-    ha.reward_hive_balance,
-    ha.reward_hbd_balance,
-    ha.reward_vests_balance,
-    hafsql.vests_to_hive(ha.reward_vests_balance) AS reward_vests_balance_hp,
-    ha.next_vesting_withdrawal,
-    ha.to_withdraw,
-    ha.vesting_withdraw_rate,
-    ha.withdrawn,
+    rw.reward_hive_balance,
+    rw.reward_hbd_balance,
+    rw.reward_vests_balance,
+    hafsql.vests_to_hive(rw.reward_vests_balance) AS reward_vests_balance_hp,
+    CASE WHEN w.to_withdraw > w.withdrawn THEN ha.next_vesting_withdrawal END AS next_vesting_withdrawal,
+    (COALESCE(w.to_withdraw, 0) / 1000000.0)::numeric(27, 6) AS to_withdraw,
+    -- hived rounds the rate up since HF21 (btracker's vesting_withdraw_rate rounds down)
+    (CEIL(COALESCE(w.to_withdraw, 0) / 13.0) / 1000000.0)::numeric(27, 6) AS vesting_withdraw_rate,
+    (COALESCE(w.withdrawn, 0) / 1000000.0)::numeric(27, 6) AS withdrawn,
     ha.withdraw_routes,
-    (SELECT "name" FROM hafd.accounts WHERE id = ha.proxy) AS proxy,
+    (SELECT "name" FROM hafd.accounts WHERE id = (SELECT p.proxy_id FROM hafbe_app.current_account_proxies p WHERE p.account_id = x.id)) AS proxy,
     (SELECT ABS(SUM(balance)/1000.0) FROM hafbe_bal.transfer_saving_id tsi WHERE tsi.account=x.id AND tsi.nai=21) AS pending_hive_savings_withdrawal,
     (SELECT ABS(SUM(balance)/1000.0) FROM hafbe_bal.transfer_saving_id tsi WHERE tsi.account=x.id AND tsi.nai=13) AS pending_hbd_savings_withdrawal
-    FROM hafd.accounts x, hafsql.accounts_table ha, hafd.accounts creatort, hafd.accounts recoveryt
-    WHERE x.id = ha.account
-    AND ha.creator = creatort.id
-    AND ha."recovery" = recoveryt.id;`)
+    FROM hafd.accounts x
+    JOIN hafsql.accounts_table ha ON ha.account = x.id
+    JOIN hafd.accounts creatort ON creatort.id = ha.creator
+    JOIN hafd.accounts recoveryt ON recoveryt.id = ha."recovery"
+    -- Reward balances, power down and proxy are tracked by balance_tracker / hafbe
+    LEFT JOIN hafbe_bal.account_withdraws w ON w.account = x.id
+    LEFT JOIN LATERAL (
+      SELECT
+        (COALESCE(SUM(r.balance) FILTER (WHERE r.nai = 21), 0) / 1000.0)::numeric(21, 3) AS reward_hive_balance,
+        (COALESCE(SUM(r.balance) FILTER (WHERE r.nai = 13), 0) / 1000.0)::numeric(21, 3) AS reward_hbd_balance,
+        (COALESCE(SUM(r.balance) FILTER (WHERE r.nai = 37), 0) / 1000000.0)::numeric(27, 6) AS reward_vests_balance
+      FROM hafbe_bal.account_rewards r WHERE r.account = x.id
+    ) rw ON true;`)
 
 	// Operations
 	await query(`CREATE OR REPLACE VIEW hafsql.haf_operations
@@ -318,9 +326,8 @@ export const setupHafsqlViews = async () => {
   AS WITH base AS (
     SELECT
       e.*,
-      hafd.operation_id_to_block_num(o.id) AS block_num
+      hafd.operation_id_to_block_num(e.source_op) AS block_num
     FROM hafbe_bal.account_balance_history e
-    JOIN hafd.operations o ON o.id = e.source_op
   )
   SELECT
     a.id AS account_id,
@@ -337,51 +344,46 @@ export const setupHafsqlViews = async () => {
   LEFT JOIN LATERAL (
     SELECT abh.balance
     FROM hafbe_bal.account_balance_history abh
-    JOIN hafd.operations o ON o.id = abh.source_op
     WHERE abh.account = base.account
       AND abh.nai = 13
-      AND hafd.operation_id_to_block_num(o.id) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(o.id) DESC, abh.source_op DESC
+      AND hafd.operation_id_to_block_num(abh.source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(abh.source_op) DESC, abh.source_op DESC
     LIMIT 1
   ) hbd ON true
   LEFT JOIN LATERAL (
     SELECT abh.balance
     FROM hafbe_bal.account_balance_history abh
-    JOIN hafd.operations o ON o.id = abh.source_op
     WHERE abh.account = base.account
       AND abh.nai = 21
-      AND hafd.operation_id_to_block_num(o.id) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(o.id) DESC, abh.source_op DESC
+      AND hafd.operation_id_to_block_num(abh.source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(abh.source_op) DESC, abh.source_op DESC
     LIMIT 1
   ) hive ON true
   LEFT JOIN LATERAL (
     SELECT abh.balance
     FROM hafbe_bal.account_balance_history abh
-    JOIN hafd.operations o ON o.id = abh.source_op
     WHERE abh.account = base.account
       AND abh.nai = 37
-      AND hafd.operation_id_to_block_num(o.id) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(o.id) DESC, abh.source_op DESC
+      AND hafd.operation_id_to_block_num(abh.source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(abh.source_op) DESC, abh.source_op DESC
     LIMIT 1
   ) vests ON true
   LEFT JOIN LATERAL (
     SELECT ash.balance
     FROM hafbe_bal.account_savings_history ash
-    JOIN hafd.operations o ON o.id = ash.source_op
     WHERE ash.account = base.account
       AND ash.nai = 21
-      AND hafd.operation_id_to_block_num(o.id) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(o.id) DESC, ash.source_op DESC
+      AND hafd.operation_id_to_block_num(ash.source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(ash.source_op) DESC, ash.source_op DESC
     LIMIT 1
   ) hive_savings ON true
   LEFT JOIN LATERAL (
     SELECT ash.balance
     FROM hafbe_bal.account_savings_history ash
-    JOIN hafd.operations o ON o.id = ash.source_op
     WHERE ash.account = base.account
       AND ash.nai = 13
-      AND hafd.operation_id_to_block_num(o.id) <= base.block_num
-    ORDER BY hafd.operation_id_to_block_num(o.id) DESC, ash.source_op DESC
+      AND hafd.operation_id_to_block_num(ash.source_op) <= base.block_num
+    ORDER BY hafd.operation_id_to_block_num(ash.source_op) DESC, ash.source_op DESC
     LIMIT 1
   ) hbd_savings ON true;`)
 
