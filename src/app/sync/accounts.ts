@@ -433,10 +433,13 @@ const handleSetWithdrawRoute = async (
 			percent,
 			auto_vest,
 		}])
+		// Setting an existing route updates it - replace it instead of adding a duplicate
 		await client.query(
-			`UPDATE hafsql.accounts_table SET withdraw_routes = COALESCE(withdraw_routes, '[]'::jsonb) || $1::jsonb
+			`UPDATE hafsql.accounts_table SET withdraw_routes = COALESCE(
+              (SELECT jsonb_agg(value) FROM jsonb_array_elements(withdraw_routes) w WHERE w->>'to_account' != $3),
+              '[]'::jsonb) || $1::jsonb
             WHERE account=$2`,
-			[temp, accountId],
+			[temp, accountId, to_account],
 		)
 	}
 }

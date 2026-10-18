@@ -311,6 +311,29 @@ export const handleUpgrade = async () => {
 		print('Upgrade script done ✅')
 	}
 
+	// Upgrading from <= 2.7.0
+	// Updating an existing withdraw route added a duplicate instead of replacing it.
+	// Rebuild from the latest op per route - ops the sync hasn't reached yet are safe to apply twice.
+	if (semver.lessOrEqual(semver.parse(oldVersion), semver.parse('2.7.0'))) {
+		print('Upgrading from version <= 2.7.0 - rebuilding withdraw routes')
+		await query(
+			`UPDATE hafsql.accounts_table t SET withdraw_routes = r.routes
+			FROM (
+				SELECT a.id AS account,
+					jsonb_agg(jsonb_build_object('from_account', l.from_account, 'to_account', l.to_account,
+						'percent', l.percent, 'auto_vest', l.auto_vest) ORDER BY l.id) FILTER (WHERE l.percent > 0) AS routes
+				FROM (
+					SELECT DISTINCT ON (from_account, to_account) id, from_account, to_account, percent, auto_vest
+					FROM hafsql.operation_set_withdraw_vesting_route_table
+					ORDER BY from_account, to_account, id DESC
+				) l JOIN hafd.accounts a ON a.name = l.from_account
+				GROUP BY a.id
+			) r
+			WHERE r.account = t.account AND t.withdraw_routes IS DISTINCT FROM r.routes`,
+		)
+		print('Upgrade script done ✅')
+	}
+
 	// Update the version
 	if (oldVersion !== newVersion) {
 		await query(
