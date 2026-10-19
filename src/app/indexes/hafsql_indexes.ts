@@ -52,9 +52,12 @@ export const createAccountsIndexes = async () => {
 	if (!exists) {
 		await query('VACUUM FULL ANALYZE hafsql.accounts_table;')
 	}
+	// (x, account) indexes serve by-creator/by-recovery pages in id order without
+	// reading every matching row - they replace the single column indexes
 	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_creator_idx ON hafsql.accounts_table (creator);',
+		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_creator_account_idx ON hafsql.accounts_table (creator, account);',
 	)
+	await query('DROP INDEX IF EXISTS hafsql.hafsql_accounts_table_creator_idx;')
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_owner_idx ON hafsql.accounts_table USING gin (owner);',
 	)
@@ -77,8 +80,9 @@ export const createAccountsIndexes = async () => {
 		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_created_at_idx ON hafsql.accounts_table (created_at);',
 	)
 	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_recovery_idx ON hafsql.accounts_table (recovery);',
+		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_recovery_account_idx ON hafsql.accounts_table (recovery, account);',
 	)
+	await query('DROP INDEX IF EXISTS hafsql.hafsql_accounts_table_recovery_idx;')
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_accounts_table_withdraw_routes_idx ON hafsql.accounts_table USING gin (withdraw_routes);',
 	)
@@ -106,17 +110,28 @@ export const createOperationIndexes = async () => {
 	// 	)
 	// }
 	// transfer
+	// (x, id) indexes serve "latest transfers of X" without scanning the table by id -
+	// they replace the single column indexes
 	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_operation_transfer_table_from_account_idx ON hafsql.operation_transfer_table (from_account);',
+		'CREATE INDEX IF NOT EXISTS hafsql_operation_transfer_table_from_account_id_idx ON hafsql.operation_transfer_table (from_account, id);',
 	)
 	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_operation_transfer_table_to_account_idx ON hafsql.operation_transfer_table (to_account);',
+		'DROP INDEX IF EXISTS hafsql.hafsql_operation_transfer_table_from_account_idx;',
+	)
+	await query(
+		'CREATE INDEX IF NOT EXISTS hafsql_operation_transfer_table_to_account_id_idx ON hafsql.operation_transfer_table (to_account, id);',
+	)
+	await query(
+		'DROP INDEX IF EXISTS hafsql.hafsql_operation_transfer_table_to_account_idx;',
 	)
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_operation_transfer_table_amount_idx ON hafsql.operation_transfer_table (amount);',
 	)
 	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_operation_transfer_table_memo_idx ON hafsql.operation_transfer_table (memo);',
+		'CREATE INDEX IF NOT EXISTS hafsql_operation_transfer_table_memo_id_idx ON hafsql.operation_transfer_table (memo, id);',
+	)
+	await query(
+		'DROP INDEX IF EXISTS hafsql.hafsql_operation_transfer_table_memo_idx;',
 	)
 	// transfer_to_vesting
 	await query(
@@ -444,11 +459,18 @@ export const createOperationIndexes = async () => {
 		'CREATE INDEX IF NOT EXISTS hafsql_operation_fill_vesting_withdraw_table_deposited_idx ON hafsql.operation_fill_vesting_withdraw_table (deposited);',
 	)
 	// fill_order
+	// (owner, id) for /market/trade-history/{username} - replace the single column indexes
 	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_operation_fill_order_table_current_owner_idx ON hafsql.operation_fill_order_table (current_owner);',
+		'CREATE INDEX IF NOT EXISTS hafsql_operation_fill_order_table_current_owner_id_idx ON hafsql.operation_fill_order_table (current_owner, id);',
 	)
 	await query(
-		'CREATE INDEX IF NOT EXISTS hafsql_operation_fill_order_table_open_owner_idx ON hafsql.operation_fill_order_table (open_owner);',
+		'DROP INDEX IF EXISTS hafsql.hafsql_operation_fill_order_table_current_owner_idx;',
+	)
+	await query(
+		'CREATE INDEX IF NOT EXISTS hafsql_operation_fill_order_table_open_owner_id_idx ON hafsql.operation_fill_order_table (open_owner, id);',
+	)
+	await query(
+		'DROP INDEX IF EXISTS hafsql.hafsql_operation_fill_order_table_open_owner_idx;',
 	)
 	await query(
 		'CREATE INDEX IF NOT EXISTS hafsql_operation_fill_order_table_open_orderid_idx ON hafsql.operation_fill_order_table (open_orderid);',
