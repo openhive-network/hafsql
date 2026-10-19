@@ -112,12 +112,24 @@ const getHistoricBalance = async (username: string, blockNum: number) => {
 	return result.rows
 }
 
+// symbol -> btracker table and nai, both tables are indexed on (nai, balance DESC)
+const RICH_LIST_SOURCES: Record<string, [string, number]> = {
+	hive: ['current_account_balances', 21],
+	hbd: ['current_account_balances', 13],
+	vests: ['current_account_balances', 37],
+	hive_savings: ['account_savings', 21],
+	hbd_savings: ['account_savings', 13],
+}
+
 const getRichList = async (symbol: string, limit: number) => {
+	// Pick the top holders from the index first - sorting hafsql.balances means computing every account
+	const [table, nai] = RICH_LIST_SOURCES[symbol]
 	const result = await queryAPI(
-		`SELECT * FROM hafsql.balances 
-      ORDER BY ${symbol} DESC
-      LIMIT $1`,
-		[limit],
+		`SELECT b.* FROM
+      (SELECT account FROM hafbe_bal.${table} WHERE nai = $1 ORDER BY balance DESC LIMIT $2) t
+      JOIN hafsql.balances b ON b.account_id = t.account
+      ORDER BY b.${symbol} DESC`,
+		[nai, limit],
 	)
 	return result.rows
 }
