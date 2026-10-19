@@ -14,6 +14,7 @@ import { initDatabase, query } from './app/helpers/database.ts'
 import { createWorkers } from './app/helpers/createWorkers.ts'
 import { setupApiUser, setupPublicUser } from './app/setup/setup_public_user.ts'
 import { isHafReady } from './app/helpers/isHafReady.ts'
+import deno from '../deno.json' with { type: 'json' }
 
 // Running hafsql with the argument `purge` will remove everything and exit
 if (Deno.args.includes('purge')) {
@@ -34,7 +35,7 @@ console.log(`
 ║     ██║  ██║██║  ██║██║     ███████║╚██████╔╝███████╗     ║
 ║     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚══════╝ ╚══▀▀═╝ ╚══════╝     ║
 ║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
+╚${'═'.repeat(51 - deno.version.length)} v${deno.version} ═════╝
 
 `)
 
