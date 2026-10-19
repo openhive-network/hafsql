@@ -32,8 +32,8 @@ export const commentsAPI = new Router()
 
 const getComment = async (author: string, permlink: string) => {
 	const result = await queryAPI(
-		`SELECT * FROM hafsql.comments WHERE author=$1 AND permlink=$2
-      ORDER BY id`,
+		// (author, permlink) is unique - an ORDER BY id here makes the planner walk all of the author's comments
+		`SELECT * FROM hafsql.comments WHERE author=$1 AND permlink=$2`,
 		[author, permlink],
 	)
 	return result.rows
