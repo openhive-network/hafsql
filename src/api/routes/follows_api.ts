@@ -117,17 +117,15 @@ const getFollowing = async (
 }
 
 const getFollowCounts = async (username: string) => {
+	// hivemind keeps the counts per account - counting hivemind_app.follows is slow for popular accounts
 	const result = await queryArrayAPI(
-		`SELECT count(1) FROM hafsql.follows
-      WHERE following_name = $1
-      UNION ALL 
-      SELECT count(1) FROM hafsql.follows
-      WHERE follower_name = $1`,
+		`SELECT COALESCE(MAX(followers), 0)::bigint, COALESCE(MAX(following), 0)::bigint
+      FROM hivemind_app.hive_accounts WHERE name = $1`,
 		[username],
 	)
 	const temp = {
 		followers: result.rows[0][0],
-		following: result.rows[1][0],
+		following: result.rows[0][1],
 	}
 	return temp
 }
