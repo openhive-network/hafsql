@@ -15,7 +15,8 @@ export const proposalsAPI = new Router()
 	 * @responseContent {BadRequest} 400.application/json
 	 */
 	.get('/proposals/:id/approvals', async (ctx) => {
-		const id = validateBlockNum(ctx, ctx.params.id)
+		// proposal 0 exists (the return proposal)
+		const id = validateBlockNum(ctx, ctx.params.id, true)
 		const result = await getApprovals(id)
 		if (result.length === 0) {
 			return ctx.response.body = []
