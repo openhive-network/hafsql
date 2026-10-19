@@ -48,7 +48,7 @@ export const chainAPI = new Router()
 	 * @responseContent {BadRequest} 400.application/json
 	 */
 	.get('/chain/block/:block_num', async (ctx) => {
-		const blockNum = validateBlockNum(ctx, ctx.params.block_num)
+		const blockNum = validateBlockNum(ctx, ctx.params.block_num, true)
 		const params = ctx.request.url.searchParams
 		const validKeys = ['include_trx']
 		validateSearchParams(ctx, validKeys, false)
@@ -186,6 +186,9 @@ const getBlock = async (blockNum: number, includeTrx: boolean) => {
 		`SELECT * FROM hafsql.haf_blocks ${condition}`,
 		blockNum > 0 ? [blockNum] : [],
 	)
+	if (result.rows.length === 0) {
+		return []
+	}
 	const trxs = await getTransactions(result.rows[0].block_num, true)
 	const temp = { ...result.rows[0] }
 	temp['transactions'] = trxs

@@ -48,18 +48,20 @@ export const setupHafsqlViews = async () => {
   AS SELECT a.name as delegator,
     b.name as delegatee,
     (x.balance / 1000000.0)::numeric(27, 6) as vests,
-    hafsql.vests_to_hive(x.balance / 1000000.0) AS hp_equivalent,
-    hafsql.get_timestamp(x.source_op) as "timestamp"
+    -- Uncorrelated subquery = InitPlan, runs once per query (vests_to_hive runs a query per row)
+    ((x.balance / 1000000.0) / (SELECT vests_per_hive FROM hafsql.dynamic_global_properties ORDER BY block_num DESC LIMIT 1))::numeric(15, 3) AS hp_equivalent,
+    hb.created_at AT TIME ZONE 'UTC' as "timestamp"
    FROM hafbe_bal.current_accounts_delegations x
    join hafd.accounts a on x.delegator=a.id
-   join hafd.accounts b on x.delegatee=b.id;`)
+   join hafd.accounts b on x.delegatee=b.id
+   left join hafd.blocks hb on hb.num = hafd.operation_id_to_block_num(x.source_op);`)
 
 	// RC Delegations - tracked by balance_tracker
 	await query(`CREATE OR REPLACE VIEW hafsql.rc_delegations
   AS SELECT a.name AS delegator,
     b.name AS delegatee,
     x.max_rc AS rc,
-    hafsql.rc_to_hive(x.max_rc::numeric) as hp_equivalent,
+    ((x.max_rc / 1000000.0) / (SELECT vests_per_hive FROM hafsql.dynamic_global_properties ORDER BY block_num DESC LIMIT 1))::numeric(15, 3) AS hp_equivalent,
     hb.created_at AT TIME ZONE 'UTC' AS "timestamp"
     FROM hafbe_bal.current_rc_delegations x
     JOIN hafd.accounts a ON a.id = x.delegator
@@ -91,18 +93,32 @@ export const setupHafsqlViews = async () => {
     x.payout AS total_payout_value,
     x.curation_rewards AS curator_payout_value,
     x.beneficiary_rewards AS beneficiary_payout_value,
-    -- Only the latest vote of each voter counts (a changed vote replaces the previous one)
-    COALESCE((SELECT SUM(v.rshares) FROM (SELECT DISTINCT ON (voter) rshares FROM hafsql.operation_effective_comment_vote_view WHERE author=x.author AND permlink=x.permlink ORDER BY voter, id DESC) v), 0) AS total_rshares,
-    COALESCE((SELECT SUM(v.rshares) FROM (SELECT DISTINCT ON (voter) rshares FROM hafsql.operation_effective_comment_vote_view WHERE author=x.author AND permlink=x.permlink ORDER BY voter, id DESC) v), 0) AS net_rshares,
-    COALESCE((SELECT SUM(ABS(v.rshares)) FROM (SELECT DISTINCT ON (voter) rshares FROM hafsql.operation_effective_comment_vote_view WHERE author=x.author AND permlink=x.permlink ORDER BY voter, id DESC) v), 0) AS abs_rshares,
-    COALESCE((SELECT total_vote_weight FROM hafsql.operation_effective_comment_vote_view WHERE author=x.author and permlink=x.permlink ORDER BY id DESC LIMIT 1), 0) AS total_vote_weight,
-    COALESCE((SELECT extensions->0->'value'->>'beneficiaries' FROM hafsql.operation_comment_options_table WHERE author=x.author and permlink=x.permlink ORDER BY id DESC LIMIT 1), '[]') AS beneficiaries,
-    COALESCE((SELECT max_accepted_payout FROM hafsql.operation_comment_options_table WHERE author=x.author and permlink=x.permlink ORDER BY id DESC LIMIT 1), 1000000.0) AS max_accepted_payout,
-    COALESCE((SELECT percent_hbd FROM hafsql.operation_comment_options_table WHERE author=x.author and permlink=x.permlink ORDER BY id DESC LIMIT 1), '10000') AS percent_hbd,
-    COALESCE((SELECT allow_votes FROM hafsql.operation_comment_options_table WHERE author=x.author and permlink=x.permlink ORDER BY id DESC LIMIT 1), 'true') AS allow_votes,
-    COALESCE((SELECT allow_curation_rewards FROM hafsql.operation_comment_options_table WHERE author=x.author and permlink=x.permlink ORDER BY id DESC LIMIT 1), 'true') AS allow_curation_rewards,
+    rs.net_rshares AS total_rshares,
+    rs.net_rshares,
+    rs.abs_rshares,
+    COALESCE((SELECT (o.body_value->>'total_vote_weight')::numeric FROM hafd.operations o WHERE o.body_value->>'author'=x.author AND o.body_value->>'permlink'=x.permlink AND o.op_type_id=72 ORDER BY o.id DESC LIMIT 1), 0) AS total_vote_weight,
+    COALESCE(co.extensions->0->'value'->>'beneficiaries', '[]') AS beneficiaries,
+    COALESCE(co.max_accepted_payout, 1000000.0) AS max_accepted_payout,
+    COALESCE(co.percent_hbd, '10000') AS percent_hbd,
+    COALESCE(co.allow_votes, 'true') AS allow_votes,
+    COALESCE(co.allow_curation_rewards, 'true') AS allow_curation_rewards,
     x.deleted
-    FROM hafsql.comments_table x;`)
+    FROM hafsql.comments_table x
+    -- The planner drops these LEFT JOINs when none of their columns are selected
+    -- Only the latest vote of each voter counts (a changed vote replaces the previous one)
+    -- effective_comment_vote (op 72) read from hafd.operations directly - the view's blocks join isn't needed here
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(SUM(v.rshares), 0) AS net_rshares, COALESCE(SUM(ABS(v.rshares)), 0) AS abs_rshares
+      FROM (SELECT DISTINCT ON (o.body_value->>'voter') (o.body_value->>'rshares')::numeric AS rshares
+        FROM hafd.operations o
+        WHERE o.body_value->>'author'=x.author AND o.body_value->>'permlink'=x.permlink AND o.op_type_id=72
+        ORDER BY o.body_value->>'voter', o.id DESC) v
+    ) rs ON true
+    LEFT JOIN LATERAL (
+      SELECT c.extensions, c.max_accepted_payout, c.percent_hbd, c.allow_votes, c.allow_curation_rewards
+      FROM hafsql.operation_comment_options_table c
+      WHERE c.author=x.author AND c.permlink=x.permlink ORDER BY c.id DESC LIMIT 1
+    ) co ON true;`)
 
 	// Community Subs
 	await query(`CREATE OR REPLACE VIEW hafsql.community_subs
@@ -227,15 +243,16 @@ export const setupHafsqlViews = async () => {
     (SELECT ct.created FROM hafsql.comments_table ct WHERE ct.author = x.name and ct.parent_author ='' ORDER BY ct.id DESC LIMIT 1) AS last_root_post,
     (SELECT ct.created FROM hafsql.comments_table ct WHERE ct.author = x.name ORDER BY ct.id DESC LIMIT 1) AS last_post,
     (SELECT COUNT(1) FROM hafsql.comments_table ct WHERE ct.author = x.name) AS total_posts,
-    (SELECT COUNT(1) FROM hafsql.follows f WHERE f.following_name = x.name) AS followers,
-    (SELECT COUNT(1) FROM hafsql.follows f WHERE f.follower_name = x.name) AS followings,
+    -- hivemind keeps follow counts per account (same as counting hivemind_app.follows)
+    COALESCE((SELECT hm.followers FROM hivemind_app.hive_accounts hm WHERE hm.name = x.name), 0)::bigint AS followers,
+    COALESCE((SELECT hm.following FROM hivemind_app.hive_accounts hm WHERE hm.name = x.name), 0)::bigint AS followings,
     (SELECT r.rep FROM hafsql.reputations r WHERE r.account_name = x.name) AS reputation,
     (COALESCE(ad.received_vests, 0) / 1000000.0)::numeric(27, 6) AS incoming_vests,
-    -- vests_to_hive runs a query - skip it for accounts without delegations
-    CASE WHEN ad.received_vests > 0 THEN hafsql.vests_to_hive(ad.received_vests / 1000000.0) ELSE 0 END AS incoming_hp,
+    -- vests_per_hive subqueries are uncorrelated = InitPlan, run once per query (vests_to_hive runs a query per row)
+    CASE WHEN ad.received_vests > 0 THEN ((ad.received_vests / 1000000.0) / (SELECT vests_per_hive FROM hafsql.dynamic_global_properties ORDER BY block_num DESC LIMIT 1))::numeric(15, 3) ELSE 0 END AS incoming_hp,
     -- Not ad.delegated_vests - it includes delegations still being returned (and is stale for some accounts)
     (SELECT COALESCE(SUM(d.balance), 0) / 1000000.0 FROM hafbe_bal.current_accounts_delegations d WHERE d.delegator = x.id)::numeric(27, 6) AS outgoing_vests,
-    (SELECT CASE WHEN SUM(d.balance) > 0 THEN hafsql.vests_to_hive(SUM(d.balance) / 1000000.0) ELSE 0 END FROM hafbe_bal.current_accounts_delegations d WHERE d.delegator = x.id) AS outgoing_hp,
+    (SELECT CASE WHEN SUM(d.balance) > 0 THEN ((SUM(d.balance) / 1000000.0) / (SELECT vests_per_hive FROM hafsql.dynamic_global_properties ORDER BY block_num DESC LIMIT 1))::numeric(15, 3) ELSE 0 END FROM hafbe_bal.current_accounts_delegations d WHERE d.delegator = x.id) AS outgoing_hp,
     creatort."name" AS creator,
     ha.created_at,
     ha."owner",
@@ -250,7 +267,7 @@ export const setupHafsqlViews = async () => {
     rw.reward_hive_balance,
     rw.reward_hbd_balance,
     rw.reward_vests_balance,
-    hafsql.vests_to_hive(rw.reward_vests_balance) AS reward_vests_balance_hp,
+    (rw.reward_vests_balance / (SELECT vests_per_hive FROM hafsql.dynamic_global_properties ORDER BY block_num DESC LIMIT 1))::numeric(15, 3) AS reward_vests_balance_hp,
     CASE WHEN w.to_withdraw > w.withdrawn THEN ha.next_vesting_withdrawal END AS next_vesting_withdrawal,
     (COALESCE(w.to_withdraw, 0) / 1000000.0)::numeric(27, 6) AS to_withdraw,
     -- hived rounds the rate up since HF21 (btracker's vesting_withdraw_rate rounds down)
@@ -304,25 +321,21 @@ export const setupHafsqlViews = async () => {
     FROM hafd.applied_hardforks x;`)
 
 	// Balances
+	// One pk lookup per column (no GROUP BY / ORDER BY) so joins and filters on
+	// account_id/account_name stay index lookups instead of aggregating every account
 	await query(`CREATE OR REPLACE VIEW hafsql.balances
   AS SELECT
       a.id AS account_id,
       a.name AS account_name,
-      COALESCE(MAX(CASE WHEN cab.nai = 21 THEN cab.balance END), 0.0)/1000 AS hive,
-      COALESCE(MAX(CASE WHEN cab.nai = 13 THEN cab.balance END), 0.0)/1000 AS hbd,
-      COALESCE(MAX(CASE WHEN cab.nai = 37 THEN cab.balance END), 0.0)/1000000 AS vests,
-      hafsql.vests_to_hive(COALESCE(MAX(CASE WHEN cab.nai = 37 THEN cab.balance END), 0)/1000000) as hp_equivalent,
-      COALESCE(MAX(CASE WHEN ss.nai = 21 THEN ss.balance END), 0.0)/1000 AS hive_savings,
-      COALESCE(MAX(CASE WHEN ss.nai = 13 THEN ss.balance END), 0.0)/1000 AS hbd_savings
-    FROM hafd.accounts a
-    LEFT JOIN hafbe_bal.current_account_balances cab
-          ON cab.account = a.id
-          AND cab.nai IN (21, 13, 37)
-    LEFT JOIN hafbe_bal.account_savings ss
-          ON ss.account = a.id
-          AND ss.nai IN (21, 13)
-    GROUP BY a.id, a.name
-    ORDER BY a.id;`)
+      COALESCE((SELECT cab.balance FROM hafbe_bal.current_account_balances cab WHERE cab.account = a.id AND cab.nai = 21), 0.0)/1000 AS hive,
+      COALESCE((SELECT cab.balance FROM hafbe_bal.current_account_balances cab WHERE cab.account = a.id AND cab.nai = 13), 0.0)/1000 AS hbd,
+      COALESCE((SELECT cab.balance FROM hafbe_bal.current_account_balances cab WHERE cab.account = a.id AND cab.nai = 37), 0.0)/1000000 AS vests,
+      -- vests_per_hive subquery is uncorrelated = InitPlan, runs once per query (vests_to_hive runs a query per row)
+      (COALESCE((SELECT cab.balance FROM hafbe_bal.current_account_balances cab WHERE cab.account = a.id AND cab.nai = 37), 0)/1000000.0
+        / (SELECT vests_per_hive FROM hafsql.dynamic_global_properties ORDER BY block_num DESC LIMIT 1))::numeric(15, 3) AS hp_equivalent,
+      COALESCE((SELECT ss.balance FROM hafbe_bal.account_savings ss WHERE ss.account = a.id AND ss.nai = 21), 0.0)/1000 AS hive_savings,
+      COALESCE((SELECT ss.balance FROM hafbe_bal.account_savings ss WHERE ss.account = a.id AND ss.nai = 13), 0.0)/1000 AS hbd_savings
+    FROM hafd.accounts a;`)
 
 	// Balances history
 	await query(`CREATE OR REPLACE VIEW hafsql.balances_history

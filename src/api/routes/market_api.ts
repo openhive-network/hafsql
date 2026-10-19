@@ -95,6 +95,40 @@ export const marketAPI = new Router()
 		}
 	})
 	/**
+	 * GET /market/trade-history/{username}
+	 * @summary Account Trade History
+	 * @description Returns filled orders of an account (as either side of the trade).
+	 * @tag Market
+	 * @pathParam {string} username - Account username e.g. hbdstabilizer
+	 * @queryParam {integer} [limit=100] Max number of items to return - Can be negative for reverse sorting
+	 * - Min: -1000
+	 * - Max: 1000
+	 *  e.g. 100
+	 * @queryParam {integer} [start] - ID used for pagination e.g. 21473573759616569
+	 * @response 200 - A JSON array of filled orders
+	 * @response 400 - Bad request value
+	 * @responseContent {object[]} 200.application/json
+	 * @responseContent {BadRequest} 400.application/json
+	 */
+	.get('/market/trade-history/:username', async (ctx) => {
+		const names = await validateNames(ctx, ctx.params.username, 1)
+		const params = ctx.request.url.searchParams
+		validateSearchParams(ctx, ['limit', 'start'], false)
+		const limit = validateLimit(ctx, 100, 1000)
+		let start = null
+		if (params.has('start')) {
+			start = validateId(ctx, params.get('start'))
+		}
+		try {
+			const result = await getAccountTradeHistory(names[0], limit, start)
+			return ctx.response.body = BigJSONparser(
+				BigJSONstringifier(result),
+			)
+		} catch (_e) {
+			return ctx.throw(400, 'Bad params provided')
+		}
+	})
+	/**
 	 * GET /market/tickers
 	 * @summary Get Tickers
 	 * @description Returns basic information about the market.
@@ -240,6 +274,41 @@ const getAllTradeHistory = async (limit: number, start: null | string) => {
 		} 
     ORDER BY id ${limit > 0 ? 'DESC' : 'ASC'}
     LIMIT $1`,
+		params,
+	)
+	return result.rows
+}
+
+const getAccountTradeHistory = async (
+	username: string,
+	limit: number,
+	start: null | string,
+) => {
+	const params: Array<string | number> = [username, limit < 0 ? -limit : limit]
+	if (start) {
+		params.push(start)
+	}
+	const condition = start && limit > 0
+		? 'AND id < $3'
+		: start && limit < 0
+		? 'AND id > $3'
+		: ''
+	const order = limit > 0 ? 'DESC' : 'ASC'
+	// One branch per side so each can use its owner index
+	const result = await queryAPI(
+		`SELECT id, current_owner, open_owner, current_pays, current_pays_symbol,
+    open_pays, open_pays_symbol,
+		(CASE WHEN open_pays_symbol = 'HBD' THEN open_pays/current_pays ELSE current_pays/open_pays END)::numeric(30, 6) AS rate,
+		hafsql.get_timestamp(id) AS timestamp
+    FROM (
+      (SELECT * FROM hafsql.operation_fill_order_table
+        WHERE current_owner = $1 ${condition} ORDER BY id ${order} LIMIT $2)
+      UNION ALL
+      (SELECT * FROM hafsql.operation_fill_order_table
+        WHERE open_owner = $1 AND current_owner <> $1 ${condition} ORDER BY id ${order} LIMIT $2)
+    ) f
+    ORDER BY id ${order}
+    LIMIT $2`,
 		params,
 	)
 	return result.rows

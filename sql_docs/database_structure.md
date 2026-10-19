@@ -66,3 +66,16 @@ WHERE account_name = 'gtg' AND block_num BETWEEN 90000000 AND 90100000
 ORDER BY block_num
 ```
 !!!
+
+!!!
+`balances` computes each column per account. Filtering or sorting it by a balance (`hp_equivalent >= ...`,
+`ORDER BY hive DESC`) reads every account. For top holders, pick the accounts from the balance tracker
+index first and join (`nai`: 21 HIVE, 13 HBD, 37 VESTS - `hafbe_bal.account_savings` for savings):
+```sql
+SELECT b.* FROM
+  (SELECT account FROM hafbe_bal.current_account_balances WHERE nai = 37 ORDER BY balance DESC LIMIT 100) t
+JOIN hafsql.balances b ON b.account_id = t.account
+ORDER BY b.vests DESC
+```
+Rows are not sorted unless you add an `ORDER BY`.
+!!!
