@@ -214,16 +214,20 @@ const getByNames = async (namesArray: string[]) => {
 	return result.rows
 }
 
+// The lookups below read hafsql.accounts_table directly - the hafsql.accounts view
+// joins more tables per row than a list of names needs
+
 const getByCreator = async (
 	username: string,
 	startId: number,
 	limit: number,
 ) => {
 	const result = await queryArrayAPI(
-		`SELECT name FROM hafsql.accounts
-        WHERE creator=$1 
-        AND ${limit < 0 && startId !== -1 ? 'id < $2' : 'id > $2'}
-        ORDER BY id ${limit < 0 ? 'DESC' : 'ASC'}
+		`SELECT a.name FROM hafsql.accounts_table t
+        JOIN hafd.accounts a ON a.id = t.account
+        WHERE t.creator = (SELECT id FROM hafd.accounts WHERE name = $1)
+        AND ${limit < 0 && startId !== -1 ? 't.account < $2' : 't.account > $2'}
+        ORDER BY t.account ${limit < 0 ? 'DESC' : 'ASC'}
         LIMIT $3`,
 		[username, startId, limit < 0 ? -limit : limit],
 	)
@@ -236,11 +240,11 @@ const getByRecovery = async (
 	limit: number,
 ) => {
 	const result = await queryArrayAPI(
-		`SELECT name FROM hafsql.accounts
-        WHERE recovery=$1 AND ${
-			limit < 0 && startId !== -1 ? 'id < $2' : 'id > $2'
-		}
-        ORDER BY id ${limit < 0 ? 'DESC' : 'ASC'}
+		`SELECT a.name FROM hafsql.accounts_table t
+        JOIN hafd.accounts a ON a.id = t.account
+        WHERE t.recovery = (SELECT id FROM hafd.accounts WHERE name = $1)
+        AND ${limit < 0 && startId !== -1 ? 't.account < $2' : 't.account > $2'}
+        ORDER BY t.account ${limit < 0 ? 'DESC' : 'ASC'}
         LIMIT $3`,
 		[username, startId, limit < 0 ? -limit : limit],
 	)
@@ -250,19 +254,13 @@ const getByRecovery = async (
 const getByKey = async (key: string) => {
 	const keyJson = JSON.stringify({ key_auths: [[key]] })
 	const result = await queryArrayAPI(
-		`SELECT DISTINCT(name) FROM
-      (SELECT name, id FROM hafsql.accounts
-      WHERE posting @> $1::jsonb
-      UNION ALL 
-      SELECT name, id FROM hafsql.accounts
-      WHERE active @> $1::jsonb
-      UNION ALL
-      SELECT name, id FROM hafsql.accounts
-      WHERE "owner" @> $1::jsonb
-      UNION ALL
-      SELECT name, id FROM hafsql.accounts
-      WHERE memo_key = $2
-      ORDER BY id)`,
+		`SELECT a.name FROM hafsql.accounts_table t
+      JOIN hafd.accounts a ON a.id = t.account
+      WHERE t.posting @> $1::jsonb
+      OR t.active @> $1::jsonb
+      OR t."owner" @> $1::jsonb
+      OR t.memo_key = $2
+      ORDER BY t.account`,
 		[keyJson, key],
 	)
 	return result.rows
@@ -275,14 +273,14 @@ const getByAuthority = async (
 ) => {
 	const authJson = JSON.stringify({ account_auths: [[username]] })
 	const result = await queryArrayAPI(
-		`SELECT DISTINCT(name) FROM
-        (SELECT name, id FROM hafsql.accounts
-        WHERE posting @> $1::jsonb
-        OR active @> $1::jsonb
-        OR "owner" @> $1::jsonb
-        AND ${limit < 0 && startId !== -1 ? 'id < $2' : 'id > $2'}
-        ORDER BY id ${limit < 0 ? 'DESC' : 'ASC'}
-        LIMIT $3)`,
+		`SELECT a.name FROM hafsql.accounts_table t
+        JOIN hafd.accounts a ON a.id = t.account
+        WHERE (t.posting @> $1::jsonb
+        OR t.active @> $1::jsonb
+        OR t."owner" @> $1::jsonb)
+        AND ${limit < 0 && startId !== -1 ? 't.account < $2' : 't.account > $2'}
+        ORDER BY t.account ${limit < 0 ? 'DESC' : 'ASC'}
+        LIMIT $3`,
 		[authJson, startId, limit < 0 ? -limit : limit],
 	)
 	return result.rows
