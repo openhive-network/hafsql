@@ -446,7 +446,7 @@ export const setupFunctions = async () => {
     DECLARE
       account int4;
     BEGIN
-      SELECT a.id FROM hafsql.accounts a WHERE a.name = $1 INTO account;
+      SELECT a.id FROM hafd.accounts a WHERE a.name = $1 INTO account;
       RETURN QUERY SELECT * FROM hafsql.get_balance(account, $2);
     END
     $$
