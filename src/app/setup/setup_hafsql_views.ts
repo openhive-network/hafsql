@@ -240,8 +240,10 @@ export const setupHafsqlViews = async () => {
     x.name,
     x.block_num,
     (SELECT ov.timestamp FROM hafsql.operation_vote_view ov WHERE ov.voter = x.name ORDER BY ov.id DESC LIMIT 1) AS last_vote_time,
-    (SELECT ct.created FROM hafsql.comments_table ct WHERE ct.author = x.name and ct.parent_author ='' ORDER BY ct.id DESC LIMIT 1) AS last_root_post,
-    (SELECT ct.created FROM hafsql.comments_table ct WHERE ct.author = x.name ORDER BY ct.id DESC LIMIT 1) AS last_post,
+    -- By created, not id - ids are not in time order (the 2.7.0 re-post repair gave old comments new ids)
+    -- The row comparison keeps the planner on (author, created) - otherwise it may skip-scan (created, author, parent_author) for seconds
+    (SELECT ct.created FROM hafsql.comments_table ct WHERE (ct.author, ct.created) <= (x.name, 'infinity'::timestamptz) AND ct.author = x.name AND ct.parent_author = '' ORDER BY ct.author DESC, ct.created DESC LIMIT 1) AS last_root_post,
+    (SELECT ct.created FROM hafsql.comments_table ct WHERE (ct.author, ct.created) <= (x.name, 'infinity'::timestamptz) AND ct.author = x.name ORDER BY ct.author DESC, ct.created DESC LIMIT 1) AS last_post,
     (SELECT COUNT(1) FROM hafsql.comments_table ct WHERE ct.author = x.name) AS total_posts,
     -- hivemind keeps follow counts per account (same as counting hivemind_app.follows)
     COALESCE((SELECT hm.followers FROM hivemind_app.hive_accounts hm WHERE hm.name = x.name), 0)::bigint AS followers,
