@@ -122,17 +122,18 @@ const resetPaidPosts = async () => {
 		if (lastPaid.rows.length <= 0) {
 			return
 		}
-		const startComment = await query<{ id: number }>(
-			'SELECT id FROM hafsql.comments_table WHERE author=$1 AND permlink=$2',
+		// By created, not id - ids are not in time order (the 2.7.0 re-post repair gave old comments new ids)
+		// Everything created up to the last paid comment has reached its cashout
+		const startComment = await query<{ created: string }>(
+			'SELECT created FROM hafsql.comments_table WHERE author=$1 AND permlink=$2',
 			[lastPaid.rows[0].author, lastPaid.rows[0].permlink],
 		)
 		if (startComment.rows.length <= 0) {
 			return
 		}
-		const cmId = startComment.rows[0].id
 		await query(
-			'UPDATE hafsql.comments_table SET pending_payout_value=0 WHERE id<=$1 AND pending_payout_value>0',
-			[cmId],
+			'UPDATE hafsql.comments_table SET pending_payout_value=0 WHERE created<=$1 AND pending_payout_value>0',
+			[startComment.rows[0].created],
 		)
 	} catch (_e) {
 		console.log(_e)
