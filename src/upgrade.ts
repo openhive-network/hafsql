@@ -1,6 +1,7 @@
 import deno from '../deno.json' with { type: 'json' }
 import { query, transaction } from './app/helpers/database.ts'
 import { print } from './app/helpers/utils/print.ts'
+import { getLastBlockNum } from './app/helpers/utils/get_last_block_num.ts'
 import { operationTables } from './app/setup/setup_operation_tables.ts'
 import { semver } from './deps.ts'
 import { setup } from './app/setup/setup.ts'
@@ -367,6 +368,39 @@ export const handleUpgrade = async () => {
 			WHERE n.account = t.account
 			AND (t.last_update IS DISTINCT FROM n.last_update OR t.last_owner_update IS DISTINCT FROM n.last_owner_update)`,
 		)
+		print('Upgrade script done ✅')
+	}
+
+	// Upgrading from < 2.7.4
+	// The paid-posts reset compared ids, which are out of time order after the 2.7.0 re-post repair -
+	// when a renumbered comment was paid out it zeroed every pending payout below its new id.
+	// Restore pending payouts of unpaid comments from their latest effective_comment_vote (up to the synced block).
+	if (semver.lessThan(semver.parse(oldVersion), semver.parse('2.7.4'))) {
+		print('Upgrading from version < 2.7.4 - restoring pending payouts')
+		// Passed as parameters - as subqueries the planner can't use the created index
+		const lastPaid = await query<{ created: string }>(
+			`SELECT ct.created FROM hafsql.comments_table ct
+			JOIN (SELECT author, permlink FROM hafsql.operation_comment_payout_update_table ORDER BY id DESC LIMIT 1) p
+			ON ct.author = p.author AND ct.permlink = p.permlink`,
+		)
+		if (lastPaid.rows.length > 0) {
+			const lastBlock = await getLastBlockNum('pending_rewards')
+			await query(
+				`WITH v AS (
+					SELECT c.id, l.pending_payout FROM hafsql.comments_table c
+					JOIN LATERAL (
+						SELECT e.pending_payout FROM hafsql.operation_effective_comment_vote_view e
+						WHERE e.author = c.author AND e.permlink = c.permlink
+						AND e.id <= hafsql.last_op_id_from_block_num($2)
+						ORDER BY e.id DESC LIMIT 1
+					) l ON true
+					WHERE c.created > $1 AND c.pending_payout_value IS DISTINCT FROM l.pending_payout
+				)
+				UPDATE hafsql.comments_table c SET pending_payout_value = v.pending_payout
+				FROM v WHERE c.id = v.id`,
+				[lastPaid.rows[0].created, lastBlock],
+			)
+		}
 		print('Upgrade script done ✅')
 	}
 
