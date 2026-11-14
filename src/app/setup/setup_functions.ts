@@ -146,21 +146,18 @@ export const setupFunctions = async () => {
 		`CREATE OR REPLACE FUNCTION hafsql.vests_to_hive(numeric, int4 default NULL)
     RETURNS numeric(15, 3)
     AS $$
-    DECLARE
-      hive_amount numeric(15, 3);
-    BEGIN
-      SELECT CASE WHEN $2 is NULL THEN
-        (SELECT $1 / vests_per_hive FROM hafsql.dynamic_global_properties ORDER BY block_num DESC LIMIT 1)
+      -- Plain SQL, no PL/pgSQL EXCEPTION block: an exception block opens a subtransaction on
+      -- every call (about 9% of the call's time), and when an in-flight call is torn down
+      -- during COMMIT it logs "AbortSubTransaction while in COMMIT state". vests_per_hive is
+      -- never 0, NULLIF only guards against it; a missing block_num still returns NULL, and an
+      -- overflow of numeric(15, 3) now raises instead of silently returning 0.
+      SELECT (CASE WHEN $2 IS NULL THEN
+        (SELECT $1 / NULLIF(vests_per_hive, 0) FROM hafsql.dynamic_global_properties ORDER BY block_num DESC LIMIT 1)
       ELSE
-        (SELECT $1 / vests_per_hive FROM hafsql.dynamic_global_properties WHERE block_num = $2 LIMIT 1)
-      END
-      INTO STRICT hive_amount;
-      RETURN hive_amount::numeric(15, 3);
-    EXCEPTION WHEN OTHERS THEN
-      RETURN 0;
-    END
+        (SELECT $1 / NULLIF(vests_per_hive, 0) FROM hafsql.dynamic_global_properties WHERE block_num = $2 LIMIT 1)
+      END)::numeric(15, 3)
     $$
-    LANGUAGE plpgsql
+    LANGUAGE sql
     STABLE
     PARALLEL SAFE;`,
 	)
