@@ -12,3 +12,28 @@ pages:
       - public/
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+
+# Keeps main identical to upstream (gitlab.com/mahdiyari/hafsql), as GitLab CE has no pull
+# mirroring. Runs only from the scheduled pipeline on blocktrades/main (UPSTREAM_SYNC=1):
+# fast-forwards main and adds upstream's tags, using the upstream-sync project access token.
+# It never overwrites: if main has commits upstream lacks, the job fails instead of pushing.
+upstream-sync:
+  stage: deploy
+  image: alpine:3.20
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $UPSTREAM_SYNC == "1"'
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - apk add --no-cache git
+    - git init -q /tmp/sync && cd /tmp/sync
+    - ORIGIN="https://oauth2:${UPSTREAM_SYNC_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+    - git fetch -q https://gitlab.com/mahdiyari/hafsql.git "+refs/heads/main:refs/remotes/upstream/main" "+refs/tags/*:refs/tags/*"
+    - git fetch -q "$ORIGIN" "+refs/heads/main:refs/remotes/ours/main"
+    - |
+      if ! git merge-base --is-ancestor refs/remotes/ours/main refs/remotes/upstream/main; then
+        echo "main has commits that upstream lacks; refusing to overwrite it"
+        exit 1
+      fi
+    - git push "$ORIGIN" refs/remotes/upstream/main:refs/heads/main
+    - git push "$ORIGIN" --tags
